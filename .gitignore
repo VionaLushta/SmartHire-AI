@@ -1,0 +1,38 @@
+# Python
+**/__pycache__/
+*.pyc
+*.py[cod]
+*.egg-info/
+*.log
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Virtual environments
+**/.venv/
+backend/.venv/
+venv/
+.venv/
+
+# Environment files
+*.env
+.env
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+dist/
+
+# Installers and binaries
+*.exe
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

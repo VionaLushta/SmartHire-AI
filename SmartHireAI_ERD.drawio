@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram name="SmartHire AI ERD">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="roles" value="ROLES&#10;PK role_id&#10;name&#10;description" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="170" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="users" value="USERS&#10;PK user_id&#10;FK role_id&#10;first_name&#10;last_name&#10;email&#10;password_hash&#10;phone&#10;city&#10;country&#10;linkedin_url&#10;github_url&#10;portfolio_url&#10;created_at&#10;updated_at" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="280" y="20" width="220" height="250" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="companies" value="COMPANIES&#10;PK company_id&#10;name&#10;industry&#10;website&#10;logo&#10;location" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="780" y="20" width="220" height="160" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="jobs" value="JOBS&#10;PK job_id&#10;FK company_id&#10;title&#10;description&#10;employment_type&#10;experience_level&#10;salary_min&#10;salary_max&#10;deadline&#10;status" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="20" width="220" height="220" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="companyusers" value="COMPANY_USERS&#10;PK id&#10;FK company_id&#10;FK user_id&#10;position" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="780" y="240" width="220" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="resumes" value="RESUMES&#10;PK resume_id&#10;FK user_id&#10;file_path&#10;parsed_text" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="280" y="340" width="220" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="certs" value="CERTIFICATES&#10;PK cert_id&#10;FK user_id&#10;title&#10;issuer&#10;issue_date" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="20" y="340" width="220" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="skills" value="SKILLS&#10;PK skill_id&#10;name&#10;category" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="540" y="340" width="180" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="jobskills" value="JOB_SKILLS&#10;FK job_id&#10;FK skill_id&#10;required_level" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="300" width="220" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="resumeskills" value="RESUME_SKILLS&#10;FK resume_id&#10;FK skill_id&#10;confidence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="540" y="500" width="180" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="apps" value="APPLICATIONS&#10;PK application_id&#10;FK user_id&#10;FK job_id&#10;FK resume_id&#10;status" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="820" y="500" width="220" height="150" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="analysis" value="AI_ANALYSIS&#10;PK analysis_id&#10;FK application_id&#10;overall_score&#10;skills_score&#10;education_score&#10;experience_score&#10;certificate_score&#10;recommendations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="500" width="240" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="trainings" value="TRAININGS&#10;PK training_id&#10;FK company_id&#10;title&#10;capacity" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="780" y="700" width="220" height="120" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="enroll" value="TRAINING_ENROLLMENTS&#10;FK training_id&#10;FK user_id&#10;status" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="700" width="240" height="120" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
