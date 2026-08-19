@@ -1,38 +1,65 @@
 # Python
-**/__pycache__/
-*.pyc
+__pycache__/
 *.py[cod]
 *.egg-info/
-*.log
-.coverage
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
 htmlcov/
 
 # Virtual environments
-**/.venv/
+.venv/
 backend/.venv/
 venv/
-.venv/
+env/
 
-# Environment files
-*.env
-.env
-!.env.example
-backend/.env
-backend/.env.*
-!backend/.env.example
-
-# Node
+# Node / frontend
 node_modules/
 frontend/node_modules/
 frontend/dist/
 dist/
+coverage/
+*.tsbuildinfo
 
-# Installers and binaries
-*.exe
+# Environment files
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
 
-# IDE and OS files
-.vscode/
-.idea/
+# OS / editor
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
+
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+*.backup
+*~
+
+# Generated application files
+backend/app/uploads/*
+!backend/app/uploads/.gitkeep
+backend/app/reports/*
+!backend/app/reports/.gitkeep
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Binaries and installers
+*.exe
+*.msi
+*.dmg
+*.pkg
+*.zip

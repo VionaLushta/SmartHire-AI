@@ -1,12 +1,25 @@
+import { Suspense, lazy } from 'react';
+import { ThemeProvider } from './context/ThemeContext';
+import { NotificationProvider } from './context/NotificationContext';
+import NotificationCenter from './components/ui/NotificationCenter';
+import ErrorBoundary from './components/ui/ErrorBoundary';
+import LoadingScreenPage from './pages/errors/LoadingScreenPage';
+
+const AppRouter = lazy(() => import('./routes/AppRouter'));
+
 function App() {
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-      <h1 className="text-5xl font-bold text-white">
-        CV Management System 🚀
-      </h1>
-    </div>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <NotificationProvider>
+          <Suspense fallback={<LoadingScreenPage />}>
+            <AppRouter />
+          </Suspense>
+          <NotificationCenter />
+        </NotificationProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 
 export default App;
-

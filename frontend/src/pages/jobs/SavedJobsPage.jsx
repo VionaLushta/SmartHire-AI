@@ -1,0 +1,80 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { BookmarkCheck, BriefcaseBusiness } from 'lucide-react';
+import Button from '../../components/ui/Button';
+import { savedJobService } from '../../services/savedJobService';
+import { jobService } from '../../services/jobService';
+import { unwrapItems, unwrapResponse } from '../../utils/dashboard';
+
+export default function SavedJobsPage() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadSavedJobs() {
+      try {
+        const response = await savedJobService.list();
+        const savedJobs = unwrapItems(response);
+
+        const enriched = await Promise.all(
+          savedJobs.map(async (savedJob) => {
+            const detail = savedJob.job_id ? await jobService.detail(savedJob.job_id).catch(() => null) : null;
+            return {
+              ...savedJob,
+              job: detail ? unwrapResponse(detail) : savedJob.job || null,
+            };
+          }),
+        );
+
+        setItems(enriched);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadSavedJobs();
+  }, []);
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 pb-10">
+      <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Saved roles</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Your shortlist</h1>
+          </div>
+          <BookmarkCheck className="h-8 w-8 text-slate-900" aria-hidden="true" />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {loading ? (
+          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-sm text-slate-600">Loading saved roles...</div>
+        ) : items.length === 0 ? (
+          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-sm text-slate-600">
+            You have not saved any roles yet.
+          </div>
+        ) : (
+          items.map((savedJob) => {
+            const job = savedJob.job || {};
+            return (
+              <div key={savedJob.saved_job_id || savedJob.job_id} className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">{job.company_name || 'Company'}</p>
+                    <h2 className="mt-1 text-2xl font-semibold text-slate-950">{job.title || 'Open role'}</h2>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button as={Link} to={job.job_id ? `/jobs/${job.job_id}` : '/jobs'} variant="primary">
+                      View role
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
