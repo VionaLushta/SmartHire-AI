@@ -1,48 +1,42 @@
 # SmartHire AI Backend
 
-FastAPI backend foundation for the SmartHire AI platform.
+FastAPI backend for SmartHire AI.
 
-## Structure
+## What Lives Here
 
-- `app/api/`
-- `app/core/`
-- `app/database/`
-- `app/models/`
-- `app/schemas/`
-- `app/services/`
-- `app/repositories/`
-- `app/utils/`
-- `app/ml/`
-- `app/uploads/`
-- `app/reports/`
+- `app/api` - route handlers
+- `app/core` - settings, security, pagination, and dependencies
+- `app/database` - engine and session setup
+- `app/models` - SQLAlchemy models
+- `app/repositories` - database access layer
+- `app/services` - business rules
+- `app/schemas` - request and response contracts
+- `app/ml` - parsing, matching, ranking, and analytics helpers
+- `alembic` - database migrations
+- `tests` - backend tests
 
 ## Setup
 
-1. Create and activate a virtual environment.
-2. Install dependencies:
-
 ```bash
+cd backend
+python -m venv .venv
+.venv\Scripts\activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-3. Create a `.env` file from `.env.example` and fill in the values you need.
-4. Initialize Alembic is already prepared in `alembic/`.
-
-5. Start the backend:
-
-```bash
+cp .env.example .env
+alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-## Verification
+## Useful Endpoints
 
-- Open `http://127.0.0.1:8000/`
-- Confirm the response is:
+- API root: `http://127.0.0.1:8000`
+- OpenAPI docs: `http://127.0.0.1:8000/docs`
+- ReDoc: `http://127.0.0.1:8000/redoc`
 
-```json
-{
-  "message": "SmartHire AI API is running"
-}
-```
+## Notes
 
-On startup, the application also checks the PostgreSQL connection and prints a success or readable failure message.
+- The backend reads configuration from `backend/.env`.
+- Keep migrations in sync with model changes.
+- Route handlers should stay thin and delegate to services.

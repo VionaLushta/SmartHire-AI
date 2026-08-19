@@ -1,16 +1,39 @@
-# React + Vite
+# SmartHire AI Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React 19 + Vite frontend for SmartHire AI.
 
-Currently, two official plugins are available:
+## What Lives Here
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- `src/routes` - route registration and guards
+- `src/layouts` - page shells
+- `src/pages` - route-level screens
+- `src/components` - reusable UI and feature components
+- `src/redux` - store and slices
+- `src/services` - API and auth helpers
+- `src/context` - theme and notification providers
+- `src/hooks` - shared hooks
+- `src/utils` - helper functions
+- `src/styles` - global styling
 
-## React Compiler
+## Setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
 
-## Expanding the Oxlint configuration
+## Useful Commands
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+```bash
+npm run lint
+npm run build
+npm run preview
+```
+
+## Notes
+
+- Configure `VITE_API_URL` before running the app.
+- Frontend environment variables are exposed to the browser bundle, so do not store secrets there.
+- Reuse shared components before adding new UI primitives.
