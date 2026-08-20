@@ -41,6 +41,147 @@ def calculate_similarity(job_description: str, candidate_text: str) -> float:
     return round(float(score) * 100, 1)
 
 
+def evaluate_skill_match(
+    candidate_text: str, skill_name: str
+) -> dict[str, float | str]:
+    """Classify how strongly a single skill appears in the candidate text."""
+    candidate_norm = preprocess_text(candidate_text)
+    skill_norm = preprocess_text(skill_name)
+    if not candidate_norm or not skill_norm:
+        return {"skill": skill_name, "status": "Missing", "match_score": 0.0}
+
+    candidate_tokens = set(candidate_norm.split())
+    skill_tokens = [token for token in skill_norm.split() if token]
+    if not skill_tokens:
+        return {"skill": skill_name, "status": "Missing", "match_score": 0.0}
+
+    overlap = _token_coverage(skill_tokens, candidate_tokens)
+    similarity = calculate_similarity(skill_name, candidate_text)
+    exact_phrase = skill_norm in candidate_norm
+
+    if exact_phrase or overlap >= 1.0 or similarity >= 70:
+        return {
+            "skill": skill_name,
+            "status": "Detected",
+            "match_score": round(max(similarity, overlap * 100), 1),
+        }
+    if overlap >= 0.5 or similarity >= 30:
+        return {
+            "skill": skill_name,
+            "status": "Partial Match",
+            "match_score": round(max(similarity, overlap * 100), 1),
+        }
+    return {
+        "skill": skill_name,
+        "status": "Missing",
+        "match_score": round(similarity, 1),
+    }
+
+
+def build_skill_report(
+    candidate_text: str, skills: Sequence[Mapping[str, Any]]
+) -> dict[str, Any]:
+    """Build a structured skill report for admin-defined job skills."""
+    report: list[dict[str, Any]] = []
+    detected: list[str] = []
+    partial: list[str] = []
+    missing: list[str] = []
+
+    for skill in skills:
+        skill_name = _skill_name(skill)
+        evaluation = evaluate_skill_match(candidate_text, skill_name)
+        item = {
+            "skill_id": skill.get("skill_id"),
+            "name": skill_name,
+            "category": skill.get("category"),
+            "is_required": bool(skill.get("is_required", True)),
+            "status": evaluation["status"],
+            "match_score": evaluation["match_score"],
+        }
+        report.append(item)
+        if item["status"] == "Detected":
+            detected.append(skill_name)
+        elif item["status"] == "Partial Match":
+            partial.append(skill_name)
+        else:
+            missing.append(skill_name)
+
+    return {
+        "report": report,
+        "detected": detected,
+        "partial": partial,
+        "missing": missing,
+        "required_coverage": _coverage(report, required=True),
+        "optional_coverage": _coverage(report, required=False),
+        "strengths": build_candidate_strengths(candidate_text, report),
+        "gaps": build_candidate_gaps(report, candidate_text),
+    }
+
+
+def build_candidate_strengths(
+    candidate_text: str, skill_report: Sequence[Mapping[str, Any]]
+) -> list[str]:
+    strengths: list[str] = []
+    detected_required = [
+        item["name"]
+        for item in skill_report
+        if item.get("is_required") and item.get("status") == "Detected"
+    ]
+    detected_optional = [
+        item["name"]
+        for item in skill_report
+        if not item.get("is_required") and item.get("status") == "Detected"
+    ]
+    partial_matches = [
+        item["name"] for item in skill_report if item.get("status") == "Partial Match"
+    ]
+
+    for skill in detected_required[:4]:
+        strengths.append(f"Strong {skill} knowledge")
+    for skill in detected_optional[:2]:
+        strengths.append(f"Relevant {skill} exposure")
+    if any(token in preprocess_text(candidate_text) for token in ("backend", "api", "developer", "engineer")):
+        strengths.append("Relevant backend experience")
+    if any(skill.casefold() in {"sql", "postgresql", "database"} for skill in detected_required + detected_optional):
+        strengths.append("Good SQL knowledge")
+    if "git" in preprocess_text(candidate_text):
+        strengths.append("Git workflow detected")
+    if partial_matches:
+        strengths.append(f"Partial alignment seen for {partial_matches[0]}")
+    return _dedupe_preserve_order(strengths) or [
+        "The profile has a foundation to build on for this role."
+    ]
+
+
+def build_candidate_gaps(
+    skill_report: Sequence[Mapping[str, Any]], candidate_text: str | None = None
+) -> list[str]:
+    gaps: list[str] = []
+    for item in skill_report:
+        if item.get("is_required") and item.get("status") == "Missing":
+            gaps.append(f"{item['name']} missing")
+    if not any(item.get("name") == "Docker" and item.get("status") != "Missing" for item in skill_report):
+        gaps.append("Docker missing")
+    if not any(item.get("name") == "Redis" and item.get("status") != "Missing" for item in skill_report):
+        gaps.append("Redis missing")
+    lowered = preprocess_text(candidate_text or "")
+    if lowered and not any(token in lowered for token in ("cloud", "aws", "azure", "gcp")):
+        gaps.append("Cloud technologies not detected")
+    return _dedupe_preserve_order(gaps)
+
+
+def score_job_fit(
+    resume_similarity: float, required_coverage: float, optional_coverage: float
+) -> float:
+    """Combine NLP similarity with required and optional skill coverage."""
+    score = (
+        float(resume_similarity) * 0.4
+        + float(required_coverage) * 0.4
+        + float(optional_coverage) * 0.2
+    )
+    return round(max(0.0, min(100.0, score)), 1)
+
+
 def find_primary_match(
     candidate_text: str, applied_job: Mapping[str, Any]
 ) -> dict[str, Any]:
@@ -174,3 +315,44 @@ def _job_key(job: Mapping[str, Any] | None) -> tuple[str | None, str | None]:
         if value:
             return (key, str(value))
     return (None, _job_description(job) or None)
+
+
+def _skill_name(skill: Mapping[str, Any]) -> str:
+    for key in ("name", "skill_name", "label"):
+        value = skill.get(key)
+        if value:
+            return str(value)
+    return "Unknown Skill"
+
+
+def _token_coverage(skill_tokens: Sequence[str], candidate_tokens: set[str]) -> float:
+    if not skill_tokens:
+        return 0.0
+    matches = 0
+    for token in skill_tokens:
+        if token in candidate_tokens or token.rstrip("s") in candidate_tokens:
+            matches += 1
+    return matches / len(skill_tokens)
+
+
+def _coverage(report: Sequence[Mapping[str, Any]], *, required: bool) -> float:
+    relevant = [item for item in report if bool(item.get("is_required")) is required]
+    if not relevant:
+        return 0.0
+    score = 0.0
+    for item in relevant:
+        if item.get("status") == "Detected":
+            score += 100.0
+        elif item.get("status") == "Partial Match":
+            score += 50.0
+    return round(score / len(relevant), 1)
+
+
+def _dedupe_preserve_order(values: Sequence[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for value in values:
+        if value not in seen:
+            seen.add(value)
+            ordered.append(value)
+    return ordered

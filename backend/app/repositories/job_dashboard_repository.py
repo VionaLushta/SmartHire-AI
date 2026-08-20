@@ -37,9 +37,19 @@ class JobDashboardRepository:
         return dict(row) if row else None
 
     def get_required_skills(self, job_id: int) -> list[dict]:
+        return self.get_skill_groups(job_id)["required_skills"]
+
+    def get_optional_skills(self, job_id: int) -> list[dict]:
+        return self.get_skill_groups(job_id)["optional_skills"]
+
+    def get_skill_groups(self, job_id: int) -> dict[str, list[dict]]:
         statement = (
             select(
-                Skill.__table__.c.skill_id,
+                JobSkill.__table__.c.id,
+                JobSkill.__table__.c.job_id,
+                JobSkill.__table__.c.skill_id,
+                JobSkill.__table__.c.is_required,
+                JobSkill.__table__.c.required_level,
                 Skill.__table__.c.name,
                 Skill.__table__.c.category,
             )
@@ -50,9 +60,17 @@ class JobDashboardRepository:
                 )
             )
             .where(JobSkill.__table__.c.job_id == job_id)
-            .order_by(Skill.__table__.c.name)
+            .order_by(JobSkill.__table__.c.is_required.desc(), Skill.__table__.c.name)
         )
-        return [dict(row) for row in self.db.execute(statement).mappings().all()]
+        required_skills: list[dict] = []
+        optional_skills: list[dict] = []
+        for row in self.db.execute(statement).mappings().all():
+            skill = dict(row)
+            if skill.get("is_required", True):
+                required_skills.append(skill)
+            else:
+                optional_skills.append(skill)
+        return {"required_skills": required_skills, "optional_skills": optional_skills}
 
     def applicants_count(self, job_id: int) -> int:
         statement = (

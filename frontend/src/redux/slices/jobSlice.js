@@ -4,6 +4,7 @@ import { companyService } from '../../services/companyService';
 import { departmentService } from '../../services/departmentService';
 import { jobCategoryService } from '../../services/jobCategoryService';
 import { jobService } from '../../services/jobService';
+import { jobSkillService } from '../../services/jobSkillService';
 import { savedJobService } from '../../services/savedJobService';
 import { unwrapItems, unwrapResponse } from '../../utils/dashboard';
 
@@ -35,6 +36,8 @@ function normalizeJob(job = {}) {
     salary_max: job.salary_max ?? null,
     category_ids: Array.isArray(job.category_ids) ? job.category_ids : [],
     required_skills: Array.isArray(job.required_skills) ? job.required_skills : [],
+    optional_skills: Array.isArray(job.optional_skills) ? job.optional_skills : [],
+    skills: Array.isArray(job.skills) ? job.skills : [],
   };
 }
 
@@ -46,19 +49,27 @@ async function enrichJob(job) {
       ? Promise.all(job.category_ids.map((id) => jobCategoryService.detail(id)))
       : Promise.resolve([]),
   ]);
+  const skillResult = job.job_id ? await jobSkillService.list(job.job_id).catch(() => null) : null;
 
   const company = unwrapResponse(companyResult.status === 'fulfilled' ? companyResult.value : null);
   const department = unwrapResponse(departmentResult.status === 'fulfilled' ? departmentResult.value : null);
   const categories = (categoryResults || []).map((item) => unwrapResponse(item.status === 'fulfilled' ? item.value : null)).filter(Boolean);
+  const skillPayload = unwrapResponse(skillResult);
+  const requiredSkills = skillPayload?.required_skills || [];
+  const optionalSkills = skillPayload?.optional_skills || [];
 
   return normalizeJob({
     ...job,
     company_name: job.company_name || company?.name || 'Company',
     department_name: job.department_name || department?.name || 'General',
     skill_names: categories.map((category) => category.name),
-    required_skills: categories.length
-      ? categories.map((category) => category.name)
-      : job.required_skills || [],
+    required_skills: requiredSkills.length
+      ? requiredSkills.map((skill) => skill.name)
+      : categories.length
+        ? categories.map((category) => category.name)
+        : job.required_skills || [],
+    optional_skills: optionalSkills.map((skill) => skill.name),
+    skills: [...requiredSkills, ...optionalSkills],
   });
 }
 

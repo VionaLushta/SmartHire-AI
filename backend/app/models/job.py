@@ -5,6 +5,7 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
+    Boolean,
     Date,
     DateTime,
     ForeignKey,
@@ -107,6 +108,7 @@ class JobSkill(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     job_id: Mapped[int] = mapped_column(ForeignKey("jobs.job_id"), nullable=False)
     skill_id: Mapped[int] = mapped_column(ForeignKey("skills.skill_id"), nullable=False)
+    is_required: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     required_level: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     job: Mapped["Job"] = relationship(back_populates="skills")

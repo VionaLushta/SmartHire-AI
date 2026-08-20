@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.database import Base
@@ -21,6 +21,7 @@ class JobSkill(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     job_id: Mapped[int] = mapped_column(ForeignKey("jobs.job_id"), nullable=False)
     skill_id: Mapped[int] = mapped_column(ForeignKey("skills.skill_id"), nullable=False)
+    is_required: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     required_level: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     job: Mapped["Job"] = relationship(back_populates="skills")

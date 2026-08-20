@@ -31,6 +31,13 @@ from app.schemas.ai_resume import (
     SkillExtractionResponse,
 )
 from app.schemas.auth import CurrentUserResponse
+from app.services.nlp_matcher import (
+    build_candidate_gaps,
+    build_candidate_strengths,
+    build_skill_report,
+    calculate_similarity,
+    score_job_fit,
+)
 
 MAX_RESUME_SIZE = 10 * 1024 * 1024
 
@@ -198,17 +205,38 @@ class ResumeAIService:
             row["name"]
             for row in JobDashboardRepository(self.db).get_required_skills(job_id)
         ]
-        if not required_skills:
+        optional_skills = [
+            row["name"]
+            for row in JobDashboardRepository(self.db).get_optional_skills(job_id)
+        ]
+        if not required_skills and not optional_skills:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No AI match available because the job has no required skills.",
             )
-        preferred_skills = (
+        preferred_skills = optional_skills or (
             self.extract_skills(job["description"]).skills[:8]
             if job.get("description")
             else []
         )
         education, experience, certifications = self._infer_profile_features(text)
+        skill_report = build_skill_report(
+            text,
+            [
+                {"name": name, "is_required": True}
+                for name in required_skills
+            ]
+            + [
+                {"name": name, "is_required": False}
+                for name in optional_skills
+            ],
+        )
+        resume_similarity = calculate_similarity(job.get("description") or "", text)
+        final_skill_score = score_job_fit(
+            resume_similarity,
+            skill_report["required_coverage"],
+            skill_report["optional_coverage"],
+        )
         candidate = {
             "candidate_skills": skills,
             "skills": skills,
@@ -218,6 +246,11 @@ class ResumeAIService:
             "languages": self.recommendation_engine.detect_languages(text),
             "required_skills": required_skills,
             "preferred_skills": preferred_skills,
+            "skill_report": skill_report["report"],
+            "candidate_strengths": build_candidate_strengths(text, skill_report["report"]),
+            "candidate_gaps": build_candidate_gaps(skill_report["report"], text),
+            "resume_similarity": resume_similarity,
+            "skill_match_score": final_skill_score,
         }
         match_result = self.job_matcher.compare(
             candidate,
@@ -228,6 +261,17 @@ class ResumeAIService:
                 "education": job.get("description") or "",
             },
         )
+        legacy_overall_match = match_result["overall_match"]
+        if required_skills or optional_skills:
+            match_result["overall_match"] = final_skill_score
+            match_result["legacy_overall_match"] = legacy_overall_match
+        match_result["resume_similarity"] = resume_similarity
+        match_result["required_skill_coverage"] = skill_report["required_coverage"]
+        match_result["optional_skill_coverage"] = skill_report["optional_coverage"]
+        match_result["candidate_strengths"] = candidate["candidate_strengths"]
+        match_result["candidate_gaps"] = candidate["candidate_gaps"]
+        match_result["skill_report"] = candidate["skill_report"]
+        match_result["final_skill_match"] = final_skill_score
         return candidate, match_result
 
     def _similar_job_data(self, excluded_job_id: int) -> list[dict]:
@@ -431,7 +475,10 @@ class ResumeAIService:
                     Skill.__table__.c.skill_id == JobSkill.__table__.c.skill_id,
                 )
             )
-            .where(JobSkill.__table__.c.job_id == job_id)
+            .where(
+                JobSkill.__table__.c.job_id == job_id,
+                JobSkill.__table__.c.is_required.is_(True),
+            )
         )
         return list(self.db.scalars(statement))
 

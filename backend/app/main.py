@@ -11,9 +11,11 @@ from app.database.database import SessionLocal
 from app.api.auth import router as auth_router
 from app.api.ai_resume import router as ai_resume_router
 from app.api.ai_dashboard import router as ai_dashboard_router
+from app.api.analytics import router as analytics_router
 from app.api.company import router as company_router
 from app.api.company_dashboard import router as company_dashboard_router
 from app.api.candidate import router as candidate_router
+from app.api.candidates import router as candidates_router
 from app.api.certificate import router as certificate_router
 from app.api.candidate_dashboard import router as candidate_dashboard_router
 from app.api.education import router as education_router
@@ -87,9 +89,11 @@ app.include_router(company_router)
 app.include_router(auth_router)
 app.include_router(ai_resume_router)
 app.include_router(ai_dashboard_router)
+app.include_router(analytics_router)
 app.include_router(company_dashboard_router)
 app.include_router(candidate_dashboard_router)
 app.include_router(candidate_router)
+app.include_router(candidates_router)
 app.include_router(certificate_router)
 app.include_router(education_router)
 app.include_router(department_router)
