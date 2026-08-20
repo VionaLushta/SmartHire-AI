@@ -6,7 +6,7 @@ import { formatSalaryRange } from '../../utils/dashboard';
 
 export default function RecommendationCard({ job, matchPercent }) {
   return (
-    <article className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md">
+    <article className="group rounded-[16px] border border-slate-200 bg-white p-5 shadow-sm transition duration-150 ease-out hover:border-slate-300">
       <div className="flex items-start justify-between gap-4">
         <div>
           <Badge tone="neutral">Recommended</Badge>
@@ -16,9 +16,11 @@ export default function RecommendationCard({ job, matchPercent }) {
             {job.company_name}
           </p>
         </div>
-        <div className="rounded-2xl bg-slate-950 px-4 py-3 text-right text-white">
+        <div className="rounded-[14px] bg-slate-950 px-4 py-3 text-right text-white">
           <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Match</p>
-          <p className="mt-1 text-2xl font-semibold">{matchPercent ?? '—'}%</p>
+          <p className="mt-1 text-2xl font-semibold">
+            {matchPercent == null ? 'N/A' : `${matchPercent}%`}
+          </p>
         </div>
       </div>
 

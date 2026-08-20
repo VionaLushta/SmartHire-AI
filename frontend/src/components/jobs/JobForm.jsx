@@ -50,60 +50,66 @@ export default function JobForm({ initialValues, categories = [], departments = 
     onSubmit(payload);
   }
 
+  const fieldClassName =
+    'h-11 w-full rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-4 text-[15px] text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03)] outline-none transition duration-150 ease-out placeholder:text-slate-400 hover:border-[rgba(15,23,42,0.12)] focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10';
+
+  const textAreaClassName =
+    'w-full rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-4 py-3 text-[15px] text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03)] outline-none transition duration-150 ease-out placeholder:text-slate-400 hover:border-[rgba(15,23,42,0.12)] focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10';
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="lg:col-span-2">
-          <label className="mb-2 block text-sm font-medium text-slate-700">Job title</label>
+          <label className="field-label">Job title</label>
           <input
             value={form.title || ''}
             onChange={(event) => updateField('title', event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className={fieldClassName}
             placeholder="Senior Product Designer"
             required
           />
         </div>
 
         <div className="lg:col-span-2">
-          <label className="mb-2 block text-sm font-medium text-slate-700">Description</label>
+          <label className="field-label">Description</label>
           <textarea
             rows={5}
             value={form.description || ''}
             onChange={(event) => updateField('description', event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className={textAreaClassName}
             placeholder="Describe the role, mission, and the impact this team is making."
             required
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">Responsibilities</label>
+          <label className="field-label">Responsibilities</label>
           <textarea
             rows={4}
             value={form.responsibilities || ''}
             onChange={(event) => updateField('responsibilities', event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className={textAreaClassName}
             placeholder="List day-to-day responsibilities"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">Requirements</label>
+          <label className="field-label">Requirements</label>
           <textarea
             rows={4}
             value={form.requirements || ''}
             onChange={(event) => updateField('requirements', event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className={textAreaClassName}
             placeholder="List required qualifications"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">Department</label>
+          <label className="field-label">Department</label>
           <select
             value={form.department_id || ''}
             onChange={(event) => updateField('department_id', event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className={fieldClassName}
           >
             <option value="">Select department</option>
             {departments.map((department) => (
@@ -115,21 +121,21 @@ export default function JobForm({ initialValues, categories = [], departments = 
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">Category IDs</label>
+          <label className="field-label">Category IDs</label>
           <input
             value={form.category_ids || ''}
             onChange={(event) => updateField('category_ids', event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className={fieldClassName}
             placeholder="1, 2, 3"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">Employment type</label>
+          <label className="field-label">Employment type</label>
           <select
             value={form.employment_type || 'Full-time'}
             onChange={(event) => updateField('employment_type', event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className={fieldClassName}
           >
             <option value="Full-time">Full-time</option>
             <option value="Part-time">Part-time</option>
@@ -139,11 +145,11 @@ export default function JobForm({ initialValues, categories = [], departments = 
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">Experience level</label>
+          <label className="field-label">Experience level</label>
           <select
             value={form.experience_level || 'Mid'}
             onChange={(event) => updateField('experience_level', event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className={fieldClassName}
           >
             <option value="Entry">Entry</option>
             <option value="Mid">Mid</option>
@@ -153,21 +159,21 @@ export default function JobForm({ initialValues, categories = [], departments = 
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">Location</label>
+          <label className="field-label">Location</label>
           <input
             value={form.location || ''}
             onChange={(event) => updateField('location', event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className={fieldClassName}
             placeholder="New York, NY"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">Status</label>
+          <label className="field-label">Status</label>
           <select
             value={form.status || 'open'}
             onChange={(event) => updateField('status', event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className={fieldClassName}
           >
             <option value="open">Open</option>
             <option value="paused">Paused</option>
@@ -176,34 +182,34 @@ export default function JobForm({ initialValues, categories = [], departments = 
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">Minimum salary</label>
+          <label className="field-label">Minimum salary</label>
           <input
             type="number"
             value={form.salary_min ?? ''}
             onChange={(event) => updateField('salary_min', event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className={fieldClassName}
             placeholder="120000"
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">Maximum salary</label>
+          <label className="field-label">Maximum salary</label>
           <input
             type="number"
             value={form.salary_max ?? ''}
             onChange={(event) => updateField('salary_max', event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className={fieldClassName}
             placeholder="150000"
           />
         </div>
 
         <div className="lg:col-span-2">
-          <label className="mb-2 block text-sm font-medium text-slate-700">Application deadline</label>
+          <label className="field-label">Application deadline</label>
           <input
             type="date"
             value={form.deadline || ''}
             onChange={(event) => updateField('deadline', event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+            className={fieldClassName}
           />
         </div>
       </div>

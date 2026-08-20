@@ -21,7 +21,7 @@ export default function PasswordStrength({ password }) {
   const bars = [0, 1, 2, 3];
 
   const toneClasses = {
-    slate: 'bg-slate-200 dark:bg-slate-800',
+    slate: 'bg-slate-200',
     rose: 'bg-rose-500',
     amber: 'bg-amber-500',
     sky: 'bg-sky-500',
@@ -30,7 +30,7 @@ export default function PasswordStrength({ password }) {
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
+      <div className="flex items-center justify-between text-xs font-medium text-slate-500">
         <span>Password strength</span>
         <span>{strength.label}</span>
       </div>
@@ -40,7 +40,7 @@ export default function PasswordStrength({ password }) {
             key={bar}
             className={[
               'h-2 rounded-full transition',
-              bar < strength.score ? toneClasses[strength.tone] : 'bg-slate-200 dark:bg-slate-800',
+              bar < strength.score ? toneClasses[strength.tone] : 'bg-slate-200',
             ].join(' ')}
           />
         ))}

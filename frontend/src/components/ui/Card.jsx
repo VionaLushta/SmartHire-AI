@@ -4,7 +4,7 @@ export default function Card({ className, children }) {
   return (
     <section
       className={classNames(
-        'rounded-[1.75rem] border border-slate-200/80 bg-white/85 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_60px_rgba(15,23,42,0.08)]',
+        'rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-6 text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_10px_28px_rgba(15,23,42,0.04)] transition duration-150 ease-out hover:border-[rgba(15,23,42,0.12)]',
         className,
       )}
     >

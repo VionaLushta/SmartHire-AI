@@ -59,16 +59,16 @@ export default function JobDetailsPage() {
   return (
     <div className="space-y-8 pb-10">
       <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 bg-slate-950 px-6 py-8 text-white md:px-8">
+        <div className="border-b border-slate-200 bg-slate-50 px-6 py-8 md:px-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-400">{selectedJob.company_name || 'Company'}</p>
-              <h1 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl">{selectedJob.title}</h1>
+              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">{selectedJob.company_name || 'Company'}</p>
+              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 md:text-5xl">{selectedJob.title}</h1>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">AI Match</p>
-              <p className="mt-2 text-3xl font-semibold">{match}%</p>
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center shadow-sm">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">AI Match</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-950">{match}%</p>
             </div>
           </div>
         </div>
@@ -171,9 +171,9 @@ export default function JobDetailsPage() {
         <aside className="space-y-6">
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-950">AI match panel</h2>
-            <div className="mt-5 rounded-2xl bg-slate-950 p-5 text-white">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Overall match</p>
-              <p className="mt-3 text-4xl font-semibold">{match}%</p>
+            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Overall match</p>
+              <p className="mt-3 text-4xl font-semibold text-slate-950">{match}%</p>
             </div>
 
             <div className="mt-5 space-y-4 text-sm text-slate-600">

@@ -1,2 +1,2 @@
 export const APP_NAME = 'SmartHire AI';
-export const APP_TAGLINE = 'A scalable frontend shell for the SmartHire AI platform.';
+export const APP_TAGLINE = 'Premium recruiting software for modern hiring teams.';

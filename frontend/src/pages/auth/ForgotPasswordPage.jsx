@@ -36,7 +36,7 @@ export default function ForgotPasswordPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <label htmlFor="forgot-email" className="text-sm font-medium text-slate-700 dark:text-slate-200">
+              <label htmlFor="forgot-email" className="text-sm font-medium text-slate-700">
                 Email
               </label>
               <input
@@ -46,17 +46,17 @@ export default function ForgotPasswordPage() {
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="you@company.com"
                 className={classNames(
-                  'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:ring-2 dark:bg-slate-950 dark:text-slate-50',
+                  'h-11 w-full rounded-[1.1rem] border border-slate-200 bg-white px-4 text-sm text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#2563eb] focus:ring-2 focus:ring-[rgba(37,99,235,0.12)]',
                   submitted && error
-                    ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/10 dark:border-rose-900'
-                    : 'border-slate-200 focus:border-slate-400 focus:ring-slate-900/10 dark:border-slate-800 dark:focus:border-slate-600',
+                    ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-rose-500/10'
+                    : 'hover:border-slate-300',
                 )}
               />
-              {submitted && error ? <p className="text-xs font-medium text-rose-600 dark:text-rose-300">{error}</p> : null}
+              {submitted && error ? <p className="text-xs font-medium text-rose-600">{error}</p> : null}
             </div>
 
             {submitted && !error ? (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                 UI only: reset instructions would be sent from the backend in a later ticket.
               </div>
             ) : null}

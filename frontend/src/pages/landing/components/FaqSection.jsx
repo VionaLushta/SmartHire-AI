@@ -16,11 +16,11 @@ export default function FaqSection() {
           {faqs.map((faq) => (
             <details
               key={faq.question}
-              className="group rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm transition duration-300 open:shadow-md"
+              className="group rounded-[16px] border border-slate-200 bg-white p-6 shadow-sm transition duration-150 ease-out open:shadow-sm"
             >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-lg font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-lg font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-transparent">
                 <span>{faq.question}</span>
-                <ChevronDown className="h-5 w-5 shrink-0 text-slate-400 transition duration-300 group-open:rotate-180 group-open:text-slate-900" aria-hidden="true" />
+                <ChevronDown className="h-5 w-5 shrink-0 text-slate-500 transition duration-150 ease-out group-open:rotate-180 group-open:text-slate-700" aria-hidden="true" />
               </summary>
               <p className="mt-4 max-w-4xl text-sm leading-7 text-slate-600">{faq.answer}</p>
             </details>

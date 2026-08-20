@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import Button from '../ui/Button';
+import BrandLockup from '../brand/BrandLockup';
 
 export default function MobileMenu({ open, onClose, items = [], title = 'Menu' }) {
   if (!open) {
@@ -12,21 +13,18 @@ export default function MobileMenu({ open, onClose, items = [], title = 'Menu' }
       <button
         type="button"
         aria-label="Close mobile menu backdrop"
-        className="absolute inset-0 bg-slate-950/40"
+        className="absolute inset-0 bg-slate-950/35"
         onClick={onClose}
       />
       <aside
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="absolute left-0 top-0 flex h-full w-[88%] max-w-sm flex-col bg-white shadow-2xl"
+        className="absolute left-0 top-0 flex h-full w-[88%] max-w-sm flex-col border-r border-[rgba(15,23,42,0.08)] bg-white text-slate-900 shadow-[0_24px_60px_rgba(15,23,42,0.14)]"
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-[rgba(15,23,42,0.08)] px-5 py-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
-              SmartHire AI
-            </p>
-            <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
+            <BrandLockup linkTo="/" compact subtitle={title} />
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close menu">
             <X className="h-5 w-5" aria-hidden="true" />
@@ -39,8 +37,8 @@ export default function MobileMenu({ open, onClose, items = [], title = 'Menu' }
               const Icon = item.icon;
               const isHashLink = typeof item.to === 'string' && item.to.includes('#');
               const sharedClasses = [
-                'flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2',
-                'text-slate-700 hover:bg-slate-100 hover:text-slate-950',
+                'flex items-center gap-3 rounded-[14px] px-3 py-3 text-[15px] font-medium transition duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-white',
+                'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
               ].join(' ');
 
               return (
@@ -57,11 +55,11 @@ export default function MobileMenu({ open, onClose, items = [], title = 'Menu' }
                       className={({ isActive }) =>
                         [
                           sharedClasses,
-                          isActive ? 'bg-slate-900 text-white shadow-sm' : '',
+                          isActive ? 'bg-blue-50 text-blue-700' : '',
                         ]
                           .filter(Boolean)
                           .join(' ')
-                      }
+                    }
                     >
                       <Icon className="h-4 w-4" aria-hidden="true" />
                       <span>{item.label}</span>

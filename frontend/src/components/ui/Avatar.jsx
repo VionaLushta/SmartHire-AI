@@ -10,7 +10,7 @@ export default function Avatar({ initials = 'SH', size = 'md', className }) {
   return (
     <div
       className={classNames(
-        'inline-flex items-center justify-center rounded-full bg-slate-950 font-semibold text-white shadow-sm ring-2 ring-slate-100',
+        'inline-flex items-center justify-center rounded-full bg-slate-950 font-semibold text-white shadow-[0_8px_20px_rgba(15,23,42,0.18)] ring-2 ring-slate-100',
         sizes[size],
         className,
       )}

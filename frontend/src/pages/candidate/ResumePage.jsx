@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { BrainCircuit, BriefcaseBusiness, Download, Sparkles } from 'lucide-react';
+import { BriefcaseBusiness, ChartNoAxesCombined, Download, Sparkles } from 'lucide-react';
 import ResumeUploader from '../../components/resume/ResumeUploader';
 import ResumePreview from '../../components/resume/ResumePreview';
 import ResumeHistory from '../../components/resume/ResumeHistory';
@@ -119,7 +119,7 @@ export default function ResumePage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Candidate profile</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Resume & AI analysis</h1>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-50">Resume & analysis</h1>
           </div>
 
           <div className="flex items-center gap-3">
@@ -163,10 +163,10 @@ export default function ResumePage() {
           <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">AI analysis</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">Skills and recommendations</h2>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Analysis</p>
+                <h2 className="mt-2 text-xl font-semibold text-slate-50">Skills and recommendations</h2>
               </div>
-              <BrainCircuit className="h-6 w-6 text-slate-700" aria-hidden="true" />
+              <ChartNoAxesCombined className="h-6 w-6 text-slate-400" aria-hidden="true" />
             </div>
 
             <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -211,7 +211,7 @@ export default function ResumePage() {
           {selectedResume ? (
             <ResumePreview resume={selectedResume} previewUrl={previewUrl} onReplace={() => {}} onDownload={() => {}} />
           ) : (
-            <EmptyState title="No resume uploaded" description="Upload a resume to generate AI analysis and a preview." />
+              <EmptyState title="No resume uploaded" description="Upload a resume to generate analysis and a preview." />
           )}
 
           <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">

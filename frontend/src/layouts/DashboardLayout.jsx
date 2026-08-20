@@ -55,11 +55,12 @@ export default function DashboardLayout() {
   }, [location.pathname, user?.role, user?.role_name]);
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900">
+    <div className="flex min-h-screen text-slate-900">
       <Sidebar mobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar
+          user={user}
           title={currentMeta.title}
           breadcrumbs={currentMeta.breadcrumbs.map((label, index) => ({
             label,

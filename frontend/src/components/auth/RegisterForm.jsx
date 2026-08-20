@@ -124,7 +124,7 @@ export default function RegisterForm() {
           { name: 'lastName', label: 'Last Name', placeholder: 'Johnson', autoComplete: 'family-name' },
         ].map((field) => (
           <div key={field.name} className="space-y-2">
-            <label htmlFor={field.name} className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            <label htmlFor={field.name} className="text-sm font-medium text-slate-700">
               {field.label}
             </label>
             <input
@@ -138,21 +138,21 @@ export default function RegisterForm() {
               placeholder={field.placeholder}
               aria-invalid={Boolean((touched[field.name] || submitted) && errors[field.name])}
               className={classNames(
-                'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:ring-2 dark:bg-slate-950 dark:text-slate-50',
+                'h-11 w-full rounded-xl border border-[rgba(15,23,42,0.08)] bg-white px-4 text-sm text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)] outline-none transition duration-150 ease-out placeholder:text-slate-400 focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10',
                 (touched[field.name] || submitted) && errors[field.name]
-                  ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/10 dark:border-rose-900'
-                  : 'border-slate-200 focus:border-slate-400 focus:ring-slate-900/10 dark:border-slate-800 dark:focus:border-slate-600',
+                  ? 'border-[#ef4444]/30 bg-[#fff5f5] focus:border-[#ef4444] focus:ring-[#ef4444]/10'
+                  : 'hover:border-[rgba(15,23,42,0.12)]',
               )}
             />
             {(touched[field.name] || submitted) && errors[field.name] ? (
-              <p className="text-xs font-medium text-rose-600 dark:text-rose-300">{errors[field.name]}</p>
+              <p className="text-xs font-medium text-rose-600">{errors[field.name]}</p>
             ) : null}
           </div>
         ))}
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium text-slate-700 dark:text-slate-200">
+        <label htmlFor="email" className="text-sm font-medium text-slate-700">
           Email
         </label>
         <input
@@ -166,14 +166,14 @@ export default function RegisterForm() {
           placeholder="you@company.com"
           aria-invalid={Boolean((touched.email || submitted) && errors.email)}
           className={classNames(
-            'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:ring-2 dark:bg-slate-950 dark:text-slate-50',
+            'h-11 w-full rounded-xl border border-[rgba(15,23,42,0.08)] bg-white px-4 text-sm text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)] outline-none transition duration-150 ease-out placeholder:text-slate-400 focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10',
             (touched.email || submitted) && errors.email
-              ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/10 dark:border-rose-900'
-              : 'border-slate-200 focus:border-slate-400 focus:ring-slate-900/10 dark:border-slate-800 dark:focus:border-slate-600',
+              ? 'border-[#ef4444]/30 bg-[#fff5f5] focus:border-[#ef4444] focus:ring-[#ef4444]/10'
+              : 'hover:border-[rgba(15,23,42,0.12)]',
           )}
         />
         {(touched.email || submitted) && errors.email ? (
-          <p className="text-xs font-medium text-rose-600 dark:text-rose-300">{errors.email}</p>
+          <p className="text-xs font-medium text-rose-600">{errors.email}</p>
         ) : null}
       </div>
 
@@ -203,7 +203,7 @@ export default function RegisterForm() {
       />
 
       <div className="space-y-2">
-        <label htmlFor="role" className="text-sm font-medium text-slate-700 dark:text-slate-200">
+        <label htmlFor="role" className="text-sm font-medium text-slate-700">
           Role
         </label>
         <select
@@ -214,40 +214,40 @@ export default function RegisterForm() {
           onBlur={handleBlur}
           aria-invalid={Boolean((touched.role || submitted) && errors.role)}
           className={classNames(
-            'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-950 outline-none transition focus:ring-2 dark:bg-slate-950 dark:text-slate-50',
+            'h-11 w-full rounded-xl border border-[rgba(15,23,42,0.08)] bg-white px-4 text-sm text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)] outline-none transition duration-150 ease-out focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10',
             (touched.role || submitted) && errors.role
-              ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/10 dark:border-rose-900'
-              : 'border-slate-200 focus:border-slate-400 focus:ring-slate-900/10 dark:border-slate-800 dark:focus:border-slate-600',
+              ? 'border-[#ef4444]/30 bg-[#fff5f5] focus:border-[#ef4444] focus:ring-[#ef4444]/10'
+              : 'hover:border-[rgba(15,23,42,0.12)]',
           )}
         >
           <option value="candidate">Candidate</option>
           <option value="company">Company</option>
         </select>
         {(touched.role || submitted) && errors.role ? (
-          <p className="text-xs font-medium text-rose-600 dark:text-rose-300">{errors.role}</p>
+          <p className="text-xs font-medium text-rose-600">{errors.role}</p>
         ) : null}
       </div>
 
       <div className="space-y-3">
-        <label className="inline-flex items-start gap-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+        <label className="inline-flex items-start gap-3 text-sm leading-6 text-slate-600">
           <input
             type="checkbox"
             name="acceptTerms"
             checked={values.acceptTerms}
             onChange={handleChange}
             onBlur={handleBlur}
-            className="mt-1 h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-900"
+            className="mt-1 h-4 w-4 rounded border-[rgba(15,23,42,0.12)] bg-white text-[#2563eb] focus:ring-[#2563eb]"
           />
           <span>
             I accept the{' '}
-            <Link to="/" className="font-medium text-slate-950 underline-offset-4 hover:underline dark:text-slate-50">
+            <Link to="/" className="font-medium text-slate-900 underline-offset-4 hover:underline">
               terms of service
             </Link>{' '}
             and privacy policy.
           </span>
         </label>
         {(touched.acceptTerms || submitted) && errors.acceptTerms ? (
-          <p className="text-xs font-medium text-rose-600 dark:text-rose-300">{errors.acceptTerms}</p>
+          <p className="text-xs font-medium text-rose-600">{errors.acceptTerms}</p>
         ) : null}
       </div>
 
@@ -257,11 +257,11 @@ export default function RegisterForm() {
         Register
       </Button>
 
-      <p className="text-sm text-slate-500 dark:text-slate-400">
+      <p className="text-sm text-slate-500">
         Already have an account?{' '}
         <Link
           to="/login"
-          className="font-semibold text-slate-950 underline-offset-4 hover:underline dark:text-slate-50"
+          className="font-semibold text-slate-900 underline-offset-4 hover:underline"
         >
           Sign in
         </Link>

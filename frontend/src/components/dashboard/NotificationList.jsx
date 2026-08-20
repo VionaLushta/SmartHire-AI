@@ -3,9 +3,9 @@ import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 
 const tones = {
-  success: 'bg-emerald-100 text-emerald-700',
-  warning: 'bg-amber-100 text-amber-700',
-  danger: 'bg-rose-100 text-rose-700',
+  success: 'bg-emerald-50 text-emerald-700',
+  warning: 'bg-amber-50 text-amber-700',
+  danger: 'bg-rose-50 text-rose-700',
   neutral: 'bg-slate-100 text-slate-700',
 };
 
@@ -18,10 +18,10 @@ export default function NotificationList({ items = [], readIds = [], onMarkRead,
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Bell className="h-5 w-5 text-slate-500" aria-hidden="true" />
-          <h3 className="text-lg font-semibold text-slate-950">Notifications</h3>
+          <h3 className="text-[24px] font-bold tracking-[-0.04em] text-slate-900">Notifications</h3>
           <Badge tone={unreadCount > 0 ? 'warning' : 'neutral'}>{unreadCount} unread</Badge>
         </div>
         <Button
@@ -43,21 +43,21 @@ export default function NotificationList({ items = [], readIds = [], onMarkRead,
               <article
                 key={item.id}
                 className={[
-                  'rounded-2xl border p-4 transition',
+                  'rounded-[16px] border p-4 transition duration-150 ease-out',
                   read
-                    ? 'border-slate-200 bg-white'
-                    : 'border-slate-300 bg-slate-50 shadow-sm',
+                    ? 'border-[rgba(15,23,42,0.08)] bg-white'
+                    : 'border-[rgba(15,23,42,0.12)] bg-slate-50',
                 ].join(' ')}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3">
-                    <div className={['mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl', toneClass(item.tone)].join(' ')}>
+                    <div className={['mt-0.5 flex h-10 w-10 items-center justify-center rounded-[12px]', toneClass(item.tone)].join(' ')}>
                       {read ? <Check className="h-4 w-4" aria-hidden="true" /> : <CircleDot className="h-4 w-4" aria-hidden="true" />}
                     </div>
                     <div className="space-y-1">
-                      <h4 className="font-semibold text-slate-950">{item.title}</h4>
+                      <h4 className="text-sm font-semibold tracking-[-0.02em] text-slate-900">{item.title}</h4>
                       <p className="text-sm leading-6 text-slate-600">{item.message}</p>
-                      <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">
+                      <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-500">
                         {item.time}
                       </p>
                     </div>
@@ -74,7 +74,7 @@ export default function NotificationList({ items = [], readIds = [], onMarkRead,
             );
           })
         ) : (
-          <p className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
+          <p className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-4 text-sm text-slate-500">
             You are all caught up.
           </p>
         )}

@@ -8,7 +8,7 @@ export default function Breadcrumb({ items = [] }) {
 
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm">
-      <ol className="flex flex-wrap items-center gap-2 text-slate-500">
+      <ol className="flex flex-wrap items-center gap-2 rounded-full border border-[rgba(15,23,42,0.08)] bg-white px-3 py-2 text-slate-500 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           return (
@@ -19,7 +19,7 @@ export default function Breadcrumb({ items = [] }) {
               {item.to && !isLast ? (
                 <Link
                   to={item.to}
-                  className="font-medium text-slate-500 transition hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
+                  className="font-medium text-slate-500 transition hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-white"
                 >
                   {item.label}
                 </Link>

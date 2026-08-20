@@ -5,7 +5,7 @@ export default function AuthCard({ children, className = '' }) {
   return (
     <Card
       className={classNames(
-        'relative overflow-hidden rounded-3xl border-slate-200/80 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90',
+        'relative overflow-hidden rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white shadow-[0_14px_36px_rgba(15,23,42,0.08)]',
         className,
       )}
     >

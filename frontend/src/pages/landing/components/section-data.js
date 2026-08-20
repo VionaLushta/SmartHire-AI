@@ -1,22 +1,19 @@
 import {
-  ArrowPathRoundedSquareIcon,
-  ChartBarIcon,
-  ClipboardDocumentCheckIcon,
-  Cog6ToothIcon,
-  SparklesIcon,
-  UserGroupIcon,
-} from '@heroicons/react/24/outline';
-import {
-  BrainCircuit,
   BriefcaseBusiness,
   ChartNoAxesCombined,
   Clock3,
+  ClipboardCheck,
+  RefreshCcw,
   GraduationCap,
   MessageSquareQuote,
   ScrollText,
   ShieldCheck,
   Star,
+  Sparkles,
+  BarChart3,
+  Settings2,
   Users,
+  UserRound,
 } from 'lucide-react';
 
 export const trustedCompanies = [
@@ -32,34 +29,34 @@ export const trustedCompanies = [
 
 export const features = [
   {
-    icon: SparklesIcon,
-    title: 'AI Resume Analysis',
-    description: 'Understand every profile instantly with structured signals, highlights, and fit scoring.',
+    icon: Sparkles,
+    title: 'AI Resume Matching',
+    description: 'Read every resume in context, then surface structured signals, highlights, and fit confidence.',
   },
   {
-    icon: ChartBarIcon,
-    title: 'Candidate Ranking',
-    description: 'Prioritize the best applicants with a clean, explainable shortlist.',
+    icon: BarChart3,
+    title: 'Smart Candidate Ranking',
+    description: 'Prioritize the strongest applicants with an explainable shortlist that hiring teams can trust.',
   },
   {
-    icon: ArrowPathRoundedSquareIcon,
-    title: 'Skill Matching',
-    description: 'Match job requirements to experience, certifications, and hidden strengths.',
+    icon: RefreshCcw,
+    title: 'Recruitment Analytics',
+    description: 'Track funnel movement, hiring velocity, and quality signals in one clean reporting layer.',
   },
   {
-    icon: Cog6ToothIcon,
-    title: 'Smart Recommendations',
-    description: 'Surface next-best actions for recruiters and hiring managers across the funnel.',
+    icon: Settings2,
+    title: 'Company Dashboard',
+    description: 'Give recruiters a command center for jobs, candidates, interviews, and team activity.',
   },
   {
-    icon: UserGroupIcon,
-    title: 'Analytics Dashboard',
-    description: 'Track hiring velocity, candidate quality, and team performance in one place.',
+    icon: UserRound,
+    title: 'Candidate Dashboard',
+    description: 'Let candidates manage their profile, saved jobs, applications, and resume progress from one view.',
   },
   {
-    icon: ClipboardDocumentCheckIcon,
-    title: 'Interview Management',
-    description: 'Coordinate interviews and decision steps with an efficient, shared workflow.',
+    icon: ClipboardCheck,
+    title: 'Power BI Reporting',
+    description: 'Export the hiring story into executive-ready reporting that fits broader BI workflows.',
   },
 ];
 
@@ -73,8 +70,8 @@ export const steps = [
     description: 'Applicants submit clean profiles that are easy to read and ready for analysis.',
   },
   {
-    title: 'AI analyzes profile',
-    description: 'SmartHire AI extracts skills, relevance, and ranking signals automatically.',
+    title: 'SmartHire scores the profile',
+    description: 'The platform extracts skills, relevance, and ranking signals automatically.',
   },
   {
     title: 'Recruiter hires best match',
@@ -103,9 +100,9 @@ export const comparisons = [
   },
   {
     title: 'SmartHire AI',
-    icon: BrainCircuit,
+    icon: ChartNoAxesCombined,
     points: [
-      'AI-assisted review',
+      'Structured candidate review',
       'Fast candidate ranking',
       'Centralized workflow',
       'Clear hiring insights',
@@ -147,7 +144,7 @@ export const pricing = [
     name: 'Professional',
     price: '$39',
     description: 'For growing teams hiring every week.',
-    features: ['AI resume analysis', 'Candidate ranking', 'Interview workflow'],
+    features: ['Resume intelligence', 'Candidate ranking', 'Interview workflow'],
     highlighted: true,
   },
   {
@@ -163,7 +160,7 @@ export const faqs = [
   {
     question: 'What does SmartHire AI do?',
     answer:
-      'It helps recruiters and companies review candidates faster with a premium, AI-first hiring workflow.',
+      'It helps recruiters and companies review candidates faster with a premium, structured hiring workflow.',
   },
   {
     question: 'Is any backend logic included here?',

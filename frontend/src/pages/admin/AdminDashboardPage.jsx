@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Activity, BriefcaseBusiness, Building2, FileText, Sparkles, TrendingUp, Users } from 'lucide-react';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -63,15 +63,19 @@ export default function AdminDashboardPage() {
   if (loading) return <LoadingState title="Loading admin dashboard..." />;
 
   if (error) {
-    return <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>;
+    return (
+      <div className="rounded-[14px] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+        {error}
+      </div>
+    );
   }
 
   return (
     <div className="space-y-8 pb-8">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">SmartHire AI</p>
-          <h1 className="mt-2 text-3xl font-semibold text-slate-950">Admin overview</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">SmartHire AI</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-900">Admin overview</h1>
         </div>
         <Button as={Link} to="/admin/analytics" variant="primary">Open analytics</Button>
       </div>
@@ -140,28 +144,28 @@ export default function AdminDashboardPage() {
 
         <AdminCard title="Platform health" description="Core monitoring and operating signals.">
           <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center justify-between text-sm text-slate-600">
+            <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white p-4">
+              <div className="flex items-center justify-between text-sm text-slate-500">
                 <span>System uptime</span>
                 <span className="font-semibold text-emerald-700">99.94%</span>
               </div>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center justify-between text-sm text-slate-600">
+            <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white p-4">
+              <div className="flex items-center justify-between text-sm text-slate-500">
                 <span>AI usage</span>
-                <span className="font-semibold text-slate-950">{analytics?.metrics?.total_ai_analyses ?? 2140}</span>
+                <span className="font-semibold text-slate-900">{analytics?.metrics?.total_ai_analyses ?? 2140}</span>
               </div>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center justify-between text-sm text-slate-600">
+            <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white p-4">
+              <div className="flex items-center justify-between text-sm text-slate-500">
                 <span>Open vacancies</span>
-                <span className="font-semibold text-slate-950">{analytics?.metrics?.total_jobs ?? 316}</span>
+                <span className="font-semibold text-slate-900">{analytics?.metrics?.total_jobs ?? 316}</span>
               </div>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center justify-between text-sm text-slate-600">
+            <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white p-4">
+              <div className="flex items-center justify-between text-sm text-slate-500">
                 <span>Automation coverage</span>
-                <span className="font-semibold text-slate-950">82%</span>
+                <span className="font-semibold text-slate-900">82%</span>
               </div>
             </div>
           </div>

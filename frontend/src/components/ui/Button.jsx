@@ -3,26 +3,20 @@ import { classNames } from '../../utils/classNames';
 
 const variants = {
   primary:
-    'bg-slate-950 text-white shadow-[0_12px_28px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 hover:bg-slate-800 focus:ring-slate-900',
+    'border border-[#1d4ed8] bg-[#2563eb] text-white shadow-[0_8px_20px_rgba(37,99,235,0.18)] hover:border-[#1d4ed8] hover:bg-[#1d4ed8] focus:ring-[#2563eb]',
   secondary:
-    'border border-slate-200 bg-white/90 text-slate-700 shadow-sm hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 focus:ring-slate-800',
-  outline:
-    'border border-slate-300 bg-transparent text-slate-700 hover:bg-slate-50 hover:text-slate-950 focus:ring-slate-800',
+    'border border-[rgba(15,23,42,0.08)] bg-white text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03)] hover:border-[rgba(15,23,42,0.12)] hover:bg-slate-50 focus:ring-[#2563eb]',
   ghost:
-    'bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950 focus:ring-slate-800',
+    'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:ring-[#2563eb]',
   danger:
-    'bg-rose-600 text-white shadow-[0_12px_28px_rgba(225,29,72,0.18)] hover:-translate-y-0.5 hover:bg-rose-500 focus:ring-rose-600',
-  success:
-    'bg-emerald-600 text-white shadow-[0_12px_28px_rgba(5,150,105,0.18)] hover:-translate-y-0.5 hover:bg-emerald-500 focus:ring-emerald-600',
-  loading:
-    'cursor-wait bg-slate-900 text-white opacity-90 focus:ring-slate-900',
+    'border border-[#dc2626] bg-[#ef4444] text-white shadow-[0_8px_20px_rgba(239,68,68,0.18)] hover:bg-[#dc2626] focus:ring-[#ef4444]',
 };
 
 const sizes = {
   sm: 'h-9 px-3 text-sm',
-  md: 'h-11 px-4 text-sm',
-  lg: 'h-12 px-5 text-sm',
-  icon: 'h-10 w-10 justify-center p-0',
+  md: 'h-11 px-4 text-[15px]',
+  lg: 'h-12 px-5 text-[15px]',
+  icon: 'h-11 w-11 justify-center p-0',
 };
 
 const Button = forwardRef(function Button(
@@ -38,14 +32,24 @@ const Button = forwardRef(function Button(
     ...props
   },
   ref,
-) {
-  const isDisabled = disabled || loading;
+  ) {
+    const isDisabled = disabled || loading;
+
+  const resolvedVariant =
+    variant === 'outline'
+      ? 'secondary'
+      : variant === 'success'
+        ? 'primary'
+        : variant === 'loading'
+          ? 'primary'
+          : variant;
 
   const sharedProps = {
     className: classNames(
-      'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
-      variants[variant] || variants.secondary,
-      sizes[size],
+      'inline-flex items-center justify-center gap-2 rounded-[14px] font-semibold tracking-[-0.02em] transition duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none',
+      variants[resolvedVariant] || variants.secondary,
+      sizes[size] || sizes.md,
+      isDisabled && 'cursor-not-allowed',
       className,
     ),
     disabled: isDisabled,

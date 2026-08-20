@@ -10,7 +10,7 @@ export default function JobCard({ job, onSave, isSaved = false, onApply }) {
   const match = clampPercent(job.ai_match ?? job.match_score ?? job.ai_average_score ?? 0);
 
   return (
-    <article className="group flex h-full flex-col rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
+    <article className="group flex h-full flex-col rounded-[16px] border border-slate-200 bg-white p-5 shadow-sm transition duration-150 ease-out hover:border-slate-300">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700">
@@ -22,7 +22,7 @@ export default function JobCard({ job, onSave, isSaved = false, onApply }) {
           </div>
         </div>
 
-        <div className="rounded-2xl bg-slate-950 px-3 py-2 text-right text-white">
+        <div className="rounded-[14px] bg-slate-950 px-3 py-2 text-right text-white">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">AI</p>
           <p className="mt-1 text-lg font-semibold">{match}%</p>
         </div>

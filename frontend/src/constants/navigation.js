@@ -7,7 +7,6 @@ import {
   Building2,
   Settings,
   LogOut,
-  Home,
   Sparkles,
   MessageSquareQuote,
   BookOpenCheck,
@@ -18,13 +17,11 @@ import {
   CalendarClock,
   BarChart3,
 } from 'lucide-react';
-import { ChartBarIcon } from '@heroicons/react/24/outline';
 
 export const publicNavigation = [
-  { label: 'Home', to: '/', icon: Home },
   { label: 'Features', to: '/#features', icon: Sparkles },
-  { label: 'Pricing', to: '/#pricing', icon: ChartBarIcon },
-  { label: 'FAQ', to: '/#faq', icon: MessageSquareQuote },
+  { label: 'Pricing', to: '/#pricing', icon: BarChart3 },
+  { label: 'Contact', to: '/#contact', icon: MessageSquareQuote },
   { label: 'Jobs', to: '/jobs', icon: BriefcaseBusiness },
 ];
 

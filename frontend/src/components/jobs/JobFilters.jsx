@@ -18,10 +18,14 @@ export default function JobFilters({
   ];
 
   return (
-    <aside className="space-y-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <aside className="space-y-5 rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-950">Filters</h2>
-        <button type="button" onClick={onReset} className="text-sm font-medium text-slate-500 hover:text-slate-900">
+        <h2 className="text-[20px] font-semibold tracking-[-0.03em] text-slate-900">Filters</h2>
+        <button
+          type="button"
+          onClick={onReset}
+          className="text-sm font-medium text-slate-500 transition hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-white"
+        >
           Reset
         </button>
       </div>
@@ -29,11 +33,11 @@ export default function JobFilters({
       <div className="space-y-4">
         {filterOptions.map(({ key, label, values }) => (
           <div key={key}>
-            <label className="mb-2 block text-sm font-medium text-slate-700">{label}</label>
+            <label className="field-label">{label}</label>
             <select
               value={filters[key] ?? ''}
               onChange={(event) => onChange(key, event.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-slate-400 focus:bg-white"
+              className="h-11 w-full rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-4 text-[15px] text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03)] outline-none transition duration-150 ease-out hover:border-[rgba(15,23,42,0.12)] focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10"
             >
               <option value="">Any</option>
               {values.map((option) => {

@@ -6,27 +6,40 @@ export default function FeaturesSection() {
     <section id="features" className="px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
         <SectionHeading
-          eyebrow="Features"
-          title="Everything you need to make hiring feel effortless."
-          description="Six premium feature cards that explain the product value clearly and elegantly."
+          eyebrow="Product"
+          title="Editorial feature blocks built around actual hiring value."
+          description="Each module is presented as a business outcome rather than a generic capability list."
         />
 
-        <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {features.map((feature) => {
-            const Icon = feature.icon;
-            return (
-              <article
-                key={feature.title}
-                className="group rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/60"
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white transition group-hover:scale-105">
-                  <Icon className="h-6 w-6" aria-hidden="true" />
+        <div className="mt-10 grid gap-5 lg:grid-cols-2">
+          {features.map((feature, index) => (
+            <article
+              key={feature.title}
+              className={[
+                'rounded-[16px] border border-slate-200 bg-white p-6 shadow-sm transition duration-150 ease-out hover:border-slate-300',
+                index % 3 === 0 ? 'lg:col-span-2' : '',
+                index % 2 === 1 ? 'lg:mt-6' : '',
+              ].join(' ')}
+            >
+              <div className="flex items-start justify-between gap-6">
+                <div className="max-w-lg">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
+                    {String(index + 1).padStart(2, '0')}
+                  </p>
+                  <h3 className="mt-3 text-[24px] font-bold tracking-[-0.04em] text-slate-950">
+                    {feature.title}
+                  </h3>
+                  <p className="mt-3 text-[16px] font-medium leading-7 text-slate-600">
+                    {feature.description}
+                  </p>
                 </div>
-                <h3 className="mt-5 text-xl font-semibold text-slate-950">{feature.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{feature.description}</p>
-              </article>
-            );
-          })}
+
+                <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-slate-200 bg-slate-50 text-slate-950 lg:flex">
+                  <feature.icon className="h-5 w-5" aria-hidden="true" />
+                </div>
+              </div>
+            </article>
+          ))}
         </div>
       </div>
     </section>

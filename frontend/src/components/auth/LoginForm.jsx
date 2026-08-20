@@ -99,7 +99,7 @@ export default function LoginForm() {
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          <label htmlFor="email" className="text-sm font-medium text-slate-700">
             Email
           </label>
           <input
@@ -113,14 +113,14 @@ export default function LoginForm() {
             placeholder="you@company.com"
             aria-invalid={Boolean((touched.email || submitted) && errors.email)}
             className={classNames(
-              'h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:ring-2 dark:bg-slate-950 dark:text-slate-50',
+              'h-11 w-full rounded-xl border border-[rgba(15,23,42,0.08)] bg-white px-4 text-sm text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)] outline-none transition duration-150 ease-out placeholder:text-slate-400 focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10',
               (touched.email || submitted) && errors.email
-                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/10 dark:border-rose-900'
-                : 'border-slate-200 focus:border-slate-400 focus:ring-slate-900/10 dark:border-slate-800 dark:focus:border-slate-600',
+                ? 'border-[#ef4444]/30 bg-[#fff5f5] focus:border-[#ef4444] focus:ring-[#ef4444]/10'
+                : 'hover:border-[rgba(15,23,42,0.12)]',
             )}
           />
           {(touched.email || submitted) && errors.email ? (
-            <p className="text-xs font-medium text-rose-600 dark:text-rose-300">{errors.email}</p>
+            <p className="text-xs font-medium text-rose-600">{errors.email}</p>
           ) : null}
         </div>
 
@@ -133,7 +133,7 @@ export default function LoginForm() {
           placeholder="Enter your password"
           error={(touched.password || submitted) && errors.password}
           autoComplete="current-password"
-        />
+          />
 
         <div className="flex items-center justify-between gap-4">
           <RememberCheckbox
@@ -143,7 +143,7 @@ export default function LoginForm() {
           />
           <Link
             to="/forgot-password"
-            className="text-sm font-medium text-slate-600 transition hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 dark:text-slate-300 dark:hover:text-slate-50"
+            className="text-sm font-medium text-slate-500 transition hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-white"
           >
             Forgot password?
           </Link>
@@ -156,11 +156,11 @@ export default function LoginForm() {
         Login
       </Button>
 
-      <p className="text-sm text-slate-500 dark:text-slate-400">
+      <p className="text-sm text-slate-500">
         New here?{' '}
         <Link
           to="/register"
-          className="font-semibold text-slate-950 underline-offset-4 hover:underline dark:text-slate-50"
+          className="font-semibold text-slate-900 underline-offset-4 hover:underline"
         >
           Create an account
         </Link>
@@ -168,11 +168,11 @@ export default function LoginForm() {
 
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
-          <span className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+          <span className="h-px flex-1 bg-slate-200" />
+          <span className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
             Or continue with
           </span>
-          <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+          <span className="h-px flex-1 bg-slate-200" />
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">

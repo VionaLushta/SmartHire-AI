@@ -13,7 +13,7 @@ function statusTone(status) {
 
 export default function JobCard({ job }) {
   return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <article className="rounded-[16px] border border-slate-200 bg-white p-5 shadow-sm transition duration-150 ease-out hover:border-slate-300">
       <div className="flex items-start justify-between gap-4">
         <div>
           <Badge tone={statusTone(job.hiring_status)}>{job.hiring_status || 'open'}</Badge>
@@ -23,8 +23,8 @@ export default function JobCard({ job }) {
             {job.department_name}
           </p>
         </div>
-        <div className="rounded-2xl bg-slate-950 px-4 py-3 text-right text-white">
-          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">AI Match</p>
+        <div className="rounded-[14px] border border-slate-200 bg-slate-50 px-4 py-3 text-right text-slate-950">
+          <p className="text-xs uppercase tracking-[0.24em] text-slate-500">AI Match</p>
           <p className="mt-1 text-2xl font-semibold">{job.ai_average_score ?? 0}%</p>
         </div>
       </div>

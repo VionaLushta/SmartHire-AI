@@ -218,9 +218,9 @@ export default function CompanyDashboard() {
   if (status === 'loading' && !dashboard) {
     return (
       <div className="flex min-h-[45vh] items-center justify-center">
-        <div className="rounded-3xl border border-slate-200 bg-white px-8 py-10 shadow-sm">
+        <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-8 py-10 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
           <LoadingSpinner />
-          <p className="mt-4 text-sm font-medium text-slate-600">Loading company dashboard...</p>
+          <p className="mt-4 text-sm font-medium text-slate-500">Loading company dashboard...</p>
         </div>
       </div>
     );
@@ -246,16 +246,16 @@ export default function CompanyDashboard() {
 
   return (
     <div className="space-y-8 pb-6">
-      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-950 text-white shadow-[0_30px_80px_rgba(15,23,42,0.16)]">
+      <section className="overflow-hidden rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
         <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.4fr_0.9fr]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.34em] text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
               Enterprise HR Platform
             </p>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
+            <h2 className="mt-4 text-3xl font-bold tracking-[-0.04em] text-slate-900 sm:text-4xl">
               Welcome back, {companyName}.
             </h2>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-500">
               Review hiring performance, track candidate quality, and move through your pipeline
               with a premium company dashboard built on the live backend data.
             </p>
@@ -273,40 +273,40 @@ export default function CompanyDashboard() {
               {companySummary.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.label} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                  <div key={item.label} className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-4">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
                       <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                       {item.label}
                     </div>
-                    <p className="mt-2 text-sm font-medium text-white">{item.value}</p>
+                    <p className="mt-2 text-sm font-medium text-slate-900">{item.value}</p>
                   </div>
                 );
               })}
             </div>
           </div>
 
-          <div className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-white/5 p-5 backdrop-blur">
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+          <div className="grid gap-4 rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-slate-50 p-5">
+            <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-4 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
                 Pending applications
               </p>
-              <p className="mt-2 text-3xl font-semibold text-white">
+              <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-slate-900">
                 {dashboard?.pending_applications ?? 0}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+            <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-4 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
                 AI Match average
               </p>
-              <p className="mt-2 text-3xl font-semibold text-white">
+              <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-slate-900">
                 {formatMetricPercent(dashboard?.ai_average_score)}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+            <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-4 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
                 Departments
               </p>
-              <p className="mt-2 text-3xl font-semibold text-white">
+              <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-slate-900">
                 {dashboard?.departments_count ?? 0}
               </p>
             </div>
@@ -464,16 +464,16 @@ export default function CompanyDashboard() {
                 departmentPerformance.map((department) => (
                   <article
                     key={department.label}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                    className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 p-4"
                   >
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <h4 className="font-semibold text-slate-950">{department.label}</h4>
-                        <p className="mt-1 text-sm text-slate-600">
+                        <h4 className="font-semibold tracking-[-0.02em] text-slate-900">{department.label}</h4>
+                        <p className="mt-1 text-sm text-slate-500">
                           {department.applications} applications across recent job snapshots
                         </p>
                       </div>
-                      <span className="text-sm font-semibold text-slate-950">
+                      <span className="text-sm font-semibold text-slate-900">
                         {formatMetricPercent(department.aiScore)}
                       </span>
                     </div>
@@ -655,13 +655,13 @@ export default function CompanyDashboard() {
 
           <DashboardCard title="Hiring health" description="A quick look at the current company funnel.">
             <div className="space-y-3">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Open roles</p>
-                <p className="mt-2 text-3xl font-semibold text-slate-950">{dashboard?.active_jobs ?? 0}</p>
+              <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Open roles</p>
+                <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-slate-900">{dashboard?.active_jobs ?? 0}</p>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Pending review</p>
-                <p className="mt-2 text-3xl font-semibold text-slate-950">
+              <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Pending review</p>
+                <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-slate-900">
                   {dashboard?.pending_applications ?? 0}
                 </p>
               </div>

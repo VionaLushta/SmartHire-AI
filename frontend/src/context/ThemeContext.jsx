@@ -14,11 +14,11 @@ function getSystemTheme() {
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     if (typeof window === 'undefined') {
-      return 'system';
+      return 'light';
     }
 
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    return stored || 'system';
+    return stored || 'light';
   });
 
   const resolvedTheme = theme === 'system' ? getSystemTheme() : theme;

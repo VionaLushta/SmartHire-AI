@@ -15,10 +15,13 @@ export default function HowItWorksSection() {
           {steps.map((step, index) => (
             <li
               key={step.title}
-              className="relative rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm transition duration-300 hover:-translate-y-1"
+              className={[
+                'relative rounded-[16px] border border-slate-200 bg-white p-6 shadow-sm transition duration-150 ease-out hover:border-slate-300',
+                index % 2 === 1 ? 'lg:mt-6' : '',
+              ].join(' ')}
             >
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2563eb] text-sm font-semibold text-white">
                   0{index + 1}
                 </span>
                 <div className="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent lg:hidden" />

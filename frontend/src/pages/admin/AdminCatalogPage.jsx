@@ -34,7 +34,7 @@ export default function AdminCatalogPage() {
           <Input className="pl-9" aria-label="Search catalog" placeholder="Search catalog" value={query} onChange={(event) => setQuery(event.target.value)} />
         </div>
         <div className="flex gap-2">
-          <select aria-label="Filter catalog" value={filter} onChange={(event) => setFilter(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-900/10">
+          <select aria-label="Filter catalog" value={filter} onChange={(event) => setFilter(event.target.value)} className="h-11 rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-3 text-[15px] text-slate-700 outline-none transition duration-150 ease-out hover:border-[rgba(15,23,42,0.12)] focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10">
             <option value="all">All</option>
             <option value="skill">Skills</option>
             <option value="category">Categories</option>
@@ -46,7 +46,7 @@ export default function AdminCatalogPage() {
       {filteredCatalog.length ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredCatalog.map((item) => (
-            <div key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div key={item.id} className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
               <div className="flex items-center justify-between gap-3">
                 <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">{item.type}</span>
                 <Button type="button" variant="ghost" size="sm" aria-label={`Delete ${item.name}`}><Trash2 className="h-4 w-4" /></Button>

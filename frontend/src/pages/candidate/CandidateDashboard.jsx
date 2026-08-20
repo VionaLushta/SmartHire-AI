@@ -42,10 +42,10 @@ import { clampPercent, formatDateShort, formatMetricPercent, getDisplayName } fr
 
 function MiniStat({ label, value, hint }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
-      {hint ? <p className="mt-2 text-xs text-slate-300">{hint}</p> : null}
+    <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-4 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-900">{value}</p>
+      {hint ? <p className="mt-2 text-xs text-slate-500">{hint}</p> : null}
     </div>
   );
 }
@@ -164,9 +164,9 @@ export default function CandidateDashboard() {
   if (status === 'loading' && !dashboard) {
     return (
       <div className="flex min-h-[45vh] items-center justify-center">
-        <div className="rounded-3xl border border-slate-200 bg-white px-8 py-10 shadow-sm">
+        <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-8 py-10 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
           <LoadingSpinner />
-          <p className="mt-4 text-sm font-medium text-slate-600">Loading candidate dashboard...</p>
+          <p className="mt-4 text-sm font-medium text-slate-500">Loading candidate dashboard...</p>
         </div>
       </div>
     );
@@ -185,17 +185,17 @@ export default function CandidateDashboard() {
     <div className="space-y-8 pb-6">
       <section
         id="dashboard"
-        className="scroll-mt-24 overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-950 text-white shadow-[0_30px_80px_rgba(15,23,42,0.16)]"
+        className="scroll-mt-24 overflow-hidden rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]"
       >
         <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.4fr_0.9fr]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.34em] text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
               Candidate Dashboard
             </p>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">
+            <h2 className="mt-4 text-3xl font-bold tracking-[-0.04em] text-slate-900 sm:text-4xl">
               Welcome back, {displayName}.
             </h2>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-500">
               Keep your candidate workspace sharp, review AI signals, and move through the hiring
               funnel with a premium, focused workflow.
             </p>
@@ -216,7 +216,7 @@ export default function CandidateDashboard() {
             </div>
           </div>
 
-          <div className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-white/5 p-5 backdrop-blur">
+          <div className="grid gap-4 rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-slate-50 p-5">
             <MiniStat
               label="Applied jobs"
               value={dashboard?.applications_count ?? 0}
@@ -487,7 +487,7 @@ export default function CandidateDashboard() {
             ) : (
               <EmptyState
                 title="No resume uploaded"
-                description="Upload a resume to improve AI analysis and match quality."
+                description="Upload a resume to improve analysis and match quality."
               />
             )}
           </DashboardCard>
@@ -544,20 +544,20 @@ export default function CandidateDashboard() {
             {activityItems.map((item) => {
               const Icon = item.icon;
               return (
-                <article
+                  <article
                   key={item.id}
-                  className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                  className="flex items-start justify-between gap-4 rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-950 shadow-sm">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[rgba(15,23,42,0.08)] bg-slate-50 text-slate-700">
                       <Icon className="h-4 w-4" aria-hidden="true" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-slate-950">{item.title}</h4>
+                      <h4 className="font-semibold tracking-[-0.02em] text-slate-900">{item.title}</h4>
                       <p className="mt-1 text-sm leading-6 text-slate-600">{item.description}</p>
                     </div>
                   </div>
-                  <span className="text-xs font-medium uppercase tracking-[0.22em] text-slate-400">
+                  <span className="text-xs font-medium uppercase tracking-[0.22em] text-slate-500">
                     {item.time}
                   </span>
                 </article>

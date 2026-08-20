@@ -53,9 +53,9 @@ export default function ResumeUploader({
   }
 
   return (
-    <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
       <div
-        className={`rounded-[1.6rem] border-2 border-dashed p-6 transition ${dragging ? 'border-slate-400 bg-slate-50' : 'border-slate-200 bg-slate-50/80'}`}
+        className={`rounded-[16px] border-2 border-dashed p-6 transition duration-150 ease-out ${dragging ? 'border-slate-400 bg-slate-50' : 'border-slate-200 bg-slate-50/80'}`}
         onDragOver={(event) => {
           event.preventDefault();
           setDragging(true);
@@ -69,13 +69,13 @@ export default function ResumeUploader({
         }}
       >
         <div className="flex flex-col items-center justify-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-sm">
+          <div className="flex h-16 w-16 items-center justify-center rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
             <UploadCloud className="h-8 w-8" aria-hidden="true" />
           </div>
 
           <div>
-            <h3 className="text-xl font-semibold text-slate-950">Upload your resume</h3>
-            <p className="mt-2 text-sm text-slate-600">
+            <h3 className="text-[24px] font-bold tracking-[-0.04em] text-slate-950">Upload your resume</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
               PDF, DOCX, and DOC formats supported.
             </p>
           </div>
@@ -97,10 +97,10 @@ export default function ResumeUploader({
       </div>
 
       {selectedFile || existingResume ? (
-        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div className="mt-5 rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-slate-50 p-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-slate-700 shadow-sm">
+              <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-white text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
                 <FileText className="h-5 w-5" aria-hidden="true" />
               </div>
               <div>

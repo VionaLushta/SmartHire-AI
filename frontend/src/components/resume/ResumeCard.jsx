@@ -5,10 +5,10 @@ export default function ResumeCard({ resume, onOpen, onDelete }) {
   const fileName = resume?.file_path?.split(/[\\/]/).pop() || 'Resume document';
 
   return (
-    <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div className="rounded-[16px] border border-slate-200 bg-white p-5 shadow-sm transition duration-150 ease-out hover:border-slate-300">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[14px] border border-slate-200 bg-slate-50 text-slate-700">
             <FileText className="h-5 w-5" aria-hidden="true" />
           </div>
           <div>
