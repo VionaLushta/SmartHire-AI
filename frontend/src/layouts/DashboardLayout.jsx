@@ -17,6 +17,13 @@ export default function DashboardLayout() {
       return dashboardPageMeta[location.pathname];
     }
 
+    if (location.pathname.startsWith('/admin/candidates/')) {
+      return {
+        title: 'Candidate Detail',
+        breadcrumbs: ['Dashboard', 'Admin', 'Candidates', 'Candidate Detail'],
+      };
+    }
+
     if (location.pathname.startsWith('/jobs/')) {
       return {
         title: 'Job Details',
@@ -39,6 +46,9 @@ export default function DashboardLayout() {
 
   const actionConfig = useMemo(() => {
     const roleName = String(user?.role_name || user?.role || '').toLowerCase();
+    if (location.pathname.startsWith('/admin/candidates/')) {
+      return { actionLabel: 'Back to candidates', actionTo: '/admin/candidates' };
+    }
     if (location.pathname.startsWith('/admin')) {
       return { actionLabel: 'Open analytics', actionTo: '/admin/analytics' };
     }

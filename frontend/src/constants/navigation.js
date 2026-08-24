@@ -26,13 +26,13 @@ export const publicNavigation = [
 ];
 
 export const adminNavigation = [
-  { label: 'Overview', to: '/admin/dashboard', icon: LayoutDashboard },
-  { label: 'Users', to: '/admin/users', icon: Users },
-  { label: 'Companies', to: '/admin/companies', icon: Building2 },
-  { label: 'Jobs', to: '/admin/jobs', icon: BriefcaseBusiness },
+  { label: 'Dashboard', to: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Applications', to: '/admin/applications', icon: FileText },
-  { label: 'Catalog', to: '/admin/catalog', icon: BookOpenCheck },
+  { label: 'Candidates', to: '/admin/candidates', icon: Users },
+  { label: 'Jobs', to: '/admin/jobs', icon: BriefcaseBusiness },
+  { label: 'Companies', to: '/admin/companies', icon: Building2 },
   { label: 'Analytics', to: '/admin/analytics', icon: BarChart3 },
+  { label: 'Reports', to: '/admin/reports', icon: BookOpenCheck },
   { label: 'Settings', to: '/admin/settings', icon: Settings },
   { label: 'Logout', to: '/login', icon: LogOut },
 ];
@@ -89,6 +89,10 @@ export const dashboardPageMeta = {
     title: 'Admin Dashboard',
     breadcrumbs: ['Dashboard', 'Admin'],
   },
+  '/admin/candidates': {
+    title: 'Candidates',
+    breadcrumbs: ['Dashboard', 'Admin', 'Candidates'],
+  },
   '/admin/users': {
     title: 'Users Management',
     breadcrumbs: ['Dashboard', 'Admin', 'Users'],
@@ -112,6 +116,10 @@ export const dashboardPageMeta = {
   '/admin/analytics': {
     title: 'Analytics',
     breadcrumbs: ['Dashboard', 'Admin', 'Analytics'],
+  },
+  '/admin/reports': {
+    title: 'Reports',
+    breadcrumbs: ['Dashboard', 'Admin', 'Reports'],
   },
   '/admin/settings': {
     title: 'System Settings',

@@ -25,11 +25,14 @@ import ProfilePage from '../pages/candidate/ProfilePage';
 import ResumePage from '../pages/candidate/ResumePage';
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 import AdminUsersPage from '../pages/admin/AdminUsersPage';
+import AdminCandidatesPage from '../pages/admin/AdminCandidatesPage';
 import AdminCompaniesPage from '../pages/admin/AdminCompaniesPage';
 import AdminJobsPage from '../pages/admin/AdminJobsPage';
 import AdminApplicationsPage from '../pages/admin/AdminApplicationsPage';
 import AdminCatalogPage from '../pages/admin/AdminCatalogPage';
 import AdminAnalyticsPage from '../pages/admin/AdminAnalyticsPage';
+import AdminReportsPage from '../pages/admin/AdminReportsPage';
+import AdminCandidateDetailPage from '../pages/admin/AdminCandidateDetailPage';
 import AdminSettingsPage from '../pages/admin/AdminSettingsPage';
 import UnauthorizedPage from '../pages/errors/UnauthorizedPage';
 import SessionExpiredPage from '../pages/errors/SessionExpiredPage';
@@ -135,6 +138,22 @@ export default function AppRouter() {
               }
             />
             <Route
+              path={ROUTES.adminCandidates.slice(1)}
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminCandidatesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path={ROUTES.adminCandidateDetails.slice(1)}
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminCandidateDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path={ROUTES.adminCompanies.slice(1)}
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
@@ -171,6 +190,14 @@ export default function AppRouter() {
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminAnalyticsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path={ROUTES.adminReports.slice(1)}
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminReportsPage />
                 </ProtectedRoute>
               }
             />
