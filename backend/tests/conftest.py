@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 import app.models
 from app.database.database import Base
@@ -10,7 +11,11 @@ from app.main import app
 
 @pytest.fixture()
 def test_db():
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(engine)
     session = sessionmaker(bind=engine)()
     yield session
