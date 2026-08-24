@@ -1,6 +1,7 @@
 import { Bell, CircleDot, Check } from 'lucide-react';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
+import EmptyState from '../ui/EmptyState';
 
 const tones = {
   success: 'bg-emerald-50 text-emerald-700',
@@ -74,9 +75,11 @@ export default function NotificationList({ items = [], readIds = [], onMarkRead,
             );
           })
         ) : (
-          <p className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-4 text-sm text-slate-500">
-            You are all caught up.
-          </p>
+          <EmptyState
+            title="You are all caught up"
+            description="Notifications will appear here when new activity arrives."
+            icon={Bell}
+          />
         )}
       </div>
     </div>

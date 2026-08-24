@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button';
 
 export default function UnauthorizedPage() {
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-2xl items-center justify-center lg:min-h-[calc(100vh-4rem)]">
+    <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-2xl items-center justify-center px-4 lg:min-h-[calc(100vh-4rem)]">
       <AuthCard className="w-full p-6 text-center sm:p-8">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
           <ShieldAlert className="h-8 w-8" aria-hidden="true" />

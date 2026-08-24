@@ -1,12 +1,16 @@
 import LoadingSpinner from '../ui/LoadingSpinner';
+import Card from '../ui/Card';
 
-export default function LoadingState({ title = 'Loading jobs...' }) {
+export default function LoadingState({
+  title = 'Loading',
+  description = 'Please wait while the latest data is prepared.',
+}) {
   return (
-    <div className="flex min-h-[30vh] items-center justify-center rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-8 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <Card className="flex min-h-[30vh] items-center justify-center p-8">
       <div className="text-center">
-        <LoadingSpinner />
-        <p className="mt-4 text-sm font-medium text-slate-500">{title}</p>
+        <LoadingSpinner label={title} />
+        <p className="mt-3 text-sm text-slate-500">{description}</p>
       </div>
-    </div>
+    </Card>
   );
 }

@@ -4,8 +4,10 @@ import { Search, Mail, FileDown } from 'lucide-react';
 import AdminCard from '../../components/admin/AdminCard';
 import EmptyState from '../../components/admin/EmptyState';
 import StatusBadge from '../../components/admin/StatusBadge';
+import LoadingState from '../../components/jobs/LoadingState';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import ErrorState from '../../components/ui/ErrorState';
 import Avatar from '../../components/ui/Avatar';
 import { analyticsService } from '../../services/analyticsService';
 import { unwrapResponse, getInitials, formatDateShort, formatMetricPercent } from '../../utils/dashboard';
@@ -65,14 +67,12 @@ export default function AdminCandidatesPage() {
   const statusCount = asArray(rows).length;
 
   if (loading) {
-    return <div className="rounded-[16px] border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading candidates...</div>;
+    return <LoadingState title="Loading candidates..." description="Retrieving recruiter-ready candidate data." />;
   }
 
   if (error && !analytics) {
     return (
-      <div className="rounded-[16px] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-        {error}
-      </div>
+      <ErrorState title="Unable to load candidates" description={error} onRetry={() => window.location.reload()} />
     );
   }
 
@@ -149,7 +149,15 @@ export default function AdminCandidatesPage() {
           </table>
         </div>
       ) : (
-        <EmptyState title="No candidates match your search" description="Adjust the filter or try a broader search term." />
+        <EmptyState
+          title="No candidates match your search"
+          description="Adjust the filter or try a broader search term."
+          action={(
+            <Button type="button" variant="primary" onClick={() => setQuery('')}>
+              Clear search
+            </Button>
+          )}
+        />
       )}
     </AdminCard>
   );

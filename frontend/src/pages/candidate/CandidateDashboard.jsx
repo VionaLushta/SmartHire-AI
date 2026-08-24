@@ -25,9 +25,9 @@ import {
   YAxis,
 } from 'recharts';
 import { loadCandidateDashboard, markAllNotificationsRead, markNotificationRead } from '../../redux/slices/candidateSlice';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
+import LoadingState from '../../components/jobs/LoadingState';
 import Button from '../../components/ui/Button';
 import StatCard from '../../components/dashboard/StatCard';
 import DashboardCard from '../../components/dashboard/DashboardCard';
@@ -163,12 +163,10 @@ export default function CandidateDashboard() {
 
   if (status === 'loading' && !dashboard) {
     return (
-      <div className="flex min-h-[45vh] items-center justify-center">
-        <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-8 py-10 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-          <LoadingSpinner />
-          <p className="mt-4 text-sm font-medium text-slate-500">Loading candidate dashboard...</p>
-        </div>
-      </div>
+      <LoadingState
+        title="Loading candidate dashboard..."
+        description="Fetching application activity, saved jobs, and AI insights."
+      />
     );
   }
 
@@ -177,6 +175,7 @@ export default function CandidateDashboard() {
       <ErrorState
         title="Unable to load the candidate dashboard"
         description={typeof error === 'string' ? error : 'Please try again in a moment.'}
+        onRetry={() => dispatch(loadCandidateDashboard({ candidateId }))}
       />
     );
   }

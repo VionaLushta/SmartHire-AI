@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { BriefcaseBusiness, CheckCircle2, FileText, Sparkles } from 'lucide-react';
+import { BriefcaseBusiness, CheckCircle2, FileText } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import ProfileHeader from '../../components/profile/ProfileHeader';
@@ -13,12 +13,11 @@ import ExperienceTimeline from '../../components/profile/ExperienceTimeline';
 import CareerGoalsCard from '../../components/profile/CareerGoalsCard';
 import ProgressCard from '../../components/profile/ProgressCard';
 import LoadingState from '../../components/jobs/LoadingState';
-import EmptyState from '../../components/ui/EmptyState';
-import { candidateService } from '../../services/candidateService';
+import ErrorState from '../../components/ui/ErrorState';
 import { educationService } from '../../services/educationService';
 import { certificateService } from '../../services/certificateService';
 import { loadCandidateDashboard, updateCandidateProfile } from '../../redux/slices/candidateSlice';
-import { unwrapItems, unwrapResponse } from '../../utils/dashboard';
+import { unwrapItems } from '../../utils/dashboard';
 
 const starterCareerGoals = {
   preferred_role: 'Product Manager',
@@ -82,8 +81,8 @@ export default function ProfilePage() {
   });
   const [educationItems, setEducationItems] = useState(starterEducation);
   const [certificateItems, setCertificateItems] = useState(starterCertificates);
-  const [trainingItems, setTrainingItems] = useState(starterTrainings);
-  const [experienceItems, setExperienceItems] = useState(starterExperience);
+  const [trainingItems] = useState(starterTrainings);
+  const [experienceItems] = useState(starterExperience);
   const [error, setError] = useState(null);
 
   const profileCompletion = useMemo(() => {
@@ -167,48 +166,6 @@ export default function ProfilePage() {
     }
   }
 
-  async function handleEducationSave(event) {
-    event.preventDefault();
-    const form = new FormData(event.target);
-    const payload = {
-      resume_id: 1,
-      institution: form.get('institution'),
-      degree: form.get('degree'),
-      field_of_study: form.get('field_of_study'),
-      start_date: form.get('start_date'),
-      end_date: form.get('end_date'),
-      description: form.get('description'),
-    };
-    try {
-      const response = await educationService.create(payload);
-      const next = unwrapResponse(response);
-      setEducationItems((current) => [next, ...current]);
-      event.target.reset();
-    } catch (err) {
-      setError(err?.response?.data?.detail || 'Unable to add education.');
-    }
-  }
-
-  async function handleCertificateSave(event) {
-    event.preventDefault();
-    const form = new FormData(event.target);
-    const file = form.get('file');
-    const payload = new FormData();
-    payload.append('title', form.get('title'));
-    payload.append('issuer', form.get('issuer') || '');
-    payload.append('issue_date', form.get('issue_date') || '');
-    if (file && file.name) payload.append('file', file);
-
-    try {
-      const response = await certificateService.create(payload);
-      const next = unwrapResponse(response);
-      setCertificateItems((current) => [next, ...current]);
-      event.target.reset();
-    } catch (err) {
-      setError(err?.response?.data?.detail || 'Unable to add certificate.');
-    }
-  }
-
   const skills = useMemo(() => {
     const skillData = profile?.skills || dashboard?.skill_gap_analysis?.most_common_skills || starterSkills;
     return Array.isArray(skillData)
@@ -222,7 +179,17 @@ export default function ProfilePage() {
   }, [profile, dashboard]);
 
   if (status === 'loading' && !profile) {
-    return <LoadingState title="Loading profile details..." />;
+    return <LoadingState title="Loading profile details..." description="Retrieving profile, education, and certificate information." />;
+  }
+
+  if (error && !profile && !dashboard) {
+    return (
+      <ErrorState
+        title="Unable to load the profile workspace"
+        description={error}
+        onRetry={() => dispatch(loadCandidateDashboard({ candidateId: user?.user_id || user?.id }))}
+      />
+    );
   }
 
   return (
@@ -308,7 +275,12 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div> : null}
+      {error ? (
+        <ErrorState
+          title="Some profile sections could not be refreshed"
+          description={error}
+        />
+      ) : null}
     </div>
   );
 }

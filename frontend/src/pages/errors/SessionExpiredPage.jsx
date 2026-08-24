@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button';
 
 export default function SessionExpiredPage() {
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-2xl items-center justify-center lg:min-h-[calc(100vh-4rem)]">
+    <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-2xl items-center justify-center px-4 lg:min-h-[calc(100vh-4rem)]">
       <AuthCard className="w-full p-6 text-center sm:p-8">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300">
           <Clock3 className="h-8 w-8" aria-hidden="true" />

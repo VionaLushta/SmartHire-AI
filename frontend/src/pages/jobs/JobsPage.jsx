@@ -11,6 +11,7 @@ import LoadingState from '../../components/jobs/LoadingState';
 import EmptyState from '../../components/ui/EmptyState';
 import Button from '../../components/ui/Button';
 import ApplyModal from '../../components/jobs/ApplyModal';
+import ErrorState from '../../components/ui/ErrorState';
 
 const defaultFilters = {
   category: '',
@@ -125,15 +126,19 @@ export default function JobsPage() {
   }
 
   if (status === 'loading' && items.length === 0) {
-    return <LoadingState />;
+    return <LoadingState title="Loading jobs..." description="Fetching opportunities and filters from the backend." />;
   }
 
   if (error && items.length === 0) {
     return (
-      <div className="rounded-3xl border border-rose-200 bg-rose-50 p-8 text-rose-700">
-        <h2 className="text-xl font-semibold">Unable to load jobs</h2>
-        <p className="mt-2 text-sm">{error}</p>
-      </div>
+      <ErrorState
+        title="Unable to load jobs"
+        description={error}
+        onRetry={() => {
+          dispatch(fetchJobs());
+          dispatch(fetchSavedJobs());
+        }}
+      />
     );
   }
 
@@ -194,7 +199,22 @@ export default function JobsPage() {
           </div>
 
           {currentPageItems.length === 0 ? (
-            <EmptyState title="No roles match your filters" description="Try broadening the search terms or clearing filters to see more opportunities." />
+            <EmptyState
+              title="No roles match your filters"
+              description="Try broadening the search terms or clearing filters to see more opportunities."
+              action={(
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => {
+                    setFilters(defaultFilters);
+                    setSearch('');
+                  }}
+                >
+                  Clear filters
+                </Button>
+              )}
+            />
           ) : (
             <div className={viewMode === 'grid' ? 'grid gap-5 xl:grid-cols-2' : 'space-y-4'}>
               {currentPageItems.map((job) => (

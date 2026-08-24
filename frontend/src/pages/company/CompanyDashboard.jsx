@@ -30,9 +30,9 @@ import {
   Users,
 } from 'lucide-react';
 import { loadCompanyDashboard, markAllNotificationsRead, markNotificationRead } from '../../redux/slices/companySlice';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
+import LoadingState from '../../components/jobs/LoadingState';
 import Button from '../../components/ui/Button';
 import DashboardCard from '../../components/dashboard/DashboardCard';
 import ChartCard from '../../components/dashboard/ChartCard';
@@ -217,12 +217,10 @@ export default function CompanyDashboard() {
 
   if (status === 'loading' && !dashboard) {
     return (
-      <div className="flex min-h-[45vh] items-center justify-center">
-        <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-8 py-10 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-          <LoadingSpinner />
-          <p className="mt-4 text-sm font-medium text-slate-500">Loading company dashboard...</p>
-        </div>
-      </div>
+      <LoadingState
+        title="Loading company dashboard..."
+        description="Refreshing jobs, applications, and hiring analytics."
+      />
     );
   }
 
@@ -237,7 +235,7 @@ export default function CompanyDashboard() {
             variant="primary"
             onClick={() => dispatch(loadCompanyDashboard({ companyId }))}
           >
-            Retry
+            Retry load
           </Button>
         }
       />

@@ -32,6 +32,7 @@ import { unwrapResponse, getInitials, formatMetricPercent } from '../../utils/da
 import AdminCard from '../../components/admin/AdminCard';
 import EmptyState from '../../components/admin/EmptyState';
 import LoadingState from '../../components/jobs/LoadingState';
+import ErrorState from '../../components/ui/ErrorState';
 import Button from '../../components/ui/Button';
 import Avatar from '../../components/ui/Avatar';
 import StatusBadge from '../../components/admin/StatusBadge';
@@ -207,14 +208,21 @@ export default function AdminDashboardPage() {
   const pendingInterviews = useMemo(() => buildPendingInterviews(candidateRows), [candidateRows]);
 
   if (loading) {
-    return <LoadingState title="Loading admin dashboard..." />;
+    return (
+      <LoadingState
+        title="Loading admin dashboard..."
+        description="Refreshing live applications, analytics, and recruiter activity."
+      />
+    );
   }
 
   if (error && !analytics) {
     return (
-      <div className="rounded-[16px] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-        {error}
-      </div>
+      <ErrorState
+        title="Unable to load admin dashboard"
+        description={error}
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 

@@ -32,8 +32,8 @@ const Button = forwardRef(function Button(
     ...props
   },
   ref,
-  ) {
-    const isDisabled = disabled || loading;
+ ) {
+  const isDisabled = disabled || loading;
 
   const resolvedVariant =
     variant === 'outline'
@@ -53,12 +53,16 @@ const Button = forwardRef(function Button(
       className,
     ),
     disabled: isDisabled,
+    'aria-busy': loading || undefined,
     ...props,
   };
 
   const content = loading ? (
     <>
-      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />
+      <span
+        className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+        aria-hidden="true"
+      />
       <span>{children}</span>
     </>
   ) : (

@@ -5,6 +5,8 @@ import AdminCard from '../../components/admin/AdminCard';
 import EmptyState from '../../components/admin/EmptyState';
 import StatisticsGrid from '../../components/admin/StatisticsGrid';
 import Button from '../../components/ui/Button';
+import LoadingState from '../../components/jobs/LoadingState';
+import ErrorState from '../../components/ui/ErrorState';
 import { analyticsService } from '../../services/analyticsService';
 import { unwrapResponse, formatMetricPercent } from '../../utils/dashboard';
 import {
@@ -47,14 +49,12 @@ export default function AdminReportsPage() {
   const topSkills = useMemo(() => buildTopSkills(analytics || {}), [analytics]);
 
   if (loading) {
-    return <div className="rounded-[16px] border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading reports...</div>;
+    return <LoadingState title="Loading reports..." description="Building reporting charts and executive summaries." />;
   }
 
   if (error && !analytics) {
     return (
-      <div className="rounded-[16px] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-        {error}
-      </div>
+      <ErrorState title="Unable to load reports" description={error} onRetry={() => window.location.reload()} />
     );
   }
 

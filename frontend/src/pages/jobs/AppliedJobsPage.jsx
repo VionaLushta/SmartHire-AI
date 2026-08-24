@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, BriefcaseBusiness } from 'lucide-react';
 import Button from '../../components/ui/Button';
+import EmptyState from '../../components/ui/EmptyState';
+import LoadingState from '../../components/jobs/LoadingState';
 import { applicationService } from '../../services/applicationService';
 import { jobService } from '../../services/jobService';
 import { unwrapItems, unwrapResponse } from '../../utils/dashboard';
@@ -49,11 +51,21 @@ export default function AppliedJobsPage() {
 
       <div className="space-y-4">
         {loading ? (
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-sm text-slate-600">Loading applications...</div>
+          <LoadingState
+            title="Loading applications..."
+            description="Retrieving your submitted applications and current statuses."
+          />
         ) : items.length === 0 ? (
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-sm text-slate-600">
-            You have not applied to any roles yet.
-          </div>
+          <EmptyState
+            title="You have not applied to any roles yet"
+            description="Apply to a role to see it appear here with status updates."
+            action={(
+              <Button as={Link} to="/jobs" variant="primary">
+                Browse jobs
+              </Button>
+            )}
+            icon={BriefcaseBusiness}
+          />
         ) : (
           items.map((application) => {
             const job = application.job || {};

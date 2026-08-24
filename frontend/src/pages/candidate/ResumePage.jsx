@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { BriefcaseBusiness, ChartNoAxesCombined, Download, Sparkles } from 'lucide-react';
+import { ChartNoAxesCombined } from 'lucide-react';
 import ResumeUploader from '../../components/resume/ResumeUploader';
 import ResumePreview from '../../components/resume/ResumePreview';
 import ResumeHistory from '../../components/resume/ResumeHistory';
@@ -13,6 +12,7 @@ import ProgressBar from '../../components/resume/ProgressBar';
 import EmptyState from '../../components/resume/EmptyState';
 import LoadingState from '../../components/jobs/LoadingState';
 import Button from '../../components/ui/Button';
+import ErrorState from '../../components/ui/ErrorState';
 import { resumeService } from '../../services/resumeService';
 import { unwrapItems, unwrapResponse, clampPercent } from '../../utils/dashboard';
 
@@ -34,14 +34,13 @@ const defaultRecommendation = {
 };
 
 export default function ResumePage() {
-  const { user } = useSelector((state) => state.auth);
   const [resumeItems, setResumeItems] = useState([]);
   const [selectedResume, setSelectedResume] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState('Ready');
-  const [analysis, setAnalysis] = useState(defaultRecommendation);
+  const [analysis] = useState(defaultRecommendation);
   const [error, setError] = useState(null);
 
   const previewUrl = useMemo(() => {
@@ -110,7 +109,17 @@ export default function ResumePage() {
   const missingSkills = ['Advanced analytics', 'Executive storytelling', 'Go-to-market strategy'];
 
   if (loading) {
-    return <LoadingState title="Loading resume workspace..." />;
+    return <LoadingState title="Loading resume workspace..." description="Preparing resume preview, history, and AI analysis." />;
+  }
+
+  if (error && !resumeItems.length && !selectedResume) {
+    return (
+      <ErrorState
+        title="Unable to load the resume workspace"
+        description={error}
+        onRetry={() => window.location.reload()}
+      />
+    );
   }
 
   return (
@@ -119,7 +128,7 @@ export default function ResumePage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Candidate profile</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-50">Resume & analysis</h1>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Resume & analysis</h1>
           </div>
 
           <div className="flex items-center gap-3">
@@ -163,10 +172,10 @@ export default function ResumePage() {
           <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Analysis</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-50">Skills and recommendations</h2>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Analysis</p>
+                <h2 className="mt-2 text-xl font-semibold text-slate-950">Skills and recommendations</h2>
               </div>
-              <ChartNoAxesCombined className="h-6 w-6 text-slate-400" aria-hidden="true" />
+              <ChartNoAxesCombined className="h-6 w-6 text-slate-500" aria-hidden="true" />
             </div>
 
             <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -265,9 +274,7 @@ export default function ResumePage() {
         </div>
       </div>
 
-      {error ? (
-        <div className="rounded-[1.75rem] border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>
-      ) : null}
+      {error ? <ErrorState title="Resume workspace notice" description={error} /> : null}
     </div>
   );
 }

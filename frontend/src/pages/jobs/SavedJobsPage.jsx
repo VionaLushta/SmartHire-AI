@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookmarkCheck, BriefcaseBusiness } from 'lucide-react';
 import Button from '../../components/ui/Button';
+import EmptyState from '../../components/ui/EmptyState';
+import LoadingState from '../../components/jobs/LoadingState';
 import { savedJobService } from '../../services/savedJobService';
 import { jobService } from '../../services/jobService';
 import { unwrapItems, unwrapResponse } from '../../utils/dashboard';
@@ -49,11 +51,21 @@ export default function SavedJobsPage() {
 
       <div className="space-y-4">
         {loading ? (
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-sm text-slate-600">Loading saved roles...</div>
+          <LoadingState
+            title="Loading saved roles..."
+            description="Retrieving your bookmarked opportunities."
+          />
         ) : items.length === 0 ? (
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-sm text-slate-600">
-            You have not saved any roles yet.
-          </div>
+          <EmptyState
+            title="You have not saved any roles yet"
+            description="Save jobs from the jobs page to keep a shortlist for later review."
+            action={(
+              <Button as={Link} to="/jobs" variant="primary">
+                Browse jobs
+              </Button>
+            )}
+            icon={BriefcaseBusiness}
+          />
         ) : (
           items.map((savedJob) => {
             const job = savedJob.job || {};
