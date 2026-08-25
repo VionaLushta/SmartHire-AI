@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.core.validation import clean_text
 
 
 class ParsedResumeResponse(BaseModel):
@@ -14,6 +16,11 @@ class ParsedResumeResponse(BaseModel):
 
 class SkillExtractionRequest(BaseModel):
     text: str = Field(min_length=1)
+
+    @field_validator("text")
+    @classmethod
+    def validate_text(cls, value: str) -> str:
+        return clean_text(value, "Text", max_length=100_000)
 
 
 class SkillExtractionResponse(BaseModel):

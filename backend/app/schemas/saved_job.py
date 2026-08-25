@@ -3,12 +3,12 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SavedJobCreate(BaseModel):
     user_id: uuid.UUID
-    job_id: int
+    job_id: int = Field(gt=0)
 
 
 class SavedJobRead(BaseModel):

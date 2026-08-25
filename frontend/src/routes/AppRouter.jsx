@@ -116,7 +116,7 @@ export default function AppRouter() {
             <Route
               path={ROUTES.companyDashboard.slice(1)}
               element={
-                <ProtectedRoute allowedRoles={['company']}>
+                <ProtectedRoute allowedRoles={['company', 'recruiter']}>
                   <CompanyDashboard />
                 </ProtectedRoute>
               }

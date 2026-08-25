@@ -18,7 +18,7 @@ export default function ProtectedRoute({
 
   if (publicOnly) {
     if (authenticated) {
-      return <Navigate to={getDashboardPathForRole(user?.role)} replace />;
+      return <Navigate to={getDashboardPathForRole(user?.role_name || user?.role)} replace />;
     }
 
     return children || <Outlet />;

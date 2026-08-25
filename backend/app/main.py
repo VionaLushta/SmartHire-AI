@@ -2,8 +2,10 @@ from contextlib import asynccontextmanager
 import logging
 import time
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from sqlalchemy import text
 
 from app.core.config import get_settings
@@ -61,6 +63,7 @@ app = FastAPI(
     description="Production API for SmartHire recruitment workflows, AI-assisted candidate analysis, and analytics.",
     openapi_tags=OPENAPI_TAGS,
     lifespan=lifespan,
+    debug=False,
     responses={
         401: {"description": "Authentication is required or the access token is invalid."},
         403: {"description": "The authenticated user is not authorized for this resource."},
@@ -77,12 +80,45 @@ async def log_request(request: Request, call_next):
     logger.info("request method=%s path=%s status=%s duration_ms=%.2f", request.method, request.url.path, response.status_code, (time.perf_counter() - started) * 1000)
     return response
 
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse:
+    if exc.status_code in {401, 403, 413, 415, 422}:
+        logger.warning("security_event status=%s detail=%s", exc.status_code, exc.detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=getattr(exc, "headers", None) or None,
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_exception_handler(
+    _: Request, exc: RequestValidationError
+) -> JSONResponse:
+    logger.warning("security_event status=422 detail=request validation failed")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "Validation failed.", "errors": exc.errors()},
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONResponse:
+    logger.exception("unhandled_exception")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error."},
+    )
+
+settings = get_settings()
+cors_origins = [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
 )
 
 app.include_router(company_router)

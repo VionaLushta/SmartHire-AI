@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     upload_folder: str = "app/uploads"
     report_folder: str = "app/reports"
+    cors_origins: str = ""
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_username: str = ""

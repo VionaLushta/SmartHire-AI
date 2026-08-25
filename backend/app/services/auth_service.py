@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
+from jose.exceptions import JWTError
 from sqlalchemy.orm import Session
 
 from app.core.security import (
@@ -77,23 +78,40 @@ class AuthenticationService:
     def refresh(self, payload: RefreshRequest) -> TokenResponse:
         try:
             decoded = decode_token(payload.refresh_token)
-        except Exception:
+        except JWTError:
+            self.logger.warning("refresh failed reason=invalid_token")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired token.",
             )
 
         if decoded.get("type") != "refresh":
+            self.logger.warning("refresh failed reason=invalid_token_type token_type=%s", decoded.get("type"))
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type."
             )
-        token = self.repo.get_active_refresh_token(decoded.get("jti", ""))
+        jti = str(decoded.get("jti") or "")
+        if not jti:
+            self.logger.warning("refresh failed reason=missing_jti")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token."
+            )
+        token = self.repo.get_active_refresh_token(jti)
         if token is None or str(token["user_id"]) != str(decoded.get("sub")):
+            self.logger.warning("refresh failed reason=token_revoked_or_mismatch")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked."
             )
 
-        user = self.repo.get_user_by_id(uuid.UUID(str(decoded["sub"])))
+        try:
+            user_uuid = uuid.UUID(str(decoded["sub"]))
+        except (TypeError, ValueError):
+            self.logger.warning("refresh failed reason=invalid_subject")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject."
+            )
+
+        user = self.repo.get_user_by_id(user_uuid)
         if user is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found."
@@ -111,16 +129,24 @@ class AuthenticationService:
     def logout(self, payload: RefreshRequest) -> None:
         try:
             decoded = decode_token(payload.refresh_token)
-        except Exception:
+        except JWTError:
+            self.logger.warning("logout failed reason=invalid_token")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired token.",
             )
         if decoded.get("type") != "refresh":
+            self.logger.warning("logout failed reason=invalid_token_type token_type=%s", decoded.get("type"))
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type."
             )
-        self.repo.revoke_refresh_token(decoded.get("jti", ""))
+        jti = str(decoded.get("jti") or "")
+        if not jti:
+            self.logger.warning("logout failed reason=missing_jti")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token."
+            )
+        self.repo.revoke_refresh_token(jti)
         self.repo.cleanup_expired_refresh_tokens()
         self.logger.info("logout success sub=%s", decoded.get("sub"))
 

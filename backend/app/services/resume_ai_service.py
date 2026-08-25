@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from datetime import date
 
@@ -22,6 +23,7 @@ from app.models.skill import Skill
 from app.models.user import User
 from app.repositories.job_dashboard_repository import JobDashboardRepository
 from app.repositories.job_repository import JobRepository
+from app.core.validation import validate_document_upload
 from app.schemas.ai_resume import (
     CandidateRankingRequest,
     CandidateRankingResponse,
@@ -40,6 +42,7 @@ from app.services.nlp_matcher import (
 )
 
 MAX_RESUME_SIZE = 10 * 1024 * 1024
+logger = logging.getLogger("smarthire.uploads")
 
 
 class ResumeAIService:
@@ -52,20 +55,22 @@ class ResumeAIService:
         self.job_repo = JobRepository(db) if db is not None else None
 
     def _validate_pdf(self, file: UploadFile, content: bytes) -> None:
-        if file.content_type != "application/pdf":
-            raise HTTPException(
-                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                detail="PDF files only.",
+        try:
+            validate_document_upload(
+                file,
+                allowed_mime_types={"application/pdf": {".pdf"}},
+                max_size_bytes=MAX_RESUME_SIZE,
             )
-        if len(content) > MAX_RESUME_SIZE:
+        except ValueError as exc:
             raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail="File too large.",
-            )
-        if not (file.filename or "").lower().endswith(".pdf"):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid PDF file."
-            )
+                status_code=
+                status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+                if "size" in str(exc).lower()
+                else status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+                if any(token in str(exc).lower() for token in ("signature", "extension", "unsupported"))
+                else status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from exc
 
     def _detect_language(self, text: str) -> str:
         sample = text.lower()

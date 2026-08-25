@@ -3,7 +3,7 @@ export function getDashboardPathForRole(role) {
   if (normalized === 'admin' || normalized === 'administrator' || normalized === 'role_admin') {
     return '/admin/dashboard';
   }
-  if (normalized === 'company') {
+  if (normalized === 'company' || normalized === 'recruiter') {
     return '/company/dashboard';
   }
   return '/candidate/dashboard';

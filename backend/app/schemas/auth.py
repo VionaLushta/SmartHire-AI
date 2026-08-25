@@ -4,12 +4,19 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+from app.core.validation import clean_text, validate_password_strength
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        return validate_password_strength(value)
 
 
 class RegisterRequest(BaseModel):
@@ -20,20 +27,19 @@ class RegisterRequest(BaseModel):
     # Public registration must never grant a privileged role.
     role_name: Literal["Candidate"] = "Candidate"
 
-    @model_validator(mode="after")
-    def validate_password(self) -> "RegisterRequest":
-        password = self.password
-        if (
-            not any(c.isupper() for c in password)
-            or not any(c.islower() for c in password)
-            or not any(c.isdigit() for c in password)
-        ):
-            raise ValueError("Password must contain uppercase, lowercase, and number.")
-        return self
+    @field_validator("first_name", "last_name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        return clean_text(value, "Name", max_length=100)
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        return validate_password_strength(value)
 
 
 class RefreshRequest(BaseModel):
-    refresh_token: str
+    refresh_token: str = Field(min_length=1)
 
 
 class TokenResponse(BaseModel):

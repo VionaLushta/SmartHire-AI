@@ -3,7 +3,13 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+from app.core.validation import (
+    clean_text,
+    validate_http_url,
+    validate_phone_number,
+)
 
 
 class CandidateBase(BaseModel):
@@ -17,6 +23,25 @@ class CandidateBase(BaseModel):
     linkedin_url: str | None = Field(default=None, max_length=255)
     github_url: str | None = Field(default=None, max_length=255)
     portfolio_url: str | None = Field(default=None, max_length=255)
+
+    @field_validator("first_name", "last_name", "city", "country")
+    @classmethod
+    def validate_optional_text(cls, value: str | None, info) -> str | None:
+        return (
+            clean_text(value, info.field_name or "Value", max_length=100)
+            if value is not None
+            else None
+        )
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str | None) -> str | None:
+        return validate_phone_number(value)
+
+    @field_validator("profile_picture_url", "linkedin_url", "github_url", "portfolio_url")
+    @classmethod
+    def validate_urls(cls, value: str | None, info) -> str | None:
+        return validate_http_url(value, info.field_name or "URL")
 
 
 class CandidateUpdate(CandidateBase):

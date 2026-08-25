@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from pathlib import Path
 from uuid import uuid4
@@ -7,63 +8,51 @@ from uuid import uuid4
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
+from app.core.validation import validate_document_upload
 from app.repositories.certificate_repository import CertificateRepository
 from app.schemas.certificate import CertificateRead
 
 MAX_CERTIFICATE_SIZE = 10 * 1024 * 1024
-ALLOWED_CERTIFICATE_TYPES = {
-    "application/pdf",
-    "image/png",
-    "image/jpeg",
-    "image/jpg",
-    "image/webp",
-}
+logger = logging.getLogger("smarthire.uploads")
 
 
 class CertificateService:
     def __init__(self, db: Session) -> None:
         self.repo = CertificateRepository(db)
-        self.upload_dir = (
-            Path(__file__).resolve().parents[1] / "uploads" / "certificates"
-        )
+        settings = get_settings()
+        self.upload_dir = Path(settings.upload_folder) / "certificates"
+        if not self.upload_dir.is_absolute():
+            self.upload_dir = Path(__file__).resolve().parents[1] / self.upload_dir
         self.upload_dir.mkdir(parents=True, exist_ok=True)
 
     def _validate_file(self, file: UploadFile) -> None:
-        if file.content_type not in ALLOWED_CERTIFICATE_TYPES:
-            raise HTTPException(
+        try:
+            validate_document_upload(file, max_size_bytes=MAX_CERTIFICATE_SIZE)
+        except ValueError as exc:
+            raise self._upload_exception(str(exc)) from exc
+
+    @staticmethod
+    def _upload_exception(message: str) -> HTTPException:
+        lower = message.lower()
+        if "size" in lower:
+            return HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail="File exceeds the maximum allowed size.",
+            )
+        if "signature" in lower or "extension" in lower or "unsupported" in lower:
+            return HTTPException(
                 status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                detail="PDF or image files only.",
+                detail="Only PDF, PNG, JPG, and JPEG files are allowed.",
             )
-        signature = file.file.read(12)
-        file.file.seek(0)
-        valid_signature = (
-            (file.content_type == "application/pdf" and signature.startswith(b"%PDF-"))
-            or (
-                file.content_type == "image/png"
-                and signature.startswith(b"\x89PNG\r\n\x1a\n")
+        if "filename" in lower:
+            return HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Filename is invalid.",
             )
-            or (
-                file.content_type in {"image/jpeg", "image/jpg"}
-                and signature.startswith(b"\xff\xd8\xff")
-            )
-            or (
-                file.content_type == "image/webp"
-                and signature.startswith(b"RIFF")
-                and signature[8:12] == b"WEBP"
-            )
+        return HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file upload."
         )
-        if not valid_signature:
-            raise HTTPException(
-                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                detail="Invalid certificate file.",
-            )
-        file.file.seek(0, 2)
-        size = file.file.tell()
-        file.file.seek(0)
-        if size > MAX_CERTIFICATE_SIZE:
-            raise HTTPException(
-                status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="File too large."
-            )
 
     def upload_certificate(
         self,
@@ -77,16 +66,27 @@ class CertificateService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Candidate not found."
             )
-        self._validate_file(file)
+        try:
+            self._validate_file(file)
+        except HTTPException as exc:
+            logger.warning(
+                "security_event type=upload_rejected user_id=%s filename=%s status=%s detail=%s",
+                user_id,
+                getattr(file, "filename", None),
+                exc.status_code,
+                exc.detail,
+            )
+            raise
 
         ext = Path(file.filename or "").suffix.lower()
-        if file.content_type == "application/pdf" and ext not in {".pdf"}:
+        if file.content_type == "image/jpeg":
+            ext = ".jpg" if ext not in {".jpg", ".jpeg"} else ext
+        elif file.content_type == "image/jpg":
+            ext = ".jpg" if ext not in {".jpg", ".jpeg"} else ext
+        elif file.content_type == "image/png":
+            ext = ".png"
+        else:
             ext = ".pdf"
-        elif (
-            file.content_type in {"image/png", "image/jpeg", "image/jpg", "image/webp"}
-            and ext == ""
-        ):
-            ext = ".png" if file.content_type == "image/png" else ".jpg"
 
         filename = f"{user_id}_{uuid4().hex}{ext}"
         file_path = self.upload_dir / filename

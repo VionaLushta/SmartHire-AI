@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from app.core.validation import clean_optional_text, clean_text
 
 
 class EducationBase(BaseModel):
-    resume_id: int
+    resume_id: int = Field(gt=0)
     institution: str = Field(min_length=1, max_length=255)
     degree: str | None = Field(default=None, max_length=255)
     field_of_study: str | None = Field(default=None, max_length=255)
@@ -20,13 +22,27 @@ class EducationBase(BaseModel):
             raise ValueError("end_date must be greater than or equal to start_date")
         return self
 
+    @field_validator("institution")
+    @classmethod
+    def validate_institution(cls, value: str) -> str:
+        return clean_text(value, "Institution", max_length=255)
+
+    @field_validator("degree", "field_of_study", "description")
+    @classmethod
+    def validate_optional_text(cls, value: str | None, info) -> str | None:
+        return (
+            clean_optional_text(value, info.field_name or "Value", max_length=255)
+            if value is not None
+            else None
+        )
+
 
 class EducationCreate(EducationBase):
     pass
 
 
 class EducationUpdate(BaseModel):
-    resume_id: int | None = None
+    resume_id: int | None = Field(default=None, gt=0)
     institution: str | None = Field(default=None, min_length=1, max_length=255)
     degree: str | None = Field(default=None, max_length=255)
     field_of_study: str | None = Field(default=None, max_length=255)
@@ -39,6 +55,20 @@ class EducationUpdate(BaseModel):
         if self.start_date and self.end_date and self.end_date < self.start_date:
             raise ValueError("end_date must be greater than or equal to start_date")
         return self
+
+    @field_validator("institution")
+    @classmethod
+    def validate_institution(cls, value: str | None) -> str | None:
+        return clean_text(value, "Institution", max_length=255) if value is not None else None
+
+    @field_validator("degree", "field_of_study", "description")
+    @classmethod
+    def validate_optional_text(cls, value: str | None, info) -> str | None:
+        return (
+            clean_optional_text(value, info.field_name or "Value", max_length=255)
+            if value is not None
+            else None
+        )
 
 
 class EducationRead(EducationBase):

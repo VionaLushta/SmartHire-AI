@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from pathlib import Path
 from uuid import uuid4
@@ -7,48 +8,72 @@ from uuid import uuid4
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
+from app.core.validation import validate_document_upload
 from app.repositories.resume_repository import ResumeRepository
 from app.schemas.resume import ResumeRead
 
 MAX_RESUME_SIZE = 10 * 1024 * 1024
+logger = logging.getLogger("smarthire.uploads")
 
 
 class ResumeService:
     def __init__(self, db: Session) -> None:
         self.repo = ResumeRepository(db)
-        self.upload_dir = Path(__file__).resolve().parents[1] / "uploads"
+        settings = get_settings()
+        self.upload_dir = Path(settings.upload_folder)
+        if not self.upload_dir.is_absolute():
+            self.upload_dir = Path(__file__).resolve().parents[1] / self.upload_dir
         self.upload_dir.mkdir(parents=True, exist_ok=True)
 
     def _validate_pdf(self, file: UploadFile) -> None:
-        if file.content_type != "application/pdf":
-            raise HTTPException(
-                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                detail="PDF files only.",
+        try:
+            validate_document_upload(
+                file,
+                allowed_mime_types={"application/pdf": {".pdf"}},
+                max_size_bytes=MAX_RESUME_SIZE,
             )
-        signature = file.file.read(5)
-        file.file.seek(0)
-        if signature != b"%PDF-":
-            raise HTTPException(
-                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                detail="Invalid PDF file.",
-            )
+        except ValueError as exc:
+            raise self._upload_exception(str(exc)) from exc
 
-    def _validate_size(self, file: UploadFile) -> None:
-        file.file.seek(0, 2)
-        size = file.file.tell()
-        file.file.seek(0)
-        if size > MAX_RESUME_SIZE:
-            raise HTTPException(
-                status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="File too large."
+    @staticmethod
+    def _upload_exception(message: str) -> HTTPException:
+        lower = message.lower()
+        if "size" in lower:
+            return HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail="File exceeds the maximum allowed size.",
             )
+        if "signature" in lower or "extension" in lower or "unsupported" in lower:
+            return HTTPException(
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                detail="Invalid or unsupported file type.",
+            )
+        if "filename" in lower:
+            return HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Filename is invalid.",
+            )
+        return HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file upload."
+        )
 
     def upload_resume(self, user_id: uuid.UUID, file: UploadFile) -> ResumeRead:
         if self.repo.get_user(user_id) is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found."
             )
-        self._validate_pdf(file)
-        self._validate_size(file)
+        try:
+            self._validate_pdf(file)
+        except HTTPException as exc:
+            logger.warning(
+                "security_event type=upload_rejected user_id=%s filename=%s status=%s detail=%s",
+                user_id,
+                getattr(file, "filename", None),
+                exc.status_code,
+                exc.detail,
+            )
+            raise
         if self.repo.get_by_user(user_id) is not None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="Resume already uploaded."

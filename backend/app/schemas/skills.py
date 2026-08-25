@@ -3,7 +3,9 @@ from __future__ import annotations
 import uuid
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.core.validation import clean_optional_text, clean_text
 
 
 class JobSkillRead(BaseModel):
@@ -28,12 +30,32 @@ class JobSkillUpsertRequest(BaseModel):
     is_required: bool = True
     required_level: int | None = Field(default=None, ge=0)
 
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        return clean_text(value, "Skill name", max_length=120)
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, value: str | None) -> str | None:
+        return clean_optional_text(value, "Skill category", max_length=120)
+
 
 class JobSkillUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
     category: str | None = Field(default=None, max_length=120)
     is_required: bool | None = None
     required_level: int | None = Field(default=None, ge=0)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str | None) -> str | None:
+        return clean_text(value, "Skill name", max_length=120) if value is not None else None
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, value: str | None) -> str | None:
+        return clean_optional_text(value, "Skill category", max_length=120)
 
 
 class SkillEvaluationItem(BaseModel):
