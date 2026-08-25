@@ -21,6 +21,7 @@ from app.api.candidates import router as candidates_router
 from app.api.certificate import router as certificate_router
 from app.api.candidate_dashboard import router as candidate_dashboard_router
 from app.api.interviews import router as interviews_router
+from app.api.notifications import router as notifications_router
 from app.api.recruiter_notes import router as recruiter_notes_router
 from app.api.resume_advisor import router as resume_advisor_router
 from app.api.talent_search import router as talent_search_router
@@ -48,6 +49,7 @@ OPENAPI_TAGS = [
     {"name": "resume advisor", "description": "Candidate-only AI resume improvement, scoring, roadmap, and export."},
     {"name": "talent search", "description": "Recruiter and admin candidate search, filtering, favorites, and talent pool exports."},
     {"name": "recruiter notes", "description": "Private recruiter collaboration threads, mentions, replies, and pinned internal notes."},
+    {"name": "notifications", "description": "Role-scoped notification center for recruitment, system, and workflow alerts."},
 ]
 
 
@@ -141,6 +143,7 @@ app.include_router(candidate_dashboard_router)
 app.include_router(candidate_router)
 app.include_router(candidates_router)
 app.include_router(interviews_router)
+app.include_router(notifications_router)
 app.include_router(recruiter_notes_router)
 app.include_router(resume_advisor_router)
 app.include_router(talent_search_router)
