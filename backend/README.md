@@ -40,3 +40,4 @@ uvicorn app.main:app --reload
 - The backend reads configuration from `backend/.env`.
 - Keep migrations in sync with model changes.
 - Route handlers should stay thin and delegate to services.
+- Production deployment examples are documented in the repository root release package.

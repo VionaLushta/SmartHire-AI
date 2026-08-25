@@ -33,3 +33,16 @@ This project follows Semantic Versioning and Keep a Changelog conventions.
 - Additional hiring workflow automation
 - More advanced analytics and reporting
 - Stronger AI explainability for ranking and matching
+
+## [2.1.0] - 2026-08-25
+
+### Added
+
+- Production deployment manifests for static frontend hosting and backend container deployment
+- Release readiness documentation for configuration, monitoring, and portfolio presentation
+- Production release report and asset checklist
+
+### Changed
+
+- Refreshed deployment and release documentation for portfolio and internship evaluation use
+- Aligned repository documentation with the current production release package

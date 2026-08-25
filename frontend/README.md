@@ -37,3 +37,4 @@ npm run preview
 - Configure `VITE_API_URL` before running the app.
 - Frontend environment variables are exposed to the browser bundle, so do not store secrets there.
 - Reuse shared components before adding new UI primitives.
+- Static deployment examples for Vercel and Netlify are included at the repository root.

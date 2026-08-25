@@ -73,3 +73,9 @@ Deploy the generated static files from the `dist/` directory to a static host, C
 - Rotate secrets through the platform secret manager.
 - Monitor backend logs for validation and authorization failures.
 
+## Release Package
+
+- `vercel.json` and `netlify.toml` provide frontend deployment examples.
+- `render.yaml` and `railway.json` provide backend deployment examples.
+- `backend/Dockerfile`, `frontend/Dockerfile`, and `docker-compose.production.yml` provide optional container deployment support.
+- `docs/Production-Readiness.md` and `docs/Monitoring.md` capture release operations guidance.
