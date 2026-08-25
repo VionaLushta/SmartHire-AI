@@ -20,6 +20,7 @@ from app.api.candidate import router as candidate_router
 from app.api.candidates import router as candidates_router
 from app.api.certificate import router as certificate_router
 from app.api.candidate_dashboard import router as candidate_dashboard_router
+from app.api.ranking import router as ranking_router
 from app.api.education import router as education_router
 from app.api.department import router as department_router
 from app.api.job import router as job_router
@@ -38,6 +39,7 @@ OPENAPI_TAGS = [
     {"name": "resume", "description": "Candidate-owned resume and certificate uploads with signature validation."},
     {"name": "ai", "description": "Local resume parsing, skill extraction, matching, ranking, and recommendations."},
     {"name": "ai analytics", "description": "Role-scoped recruitment analytics and report exports."},
+    {"name": "candidate ranking", "description": "AI candidate ranking, smart shortlisting, comparisons, and export."},
 ]
 
 
@@ -130,6 +132,7 @@ app.include_router(company_dashboard_router)
 app.include_router(candidate_dashboard_router)
 app.include_router(candidate_router)
 app.include_router(candidates_router)
+app.include_router(ranking_router)
 app.include_router(certificate_router)
 app.include_router(education_router)
 app.include_router(department_router)
