@@ -21,6 +21,8 @@ from app.api.candidates import router as candidates_router
 from app.api.certificate import router as certificate_router
 from app.api.candidate_dashboard import router as candidate_dashboard_router
 from app.api.interviews import router as interviews_router
+from app.api.resume_advisor import router as resume_advisor_router
+from app.api.talent_search import router as talent_search_router
 from app.api.ranking import router as ranking_router
 from app.api.education import router as education_router
 from app.api.department import router as department_router
@@ -42,6 +44,8 @@ OPENAPI_TAGS = [
     {"name": "ai analytics", "description": "Role-scoped recruitment analytics and report exports."},
     {"name": "candidate ranking", "description": "AI candidate ranking, smart shortlisting, comparisons, and export."},
     {"name": "interviews", "description": "Interview scheduling, calendar management, reminders, and export."},
+    {"name": "resume advisor", "description": "Candidate-only AI resume improvement, scoring, roadmap, and export."},
+    {"name": "talent search", "description": "Recruiter and admin candidate search, filtering, favorites, and talent pool exports."},
 ]
 
 
@@ -135,6 +139,8 @@ app.include_router(candidate_dashboard_router)
 app.include_router(candidate_router)
 app.include_router(candidates_router)
 app.include_router(interviews_router)
+app.include_router(resume_advisor_router)
+app.include_router(talent_search_router)
 app.include_router(ranking_router)
 app.include_router(certificate_router)
 app.include_router(education_router)
