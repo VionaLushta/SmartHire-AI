@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
+import logging
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 import re
 import unicodedata
+from time import perf_counter
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -22,6 +24,8 @@ from app.templates.pdf_letter import (
     build_separator,
     build_signature_table,
 )
+
+logger = logging.getLogger("smarthire.performance")
 
 
 @dataclass(frozen=True)
@@ -459,6 +463,7 @@ class PdfGenerator:
         story: Sequence[Any],
         company_profile: CompanyProfile,
     ) -> GeneratedDocumentResult:
+        started = perf_counter()
         output_path.parent.mkdir(parents=True, exist_ok=True)
         generated_at = datetime.now(timezone.utc)
 
@@ -491,6 +496,12 @@ class PdfGenerator:
         if not output_path.exists():
             raise DocumentGenerationError(f"PDF generation completed but '{output_path}' was not created.")
 
+        logger.info(
+            "pdf generated document_type=%s filename=%s duration_ms=%.1f",
+            document_type,
+            output_path.name,
+            (perf_counter() - started) * 1000,
+        )
         return GeneratedDocumentResult(
             file_path=str(output_path),
             generated_at=generated_at,

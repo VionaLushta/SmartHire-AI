@@ -3,9 +3,11 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timezone
 import json
+import logging
 from pathlib import Path
 from typing import Any, Literal, Mapping
 import uuid
+from time import perf_counter
 
 from fastapi import HTTPException, status
 from sqlalchemy import insert, select, update
@@ -41,6 +43,7 @@ from app.templates.email_templates import (
     render_rejection_email,
 )
 
+logger = logging.getLogger("smarthire.performance")
 WorkflowDecision = Literal["Accept", "Interview", "Hold", "Reject"]
 
 
@@ -177,6 +180,7 @@ class RecruitmentWorkflowService:
         employment_type: str | None = None,
         acceptance_instructions: list[str] | None = None,
     ) -> dict[str, Any]:
+        started = perf_counter()
         candidate = self._get_candidate(candidate_id)
         job = self._get_job(job_id)
         application = self._get_application(candidate_id, job_id)
@@ -184,10 +188,8 @@ class RecruitmentWorkflowService:
         ai_analysis = self._get_ai_analysis(application["application_id"])
 
         candidate_text = self._candidate_text(resume)
-        skill_rows = (
-            self.job_dashboard_repo.get_skill_groups(job_id)["required_skills"]
-            + self.job_dashboard_repo.get_skill_groups(job_id)["optional_skills"]
-        )
+        skill_groups = self.job_dashboard_repo.get_skill_groups(job_id)
+        skill_rows = skill_groups["required_skills"] + skill_groups["optional_skills"]
         skill_report = (
             build_skill_report(candidate_text, skill_rows)
             if skill_rows
@@ -281,7 +283,7 @@ class RecruitmentWorkflowService:
                     error=error_message,
                 )
             )
-            return self._result(
+            result = self._result(
                 status="pdf_failed",
                 decision=decision,
                 candidate=candidate,
@@ -309,6 +311,14 @@ class RecruitmentWorkflowService:
                     ai_analysis,
                 ),
             )
+            self._log_timing(
+                "process_recruiter_decision",
+                started,
+                status="pdf_failed",
+                decision=decision,
+                job_id=job_id,
+            )
+            return result
 
         try:
             email_result = self._send_email(
@@ -401,7 +411,7 @@ class RecruitmentWorkflowService:
         )
         self.db.commit()
 
-        return self._result(
+        result = self._result(
             status="completed" if email_status == "sent" else "partial_success",
             decision=decision,
             candidate=candidate,
@@ -431,6 +441,14 @@ class RecruitmentWorkflowService:
             analytics=self._refresh_analytics(),
             dashboard=self._refresh_dashboard(job_id, candidate_id),
         )
+        self._log_timing(
+            "process_recruiter_decision",
+            started,
+            status=str(result.get("status") or "unknown"),
+            decision=decision,
+            job_id=job_id,
+        )
+        return result
 
     def resend_notification(
         self,
@@ -440,6 +458,7 @@ class RecruitmentWorkflowService:
         decision: WorkflowDecision | None = None,
         recruiter_name: str | None = None,
     ) -> dict[str, Any]:
+        started = perf_counter()
         candidate = self._get_candidate(candidate_id)
         job = self._get_job(job_id)
         application = self._get_application(candidate_id, job_id)
@@ -498,13 +517,21 @@ class RecruitmentWorkflowService:
             )
         )
         self.db.commit()
-        return {
+        result = {
             "status": email_result.get("status", "sent"),
             "recipient": email_result.get("recipient", candidate["email"]),
             "document": email_result.get("document", document.document_type),
             "timestamp": email_result.get("timestamp", self._timestamp()),
             "message_id": email_result.get("message_id"),
         }
+        self._log_timing(
+            "resend_notification",
+            started,
+            status=str(result.get("status") or "sent"),
+            decision=decision,
+            job_id=job_id,
+        )
+        return result
 
     def get_workflow_history(
         self,
@@ -1000,6 +1027,15 @@ class RecruitmentWorkflowService:
 
     def _timestamp(self) -> str:
         return datetime.now(timezone.utc).isoformat()
+
+    def _log_timing(self, operation: str, started: float, **context: Any) -> None:
+        details = " ".join(f"{key}={value}" for key, value in context.items() if value is not None)
+        logger.info(
+            "%s duration_ms=%.1f%s",
+            operation,
+            (perf_counter() - started) * 1000,
+            f" {details}" if details else "",
+        )
 
     def _resolve_report_root(self, report_root: str | Path | None) -> Path:
         base = Path(report_root) if report_root else Path(self.settings.report_folder)

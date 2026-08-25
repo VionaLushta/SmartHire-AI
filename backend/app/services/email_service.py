@@ -11,6 +11,7 @@ import socket
 import ssl
 from pathlib import Path
 from typing import Any, Callable, Mapping
+from time import perf_counter
 
 from app.core.config import get_settings
 from app.services.pdf_generator import CompanyProfile, GeneratedDocumentResult, PdfGenerator
@@ -259,6 +260,7 @@ class EmailService:
         document: GeneratedDocumentResult,
         template: RenderedEmailTemplate,
     ) -> dict[str, str | None]:
+        started = perf_counter()
         attachment_path = Path(document.file_path)
         if not attachment_path.exists():
             raise EmailAttachmentError(f"Attachment not found: {attachment_path}")
@@ -313,10 +315,11 @@ class EmailService:
 
         message_id = message.get("Message-ID")
         logger.info(
-            "Email delivered recipient=%s document=%s timestamp=%s status=sent",
+            "Email delivered recipient=%s document=%s timestamp=%s status=sent duration_ms=%.1f",
             recipient,
             document.document_type,
             timestamp,
+            (perf_counter() - started) * 1000,
         )
         return EmailDeliveryResult(
             status="sent",

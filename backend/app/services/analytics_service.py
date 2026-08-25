@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import logging
 import uuid
+from time import perf_counter
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
@@ -18,11 +20,15 @@ from app.models.user import User
 from app.schemas.analytics import AnalyticsDashboardResponse
 from app.schemas.auth import CurrentUserResponse
 
+logger = logging.getLogger("smarthire.performance")
+_CACHE_MISS = object()
+
 
 class AnalyticsService:
     def __init__(self, db: Session) -> None:
         self.db = db
         self.engine = AnalyticsEngine()
+        self._cache: dict[tuple[object, ...], object] = {}
 
     def overview(self, current_user: CurrentUserResponse) -> AnalyticsDashboardResponse:
         self._require_admin(current_user)
@@ -96,6 +102,12 @@ class AnalyticsService:
         job_id: int | None = None,
         user_id: uuid.UUID | None = None,
     ) -> AnalyticsDashboardResponse:
+        cache_key = ("dashboard", scope, company_id, job_id, str(user_id) if user_id is not None else None)
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
+
+        started = perf_counter()
         conditions = self._conditions(
             company_id=company_id, job_id=job_id, user_id=user_id
         )
@@ -113,7 +125,14 @@ class AnalyticsService:
             monthly_applications=self._monthly_applications(conditions),
             ai_scores_by_job=self._ai_scores_by_job(conditions),
         )
-        return AnalyticsDashboardResponse(**payload)
+        dashboard = AnalyticsDashboardResponse(**payload)
+        self._cache[cache_key] = dashboard
+        logger.info(
+            "analytics dashboard generated scope=%s duration_ms=%.1f",
+            scope,
+            (perf_counter() - started) * 1000,
+        )
+        return dashboard
 
     @staticmethod
     def _conditions(
@@ -136,6 +155,11 @@ class AnalyticsService:
         job_id: int | None,
         user_id: uuid.UUID | None,
     ) -> dict:
+        cache_key = ("metrics", company_id, job_id, str(user_id) if user_id is not None else None)
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
+
         app_from = Application.__table__.join(
             Job.__table__, Job.__table__.c.job_id == Application.__table__.c.job_id
         )
@@ -253,13 +277,19 @@ class AnalyticsService:
                         .where(*conditions)
                     )
                     or 0
-                ),
-                2,
             ),
+            2,
+        ),
         }
+        self._cache[cache_key] = metrics
         return metrics
 
     def _funnel_counts(self, conditions: list) -> dict[str, int]:
+        cache_key = ("funnel", tuple(str(condition) for condition in conditions))
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
+
         app_from = Application.__table__.join(
             Job.__table__, Job.__table__.c.job_id == Application.__table__.c.job_id
         )
@@ -294,8 +324,15 @@ class AnalyticsService:
             "Accepted": count_for(Application.__table__.c.status == "accepted"),
             "Rejected": count_for(Application.__table__.c.status == "rejected"),
         }
+        self._cache[cache_key] = funnel
+        return funnel
 
     def _top_candidates(self, conditions: list) -> list[dict]:
+        cache_key = ("top_candidates", tuple(str(condition) for condition in conditions))
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
+
         statement = (
             select(
                 User.__table__.c.user_id,
@@ -342,10 +379,17 @@ class AnalyticsService:
             }
             for row in self.db.execute(statement).mappings()
         ]
+        self._cache[cache_key] = rows
+        return rows
 
     def _requested_skills(
         self, company_id: int | None, job_id: int | None
     ) -> list[dict]:
+        cache_key = ("requested_skills", company_id, job_id)
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
+
         conditions = [JobSkill.__table__.c.job_id == job_id] if job_id else []
         if company_id is not None:
             conditions.append(Job.__table__.c.company_id == company_id)
@@ -364,9 +408,16 @@ class AnalyticsService:
             .order_by(func.count().desc())
             .limit(10)
         )
-        return [dict(row) for row in self.db.execute(statement).mappings()]
+        rows = [dict(row) for row in self.db.execute(statement).mappings()]
+        self._cache[cache_key] = rows
+        return rows
 
     def _common_skills(self, conditions: list) -> list[dict]:
+        cache_key = ("common_skills", tuple(str(condition) for condition in conditions))
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
+
         statement = (
             select(Skill.__table__.c.name.label("label"), func.count().label("value"))
             .select_from(
@@ -389,9 +440,16 @@ class AnalyticsService:
             .order_by(func.count().desc())
             .limit(10)
         )
-        return [dict(row) for row in self.db.execute(statement).mappings()]
+        rows = [dict(row) for row in self.db.execute(statement).mappings()]
+        self._cache[cache_key] = rows
+        return rows
 
     def _missing_skills(self, conditions: list) -> list[dict]:
+        cache_key = ("missing_skills", tuple(str(condition) for condition in conditions))
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
+
         statement = (
             select(
                 Skill.__table__.c.name.label("label"),
@@ -427,9 +485,16 @@ class AnalyticsService:
             .order_by(func.count().desc())
             .limit(10)
         )
-        return [dict(row) for row in self.db.execute(statement).mappings()]
+        rows = [dict(row) for row in self.db.execute(statement).mappings()]
+        self._cache[cache_key] = rows
+        return rows
 
     def _monthly_applications(self, conditions: list) -> list[dict]:
+        cache_key = ("monthly_applications", tuple(str(condition) for condition in conditions))
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
+
         statement = (
             select(
                 func.to_char(
@@ -448,9 +513,16 @@ class AnalyticsService:
             .group_by("label")
             .order_by("label")
         )
-        return [dict(row) for row in self.db.execute(statement).mappings()]
+        rows = [dict(row) for row in self.db.execute(statement).mappings()]
+        self._cache[cache_key] = rows
+        return rows
 
     def _ai_scores_by_job(self, conditions: list) -> list[dict]:
+        cache_key = ("ai_scores_by_job", tuple(str(condition) for condition in conditions))
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
+
         statement = (
             select(
                 Job.__table__.c.title.label("label"),
@@ -471,7 +543,9 @@ class AnalyticsService:
             .order_by(func.avg(AIAnalysis.__table__.c.overall_score).desc())
             .limit(10)
         )
-        return [dict(row) for row in self.db.execute(statement).mappings()]
+        rows = [dict(row) for row in self.db.execute(statement).mappings()]
+        self._cache[cache_key] = rows
+        return rows
 
     def _require_admin(self, user: CurrentUserResponse) -> None:
         if user.role_name != "Admin":

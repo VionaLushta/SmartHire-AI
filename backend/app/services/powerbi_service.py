@@ -4,10 +4,12 @@ from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 import csv
+import logging
 import json
 from pathlib import Path
 from statistics import mean
 from typing import Any, Literal, Mapping, Sequence
+from time import perf_counter
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
@@ -29,6 +31,8 @@ from app.services.job_skill_service import JobSkillService
 from app.services.nlp_matcher import calculate_similarity, score_job_fit
 
 PowerBIExportFormat = Literal["csv", "json", "powerbi"]
+logger = logging.getLogger("smarthire.performance")
+_CACHE_MISS = object()
 
 
 @dataclass(frozen=True)
@@ -76,16 +80,26 @@ class PowerBIService:
         self.job_skill_service = job_skill_service or JobSkillService(db)
         self.job_dashboard_repo = JobDashboardRepository(db)
         self.analytics_engine = AnalyticsEngine()
+        self._cache: dict[tuple[object, ...], object] = {}
+
+    def _remember(self, key: tuple[object, ...], factory):
+        cached = self._cache.get(key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached
+        value = factory()
+        self._cache[key] = value
+        return value
 
     def executive(self, current_user: Any) -> dict[str, Any]:
         self._require_admin(current_user)
+        started = perf_counter()
         applications = self._application_rows()
         ai_scores = [float(row.get("overall_score") or 0) for row in applications if row.get("overall_score") is not None]
         status_counts = Counter(self._normalize_status(row.get("status")) for row in applications)
         emails = self._email_logs()
         audits = self._audit_logs()
         pdf_documents = [entry for entry in audits if entry.get("generated_document")]
-        return {
+        result = {
             "generated_at": self._timestamp(),
             "kpis": {
                 "total_applications": len(applications),
@@ -105,6 +119,8 @@ class PowerBIService:
             "funnel": self._funnel_table().model_dump(),
             "powerbi": self.powerbi_dataset(current_user).model_dump(),
         }
+        logger.info("powerbi executive generated duration_ms=%.1f", (perf_counter() - started) * 1000)
+        return result
 
     def funnel(self, current_user: Any) -> dict[str, Any]:
         self._require_admin(current_user)
@@ -136,6 +152,11 @@ class PowerBIService:
 
     def powerbi_dataset(self, current_user: Any) -> PowerBiTable:
         self._require_admin(current_user)
+        cache_key = ("powerbi_dataset",)
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
+        started = perf_counter()
         tables = [
             self._executive_table(),
             self._funnel_table(),
@@ -148,11 +169,14 @@ class PowerBIService:
             self._workflow_table(),
         ]
         rows = [table.model_dump() for table in tables]
-        return PowerBiTable(
+        result = PowerBiTable(
             name="powerbi_dataset",
             columns=["name", "columns", "rows"],
             rows=rows,
         )
+        self._cache[cache_key] = result
+        logger.info("powerbi dataset generated duration_ms=%.1f", (perf_counter() - started) * 1000)
+        return result
 
     def export(
         self,
@@ -162,6 +186,7 @@ class PowerBIService:
         dataset: str = "powerbi",
     ) -> tuple[bytes, str, str]:
         self._require_admin(current_user)
+        started = perf_counter()
         if report_format not in {"csv", "json", "powerbi"}:
             raise PowerBIExportError("Unsupported export format.")
         if report_format == "powerbi":
@@ -195,15 +220,23 @@ class PowerBIService:
             writer.writeheader()
             writer.writerows(table.rows)
             output_bytes = buffer.getvalue().encode("utf-8")
+            logger.info(
+                "powerbi export generated dataset=%s format=%s duration_ms=%.1f",
+                dataset,
+                report_format,
+                (perf_counter() - started) * 1000,
+            )
             return output_bytes, "text/csv", f"{table.name}.csv"
         raise PowerBIExportError("Unsupported export format.")
 
     def _executive_table(self) -> PowerBiTable:
+        cache_key = ("executive_table",)
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
         applications = self._application_rows()
         ai_scores = [float(row.get("overall_score") or 0) for row in applications if row.get("overall_score") is not None]
         status_counts = Counter(self._normalize_status(row.get("status")) for row in applications)
-        emails = self._email_logs()
-        audits = self._audit_logs()
         row = {
             "total_applications": len(applications),
             "accepted": status_counts.get("accepted", 0),
@@ -216,16 +249,22 @@ class PowerBIService:
             "applications_today": self._applications_in_window(days=0),
             "applications_this_week": self._applications_in_window(days=7),
             "applications_this_month": self._applications_in_window(days=30),
-            "emails_sent": sum(1 for entry in emails if entry.get("status") == "sent"),
-            "pdf_documents_generated": sum(1 for entry in audits if entry.get("generated_document")),
+            "emails_sent": sum(1 for entry in self._email_logs() if entry.get("status") == "sent"),
+            "pdf_documents_generated": sum(1 for entry in self._audit_logs() if entry.get("generated_document")),
         }
-        return PowerBiTable(
+        result = PowerBiTable(
             name="executive_kpis",
             columns=list(row.keys()),
             rows=[row],
         )
+        self._cache[cache_key] = result
+        return result
 
     def _funnel_table(self) -> PowerBiTable:
+        cache_key = ("funnel_table",)
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
         applications = self._application_rows()
         ai_reviewed = sum(1 for row in applications if row.get("overall_score") is not None)
         recruiter_reviewed = len(self._audit_logs())
@@ -240,9 +279,15 @@ class PowerBIService:
             {"stage": "Accepted", "count": accepted},
             {"stage": "Rejected", "count": rejected},
         ]
-        return PowerBiTable(name="hiring_funnel", columns=["stage", "count"], rows=rows)
+        result = PowerBiTable(name="hiring_funnel", columns=["stage", "count"], rows=rows)
+        self._cache[cache_key] = result
+        return result
 
     def _jobs_table(self) -> PowerBiTable:
+        cache_key = ("jobs_table",)
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
         applications = self._application_rows()
         rows: list[dict[str, Any]] = []
         by_job: dict[int, list[dict[str, Any]]] = defaultdict(list)
@@ -266,13 +311,19 @@ class PowerBIService:
                     "acceptance_rate": round((accepted / total) * 100, 2) if total else 0.0,
                 }
             )
-        return PowerBiTable(
+        result = PowerBiTable(
             name="position_analytics",
             columns=["job_id", "job_title", "applications", "average_match", "accepted", "rejected", "interview_rate", "acceptance_rate"],
             rows=rows,
         )
+        self._cache[cache_key] = result
+        return result
 
     def _skill_tables(self) -> list[PowerBiTable]:
+        cache_key = ("skill_tables",)
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
         detected = Counter()
         for row in self._resume_skill_rows():
             detected[row["skill_name"]] += 1
@@ -297,7 +348,7 @@ class PowerBIService:
             bucket = self._distribution_bucket(score)
             match_distribution[bucket] += 1
 
-        return [
+        result = [
             PowerBiTable(
                 name="top_detected_skills",
                 columns=["skill", "count"],
@@ -323,12 +374,24 @@ class PowerBIService:
                 rows=[{"bucket": bucket, "count": count} for bucket, count in sorted(match_distribution.items())],
             ),
         ]
+        self._cache[cache_key] = result
+        return result
 
     def _skills_bundle(self) -> dict[str, Any]:
+        cache_key = ("skills_bundle",)
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
         tables = [table.model_dump() for table in self._skill_tables()]
-        return {"generated_at": self._timestamp(), "tables": tables}
+        result = {"generated_at": self._timestamp(), "tables": tables}
+        self._cache[cache_key] = result
+        return result
 
     def _education_table(self) -> PowerBiTable:
+        cache_key = ("education_table",)
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
         universities = Counter()
         degrees = Counter()
         certificates = Counter()
@@ -355,13 +418,19 @@ class PowerBIService:
         rows.extend({"category": "certificates", "label": label, "count": count} for label, count in certificates.most_common(20))
         rows.extend({"category": "languages", "label": label, "count": count} for label, count in languages.most_common(20))
         rows.extend({"category": "experience_levels", "label": label, "count": count} for label, count in experience_levels.most_common())
-        return PowerBiTable(
+        result = PowerBiTable(
             name="education_analytics",
             columns=["category", "label", "count"],
             rows=rows,
         )
+        self._cache[cache_key] = result
+        return result
 
     def _recruiters_table(self) -> PowerBiTable:
+        cache_key = ("recruiters_table",)
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
         audits = self._audit_logs()
         app_lookup = {row["application_id"]: row for row in self._application_rows()}
         decision_counter: dict[str, Counter] = defaultdict(Counter)
@@ -402,7 +471,7 @@ class PowerBIService:
                     "rejected_candidates": rejected.get(recruiter, 0),
                 }
             )
-        return PowerBiTable(
+        result = PowerBiTable(
             name="recruiter_analytics",
             columns=[
                 "recruiter",
@@ -415,8 +484,14 @@ class PowerBIService:
             ],
             rows=rows,
         )
+        self._cache[cache_key] = result
+        return result
 
     def _ai_table(self) -> PowerBiTable:
+        cache_key = ("ai_table",)
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
         applications = self._application_rows()
         resume_similarities: list[float] = []
         skill_scores: list[float] = []
@@ -444,13 +519,19 @@ class PowerBIService:
             {"metric": "average_confidence_score", "value": round(mean(confidence_scores), 2) if confidence_scores else 0.0},
         ]
         rows.extend({"metric": f"recommendation_{label}", "value": count} for label, count in sorted(recommendation_counter.items()))
-        return PowerBiTable(
+        result = PowerBiTable(
             name="ai_analytics",
             columns=["metric", "value"],
             rows=rows,
         )
+        self._cache[cache_key] = result
+        return result
 
     def _email_table(self) -> PowerBiTable:
+        cache_key = ("email_table",)
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
         logs = self._email_logs()
         counter = Counter(entry.get("document") or "Unknown" for entry in logs)
         rows = [
@@ -461,9 +542,15 @@ class PowerBIService:
             {"metric": "rejection_letters", "value": counter.get("Application Status Notice", 0)},
             {"metric": "hold_notices", "value": counter.get("Application On Hold Notice", 0)},
         ]
-        return PowerBiTable(name="email_analytics", columns=["metric", "value"], rows=rows)
+        result = PowerBiTable(name="email_analytics", columns=["metric", "value"], rows=rows)
+        self._cache[cache_key] = result
+        return result
 
     def _workflow_table(self) -> PowerBiTable:
+        cache_key = ("workflow_table",)
+        cached = self._cache.get(cache_key, _CACHE_MISS)
+        if cached is not _CACHE_MISS:
+            return cached  # type: ignore[return-value]
         history = self._history_logs()
         audits = self._audit_logs()
         applications = self._application_rows()
@@ -486,7 +573,9 @@ class PowerBIService:
             {"metric": "workflow_completion_rate", "value": round((completed / len(applications)) * 100, 2) if applications else 0.0},
             {"metric": "audit_events", "value": len(audits)},
         ]
-        return PowerBiTable(name="workflow_analytics", columns=["metric", "value"], rows=rows)
+        result = PowerBiTable(name="workflow_analytics", columns=["metric", "value"], rows=rows)
+        self._cache[cache_key] = result
+        return result
 
     def _dataset_lookup(self, dataset: str) -> PowerBiTable | None:
         lookup = {
@@ -516,62 +605,131 @@ class PowerBIService:
         return builder() if builder is not None else None
 
     def _application_rows(self) -> list[dict[str, Any]]:
-        statement = (
-            select(
-                Application.__table__.c.application_id,
-                Application.__table__.c.user_id,
-                Application.__table__.c.job_id,
-                Application.__table__.c.status,
-                Application.__table__.c.created_at,
-                Job.__table__.c.title.label("job_title"),
-                Job.__table__.c.description.label("job_description"),
-                Job.__table__.c.experience_level,
-                User.__table__.c.first_name,
-                User.__table__.c.last_name,
-                User.__table__.c.email,
-                AIAnalysis.__table__.c.overall_score,
-                AIAnalysis.__table__.c.skills_score,
-                AIAnalysis.__table__.c.education_score,
-                AIAnalysis.__table__.c.experience_score,
-                AIAnalysis.__table__.c.certificate_score,
-                AIAnalysis.__table__.c.recommendations,
-                Resume.__table__.c.parsed_text.label("resume_text"),
-            )
-            .select_from(
-                Application.__table__.join(
-                    Job.__table__, Job.__table__.c.job_id == Application.__table__.c.job_id
-                )
-                .join(
-                    User.__table__, User.__table__.c.user_id == Application.__table__.c.user_id
-                )
-                .outerjoin(
-                    AIAnalysis.__table__,
-                    AIAnalysis.__table__.c.application_id == Application.__table__.c.application_id,
-                )
-                .outerjoin(
-                    Resume.__table__, Resume.__table__.c.resume_id == Application.__table__.c.resume_id
-                )
-            )
-            .order_by(Application.__table__.c.created_at.asc())
+        return self._remember(
+            ("application_rows",),
+            lambda: [
+                dict(row)
+                for row in self.db.execute(
+                    select(
+                        Application.__table__.c.application_id,
+                        Application.__table__.c.user_id,
+                        Application.__table__.c.job_id,
+                        Application.__table__.c.status,
+                        Application.__table__.c.created_at,
+                        Job.__table__.c.title.label("job_title"),
+                        Job.__table__.c.description.label("job_description"),
+                        Job.__table__.c.experience_level,
+                        User.__table__.c.first_name,
+                        User.__table__.c.last_name,
+                        User.__table__.c.email,
+                        AIAnalysis.__table__.c.overall_score,
+                        AIAnalysis.__table__.c.skills_score,
+                        AIAnalysis.__table__.c.education_score,
+                        AIAnalysis.__table__.c.experience_score,
+                        AIAnalysis.__table__.c.certificate_score,
+                        AIAnalysis.__table__.c.recommendations,
+                        Resume.__table__.c.parsed_text.label("resume_text"),
+                    )
+                    .select_from(
+                        Application.__table__.join(
+                            Job.__table__, Job.__table__.c.job_id == Application.__table__.c.job_id
+                        )
+                        .join(
+                            User.__table__, User.__table__.c.user_id == Application.__table__.c.user_id
+                        )
+                        .outerjoin(
+                            AIAnalysis.__table__,
+                            AIAnalysis.__table__.c.application_id == Application.__table__.c.application_id,
+                        )
+                        .outerjoin(
+                            Resume.__table__, Resume.__table__.c.resume_id == Application.__table__.c.resume_id
+                        )
+                    )
+                    .order_by(Application.__table__.c.created_at.asc())
+                ).mappings().all()
+            ],
         )
-        return [dict(row) for row in self.db.execute(statement).mappings().all()]
 
     def _resume_skill_rows(self) -> list[dict[str, Any]]:
-        statement = (
-            select(
-                ResumeSkill.__table__.c.resume_id,
-                ResumeSkill.__table__.c.confidence,
-                Skill.__table__.c.name.label("skill_name"),
-            )
-            .select_from(
-                ResumeSkill.__table__.join(
-                    Skill.__table__, Skill.__table__.c.skill_id == ResumeSkill.__table__.c.skill_id
-                )
-            )
+        return self._remember(
+            ("resume_skill_rows",),
+            lambda: [
+                dict(row)
+                for row in self.db.execute(
+                    select(
+                        ResumeSkill.__table__.c.resume_id,
+                        ResumeSkill.__table__.c.confidence,
+                        Skill.__table__.c.name.label("skill_name"),
+                    )
+                    .select_from(
+                        ResumeSkill.__table__.join(
+                            Skill.__table__, Skill.__table__.c.skill_id == ResumeSkill.__table__.c.skill_id
+                        )
+                    )
+                ).mappings().all()
+            ],
         )
-        return [dict(row) for row in self.db.execute(statement).mappings().all()]
 
     def _job_skill_map(self) -> dict[int, tuple[list[str], list[str]]]:
+        return self._remember(
+            ("job_skill_map",),
+            lambda: self._build_job_skill_map(),
+        )
+
+    def _detected_skill_map(self) -> dict[Any, set[str]]:
+        return self._remember(("detected_skill_map",), lambda: self._build_detected_skill_map())
+
+    def _education_rows(self) -> list[dict[str, Any]]:
+        return self._remember(
+            ("education_rows",),
+            lambda: [
+                dict(row)
+                for row in self.db.execute(
+                    select(Education.__table__.c.institution, Education.__table__.c.degree)
+                    .select_from(
+                        Education.__table__.join(
+                            Resume.__table__, Resume.__table__.c.resume_id == Education.__table__.c.resume_id
+                        )
+                    )
+                ).mappings().all()
+            ],
+        )
+
+    def _certificate_rows(self) -> list[dict[str, Any]]:
+        return self._remember(
+            ("certificate_rows",),
+            lambda: [dict(row) for row in self.db.execute(select(Certificate.__table__.c.title).select_from(Certificate.__table__)).mappings().all()],
+        )
+
+    def _language_rows(self) -> list[dict[str, Any]]:
+        return self._remember(
+            ("language_rows",),
+            lambda: [
+                dict(row)
+                for row in self.db.execute(
+                    select(Language.__table__.c.name.label("language_name"))
+                    .select_from(
+                        UserLanguage.__table__.join(
+                            Language.__table__, Language.__table__.c.language_id == UserLanguage.__table__.c.language_id
+                        )
+                    )
+                ).mappings().all()
+            ],
+        )
+
+    def _experience_level_distribution(self) -> Counter:
+        return self._remember(("experience_level_distribution",), lambda: self._build_experience_level_distribution())
+
+    def _email_logs(self) -> list[dict[str, Any]]:
+        return self._remember(("email_logs",), lambda: self._load_jsonl(self.workflow_root / "email_log.jsonl"))
+
+    def _audit_logs(self) -> list[dict[str, Any]]:
+        return self._remember(("audit_logs",), lambda: self._load_jsonl(self.workflow_root / "audit_log.jsonl"))
+
+    def _history_logs(self) -> list[dict[str, Any]]:
+        return self._remember(("history_logs",), lambda: self._load_jsonl(self.workflow_root / "workflow_history.jsonl"))
+
+    def _build_job_skill_map(self) -> dict[int, tuple[list[str], list[str]]]:
         statement = (
             select(
                 JobSkill.__table__.c.job_id,
@@ -595,42 +753,24 @@ class PowerBIService:
             mapping[job_id] = (required, optional)
         return mapping
 
-    def _detected_skill_map(self) -> dict[Any, set[str]]:
+    def _build_detected_skill_map(self) -> dict[Any, set[str]]:
+        resume_users = self._remember(
+            ("resume_user_map",),
+            lambda: {
+                row["resume_id"]: row["user_id"]
+                for row in self.db.execute(
+                    select(Resume.__table__.c.resume_id, Resume.__table__.c.user_id)
+                ).mappings().all()
+            },
+        )
         mapping: dict[Any, set[str]] = defaultdict(set)
         for row in self._resume_skill_rows():
-            resume_id = row["resume_id"]
-            user_id = self.db.scalar(select(Resume.__table__.c.user_id).where(Resume.__table__.c.resume_id == resume_id))
+            user_id = resume_users.get(row["resume_id"])
             if user_id is not None:
                 mapping[user_id].add(str(row["skill_name"]))
         return mapping
 
-    def _education_rows(self) -> list[dict[str, Any]]:
-        statement = (
-            select(Education.__table__.c.institution, Education.__table__.c.degree)
-            .select_from(
-                Education.__table__.join(
-                    Resume.__table__, Resume.__table__.c.resume_id == Education.__table__.c.resume_id
-                )
-            )
-        )
-        return [dict(row) for row in self.db.execute(statement).mappings().all()]
-
-    def _certificate_rows(self) -> list[dict[str, Any]]:
-        statement = select(Certificate.__table__.c.title).select_from(Certificate.__table__)
-        return [dict(row) for row in self.db.execute(statement).mappings().all()]
-
-    def _language_rows(self) -> list[dict[str, Any]]:
-        statement = (
-            select(Language.__table__.c.name.label("language_name"))
-            .select_from(
-                UserLanguage.__table__.join(
-                    Language.__table__, Language.__table__.c.language_id == UserLanguage.__table__.c.language_id
-                )
-            )
-        )
-        return [dict(row) for row in self.db.execute(statement).mappings().all()]
-
-    def _experience_level_distribution(self) -> Counter:
+    def _build_experience_level_distribution(self) -> Counter:
         rows = self.db.execute(
             select(
                 WorkExperience.__table__.c.resume_id,
@@ -646,15 +786,6 @@ class PowerBIService:
             years = self._experience_years(periods)
             counter[self._experience_bucket(years)] += 1
         return counter
-
-    def _email_logs(self) -> list[dict[str, Any]]:
-        return self._load_jsonl(self.workflow_root / "email_log.jsonl")
-
-    def _audit_logs(self) -> list[dict[str, Any]]:
-        return self._load_jsonl(self.workflow_root / "audit_log.jsonl")
-
-    def _history_logs(self) -> list[dict[str, Any]]:
-        return self._load_jsonl(self.workflow_root / "workflow_history.jsonl")
 
     def _load_jsonl(self, path: Path) -> list[dict[str, Any]]:
         if not path.exists():

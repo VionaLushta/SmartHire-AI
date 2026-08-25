@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import date
+from time import perf_counter
 
 import pymupdf
 from fastapi import HTTPException, UploadFile, status
@@ -103,6 +104,7 @@ class ResumeAIService:
         return "Unknown"
 
     def parse_resume(self, file: UploadFile) -> ParsedResumeResponse:
+        started = perf_counter()
         content = file.file.read()
         self._validate_pdf(file, content)
 
@@ -110,26 +112,34 @@ class ResumeAIService:
             with pymupdf.open(stream=content, filetype="pdf") as doc:
                 page_count = doc.page_count
                 text = "\n".join(page.get_text("text") for page in doc).strip()
-        except Exception:
+
+            if page_count == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Empty PDF file."
+                )
+            if not text.strip():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Empty PDF file."
+                )
+
+            return ParsedResumeResponse(
+                pages=page_count,
+                language=self._detect_language(text),
+                text=text,
+                characters=len(text),
+            )
+        except Exception as exc:
+            if isinstance(exc, HTTPException):
+                raise
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid PDF file."
+            ) from exc
+        finally:
+            logger.info(
+                "resume parse completed filename=%s duration_ms=%.1f",
+                file.filename or "resume.pdf",
+                (perf_counter() - started) * 1000,
             )
-
-        if page_count == 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Empty PDF file."
-            )
-        if not text.strip():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Empty PDF file."
-            )
-
-        return ParsedResumeResponse(
-            pages=page_count,
-            language=self._detect_language(text),
-            text=text,
-            characters=len(text),
-        )
 
     def extract_skills(self, text: str) -> SkillExtractionResponse:
         try:
@@ -155,8 +165,14 @@ class ResumeAIService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Job not found."
             )
 
+        started = perf_counter()
         parsed = self.parse_resume(file)
         _, result = self._match_resume_text(parsed.text, job, job_id)
+        logger.info(
+            "job match completed job_id=%s duration_ms=%.1f",
+            job_id,
+            (perf_counter() - started) * 1000,
+        )
         return JobMatchResponse(**result)
 
     def recommendations(self, file: UploadFile, job_id: int) -> RecommendationResponse:
@@ -171,6 +187,7 @@ class ResumeAIService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Job not found."
             )
 
+        started = perf_counter()
         parsed = self.parse_resume(file)
         candidate, match_result = self._match_resume_text(parsed.text, job, job_id)
         result = self.recommendation_engine.generate(
@@ -196,24 +213,25 @@ class ResumeAIService:
             },
             self._similar_job_data(job_id),
         )
+        logger.info(
+            "recommendations generated job_id=%s duration_ms=%.1f",
+            job_id,
+            (perf_counter() - started) * 1000,
+        )
         return RecommendationResponse(**result)
 
     def _match_resume_text(
         self, text: str, job: dict, job_id: int
     ) -> tuple[dict, dict]:
+        started = perf_counter()
         skills = self.extract_skills(text).skills
         if not skills:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Missing skills."
             )
-        required_skills = [
-            row["name"]
-            for row in JobDashboardRepository(self.db).get_required_skills(job_id)
-        ]
-        optional_skills = [
-            row["name"]
-            for row in JobDashboardRepository(self.db).get_optional_skills(job_id)
-        ]
+        skill_groups = JobDashboardRepository(self.db).get_skill_groups(job_id)
+        required_skills = [row["name"] for row in skill_groups["required_skills"]]
+        optional_skills = [row["name"] for row in skill_groups["optional_skills"]]
         if not required_skills and not optional_skills:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -277,6 +295,11 @@ class ResumeAIService:
         match_result["candidate_gaps"] = candidate["candidate_gaps"]
         match_result["skill_report"] = candidate["skill_report"]
         match_result["final_skill_match"] = final_skill_score
+        logger.info(
+            "resume match scored job_id=%s duration_ms=%.1f",
+            job_id,
+            (perf_counter() - started) * 1000,
+        )
         return candidate, match_result
 
     def _similar_job_data(self, excluded_job_id: int) -> list[dict]:
@@ -371,8 +394,9 @@ class ResumeAIService:
                 detail="No completed AI analysis found for this job's candidates.",
             )
 
+        required_skills = self._job_skills(payload.job_id)
         candidates = [
-            self._build_ranking_candidate(application, payload.job_id)
+            self._build_ranking_candidate(application, payload.job_id, required_skills)
             for application in applications
         ]
         ranking = self.candidate_ranker.rank(
@@ -428,11 +452,12 @@ class ResumeAIService:
         )
         return self.db.scalar(statement) or 0
 
-    def _build_ranking_candidate(self, application: dict, job_id: int) -> dict:
+    def _build_ranking_candidate(
+        self, application: dict, job_id: int, required_skills: list[str]
+    ) -> dict:
         user_id = application["user_id"]
         resume_id = application["resume_id"]
         candidate_skills = self._resume_skills(resume_id)
-        required_skills = self._job_skills(job_id)
         matched_skills = len(
             {skill.casefold() for skill in candidate_skills}
             & {skill.casefold() for skill in required_skills}

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 from typing import Iterable
+from time import perf_counter
 
 
 class DocumentProcessingError(Exception):
@@ -31,6 +33,7 @@ SUPPORTED_EXTENSIONS = SUPPORTED_PDF_EXTENSIONS | SUPPORTED_IMAGE_EXTENSIONS
 
 _CONTROL_CHARS_RE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
 _MULTI_SPACES_RE = re.compile(r"[ \t\f\v]+")
+logger = logging.getLogger("smarthire.performance")
 
 
 def clean_extracted_text(text: str | None) -> str:
@@ -59,6 +62,7 @@ def clean_extracted_text(text: str | None) -> str:
 
 def extract_text_from_pdf(file_path: str | Path) -> str:
     """Extract clean text from every page of a PDF."""
+    started = perf_counter()
     path = _ensure_path(file_path)
     _ensure_file_exists(path)
     _ensure_supported_extension(path, SUPPORTED_PDF_EXTENSIONS)
@@ -82,11 +86,14 @@ def extract_text_from_pdf(file_path: str | Path) -> str:
     except Exception as exc:
         raise CorruptedDocumentError("Failed to read the PDF file.") from exc
 
-    return clean_extracted_text("\n".join(pages))
+    result = clean_extracted_text("\n".join(pages))
+    logger.info("pdf text extracted filename=%s duration_ms=%.1f", path.name, (perf_counter() - started) * 1000)
+    return result
 
 
 def extract_text_from_image(file_path: str | Path) -> str:
     """Extract clean OCR text from an image file."""
+    started = perf_counter()
     path = _ensure_path(file_path)
     _ensure_file_exists(path)
     _ensure_supported_extension(path, SUPPORTED_IMAGE_EXTENSIONS)
@@ -98,7 +105,9 @@ def extract_text_from_image(file_path: str | Path) -> str:
     if easyocr_text is not None:
         backend_available = True
     if easyocr_text and easyocr_text.strip():
-        return clean_extracted_text(easyocr_text)
+        result = clean_extracted_text(easyocr_text)
+        logger.info("ocr text extracted backend=easyocr filename=%s duration_ms=%.1f", path.name, (perf_counter() - started) * 1000)
+        return result
     if easyocr_text is not None:
         errors.append("EasyOCR returned no text.")
 
@@ -106,7 +115,9 @@ def extract_text_from_image(file_path: str | Path) -> str:
     if pytesseract_text is not None:
         backend_available = True
     if pytesseract_text and pytesseract_text.strip():
-        return clean_extracted_text(pytesseract_text)
+        result = clean_extracted_text(pytesseract_text)
+        logger.info("ocr text extracted backend=pytesseract filename=%s duration_ms=%.1f", path.name, (perf_counter() - started) * 1000)
+        return result
     if pytesseract_text is not None:
         errors.append("pytesseract returned no text.")
 
@@ -120,14 +131,19 @@ def extract_text_from_image(file_path: str | Path) -> str:
 
 def extract_document_text(file_path: str | Path) -> str:
     """Extract text from a supported PDF or image document."""
+    started = perf_counter()
     path = _ensure_path(file_path)
     _ensure_file_exists(path)
 
     extension = path.suffix.lower()
     if extension in SUPPORTED_PDF_EXTENSIONS:
-        return extract_text_from_pdf(path)
+        result = extract_text_from_pdf(path)
+        logger.info("document text extracted type=pdf filename=%s duration_ms=%.1f", path.name, (perf_counter() - started) * 1000)
+        return result
     if extension in SUPPORTED_IMAGE_EXTENSIONS:
-        return extract_text_from_image(path)
+        result = extract_text_from_image(path)
+        logger.info("document text extracted type=image filename=%s duration_ms=%.1f", path.name, (perf_counter() - started) * 1000)
+        return result
 
     raise UnsupportedFileTypeError(
         f"Unsupported file extension '{extension or '[none]'}'. "
