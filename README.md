@@ -32,6 +32,22 @@ Banner placeholder: add approved artwork at `docs/banner.svg` when the brand ass
 - Recommendation support for candidate job discovery
 - Recruitment analytics and exportable reports
 
+## Documentation
+
+- [Architecture](docs/Architecture.md)
+- [Installation](docs/Installation.md)
+- [Deployment](docs/Deployment.md)
+- [API Reference](docs/API.md)
+- [Database](docs/Database.md)
+- [AI Pipeline](docs/AI-Pipeline.md)
+- [OCR](docs/OCR.md)
+- [NLP](docs/NLP.md)
+- [Power BI](docs/PowerBI.md)
+- [SMTP](docs/SMTP.md)
+- [Project Structure](docs/Project-Structure.md)
+- [Security](docs/Security.md)
+- [Workflow](docs/Workflow.md)
+
 ## Architecture
 
 ```
