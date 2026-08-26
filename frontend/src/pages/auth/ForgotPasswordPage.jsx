@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import AuthCard from '../../components/auth/AuthCard';
 import AuthHeader from '../../components/auth/AuthHeader';
+import FormError from '../../components/auth/FormError';
 import Button from '../../components/ui/Button';
+import { authService } from '../../services/authService';
 import { classNames } from '../../utils/classNames';
 
 function validateEmail(email) {
@@ -14,14 +16,29 @@ function validateEmail(email) {
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const error = validateEmail(email);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setSubmitted(true);
+    setErrorMessage('');
+    setMessage('');
 
     if (error) {
       return;
+    }
+
+    setBusy(true);
+    try {
+      await authService.forgotPassword({ email });
+      setMessage('If the account exists, we sent password reset instructions to that email address.');
+    } catch (requestError) {
+      setErrorMessage(requestError?.response?.data?.detail || requestError.message || 'Unable to send reset email.');
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -31,7 +48,7 @@ export default function ForgotPasswordPage() {
         <div className="space-y-8">
           <AuthHeader
             title="Reset your password"
-            description="Enter your email address and we will prepare password reset instructions for the next step."
+            description="Enter your email address and we will send a secure password reset link if the account exists."
           />
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -55,13 +72,15 @@ export default function ForgotPasswordPage() {
               {submitted && error ? <p className="text-xs font-medium text-rose-600">{error}</p> : null}
             </div>
 
-            {submitted && !error ? (
+            {message ? (
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                UI only: reset instructions would be sent from the backend in a later ticket.
+                {message}
               </div>
             ) : null}
 
-            <Button type="submit" variant="primary" size="lg" className="w-full">
+            <FormError>{errorMessage}</FormError>
+
+            <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy}>
               Send Reset Link
               <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
             </Button>

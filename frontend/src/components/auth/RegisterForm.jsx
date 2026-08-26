@@ -12,10 +12,12 @@ import { classNames } from '../../utils/classNames';
 const initialState = {
   firstName: '',
   lastName: '',
+  phone: '',
   email: '',
   password: '',
   confirmPassword: '',
-  role: 'candidate',
+  role: 'Candidate',
+  companyName: '',
   acceptTerms: false,
 };
 
@@ -24,6 +26,11 @@ function validate(values) {
 
   if (!values.firstName.trim()) errors.firstName = 'First name is required.';
   if (!values.lastName.trim()) errors.lastName = 'Last name is required.';
+  if (!values.phone.trim()) {
+    errors.phone = 'Phone number is required.';
+  } else if (!/^[0-9()+\-\s.]{7,30}$/.test(values.phone)) {
+    errors.phone = 'Enter a valid phone number.';
+  }
 
   if (!values.email.trim()) {
     errors.email = 'Email is required.';
@@ -44,6 +51,9 @@ function validate(values) {
   }
 
   if (!values.role) errors.role = 'Select a role.';
+  if (values.role === 'Company' && !values.companyName.trim()) {
+    errors.companyName = 'Company name is required.';
+  }
   if (!values.acceptTerms) errors.acceptTerms = 'You must accept the terms to continue.';
 
   return errors;
@@ -89,10 +99,12 @@ export default function RegisterForm() {
     setTouched({
       firstName: true,
       lastName: true,
+      phone: true,
       email: true,
       password: true,
       confirmPassword: true,
       role: true,
+      companyName: true,
       acceptTerms: true,
     });
 
@@ -103,13 +115,14 @@ export default function RegisterForm() {
 
     await dispatch(
       registerUser({
-        firstName: values.firstName,
-        lastName: values.lastName,
+        first_name: values.firstName,
+        last_name: values.lastName,
+        phone: values.phone,
         email: values.email,
         password: values.password,
-        confirmPassword: values.confirmPassword,
-        role: values.role,
-        acceptTerms: values.acceptTerms,
+        role_name: values.role,
+        company_name: values.companyName,
+        accept_terms: values.acceptTerms,
       }),
     );
   };
@@ -149,6 +162,32 @@ export default function RegisterForm() {
             ) : null}
           </div>
         ))}
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="phone" className="text-sm font-medium text-slate-700">
+          Phone
+        </label>
+        <input
+          id="phone"
+          name="phone"
+          type="tel"
+          value={values.phone}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          autoComplete="tel"
+          placeholder="+1 555 013 2048"
+          aria-invalid={Boolean((touched.phone || submitted) && errors.phone)}
+          className={classNames(
+            'h-11 w-full rounded-xl border border-[rgba(15,23,42,0.08)] bg-white px-4 text-sm text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)] outline-none transition duration-150 ease-out placeholder:text-slate-400 focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10',
+            (touched.phone || submitted) && errors.phone
+              ? 'border-[#ef4444]/30 bg-[#fff5f5] focus:border-[#ef4444] focus:ring-[#ef4444]/10'
+              : 'hover:border-[rgba(15,23,42,0.12)]',
+          )}
+        />
+        {(touched.phone || submitted) && errors.phone ? (
+          <p className="text-xs font-medium text-rose-600">{errors.phone}</p>
+        ) : null}
       </div>
 
       <div className="space-y-2">
@@ -220,13 +259,40 @@ export default function RegisterForm() {
               : 'hover:border-[rgba(15,23,42,0.12)]',
           )}
         >
-          <option value="candidate">Candidate</option>
-          <option value="company">Company</option>
+          <option value="Candidate">Candidate</option>
+          <option value="Company">Company</option>
         </select>
         {(touched.role || submitted) && errors.role ? (
           <p className="text-xs font-medium text-rose-600">{errors.role}</p>
         ) : null}
       </div>
+
+      {values.role === 'Company' ? (
+        <div className="space-y-2">
+          <label htmlFor="companyName" className="text-sm font-medium text-slate-700">
+            Company Name
+          </label>
+          <input
+            id="companyName"
+            name="companyName"
+            type="text"
+            value={values.companyName}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            placeholder="SmartHire Demo Company"
+            aria-invalid={Boolean((touched.companyName || submitted) && errors.companyName)}
+            className={classNames(
+              'h-11 w-full rounded-xl border border-[rgba(15,23,42,0.08)] bg-white px-4 text-sm text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)] outline-none transition duration-150 ease-out placeholder:text-slate-400 focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10',
+              (touched.companyName || submitted) && errors.companyName
+                ? 'border-[#ef4444]/30 bg-[#fff5f5] focus:border-[#ef4444] focus:ring-[#ef4444]/10'
+                : 'hover:border-[rgba(15,23,42,0.12)]',
+            )}
+          />
+          {(touched.companyName || submitted) && errors.companyName ? (
+            <p className="text-xs font-medium text-rose-600">{errors.companyName}</p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="space-y-3">
         <label className="inline-flex items-start gap-3 text-sm leading-6 text-slate-600">

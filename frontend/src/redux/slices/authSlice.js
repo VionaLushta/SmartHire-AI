@@ -9,9 +9,11 @@ const initialState = {
   user: persistedAuth?.user ?? null,
   token: persistedAuth?.token ?? null,
   refreshToken: persistedAuth?.refreshToken ?? null,
+  rememberMe: persistedAuth?.rememberMe ?? true,
   status: 'idle',
   error: null,
   bootstrapped: false,
+  verificationRequired: false,
 };
 
 export const bootstrapAuth = createAsyncThunk(
@@ -19,7 +21,12 @@ export const bootstrapAuth = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await authService.me();
-      return normalizeAuthResponse(response);
+      const normalized = normalizeAuthResponse(response);
+      return {
+        ...normalized,
+        token: normalized.token ?? persistedAuth?.token ?? null,
+        rememberMe: persistedAuth?.rememberMe ?? true,
+      };
     } catch (error) {
       clearStoredAuth();
       return rejectWithValue(getAuthErrorMessage(error, 'Unable to restore your session.'));
@@ -32,7 +39,10 @@ export const loginUser = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await authService.login(credentials);
-      return normalizeAuthResponse(response);
+      return {
+        ...normalizeAuthResponse(response),
+        rememberMe: Boolean(credentials.rememberMe ?? credentials.remember_me),
+      };
     } catch (error) {
       return rejectWithValue(getAuthErrorMessage(error, 'Invalid email or password.'));
     }
@@ -44,9 +54,22 @@ export const registerUser = createAsyncThunk(
   async (payload, { rejectWithValue }) => {
     try {
       const response = await authService.register(payload);
-      return normalizeAuthResponse(response);
+      return { ...normalizeAuthResponse(response), rememberMe: false };
     } catch (error) {
       return rejectWithValue(getAuthErrorMessage(error, 'Registration failed.'));
+    }
+  },
+);
+
+export const logoutUser = createAsyncThunk(
+  'auth/logoutUser',
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const { auth } = getState();
+      await authService.logout({ remember_me: auth.rememberMe });
+      return true;
+    } catch (error) {
+      return rejectWithValue(getAuthErrorMessage(error, 'Unable to log out.'));
     }
   },
 );
@@ -62,18 +85,24 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.refreshToken = null;
+      state.rememberMe = true;
       state.status = 'idle';
       state.error = null;
+      state.verificationRequired = false;
       clearStoredAuth();
     },
     hydrateAuth(state, action) {
       state.user = action.payload?.user ?? null;
       state.token = action.payload?.token ?? null;
       state.refreshToken = action.payload?.refreshToken ?? null;
+      state.rememberMe = action.payload?.rememberMe ?? true;
       state.bootstrapped = true;
       state.status = 'succeeded';
       state.error = null;
-      writeStoredAuth({ user: state.user, token: state.token, refreshToken: state.refreshToken });
+      writeStoredAuth(
+        { user: state.user, token: state.token, refreshToken: state.refreshToken },
+        state.rememberMe,
+      );
     },
   },
   extraReducers: (builder) => {
@@ -91,12 +120,21 @@ const authSlice = createSlice({
 
     const handleFulfilled = (state, action) => {
       state.status = 'succeeded';
-      state.user = action.payload?.user ?? null;
-      state.token = action.payload?.token ?? null;
-      state.refreshToken = action.payload?.refreshToken ?? null;
+      state.user = action.payload?.requires_verification ? null : action.payload?.user ?? null;
+      state.token = action.payload?.requires_verification ? null : action.payload?.token ?? null;
+      state.refreshToken = action.payload?.requires_verification ? null : action.payload?.refreshToken ?? null;
+      state.rememberMe = action.payload?.rememberMe ?? state.rememberMe;
+      state.verificationRequired = Boolean(action.payload?.requires_verification);
       state.error = null;
       state.bootstrapped = true;
-      writeStoredAuth({ user: state.user, token: state.token, refreshToken: state.refreshToken });
+      if (state.verificationRequired) {
+        clearStoredAuth();
+      } else {
+        writeStoredAuth(
+          { user: state.user, token: state.token, refreshToken: state.refreshToken },
+          state.rememberMe,
+        );
+      }
     };
 
     builder
@@ -112,7 +150,31 @@ const authSlice = createSlice({
       .addCase(loginUser.rejected, handleRejected)
       .addCase(registerUser.pending, handlePending)
       .addCase(registerUser.fulfilled, handleFulfilled)
-      .addCase(registerUser.rejected, handleRejected);
+      .addCase(registerUser.rejected, handleRejected)
+      .addCase(logoutUser.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.user = null;
+        state.token = null;
+        state.refreshToken = null;
+        state.rememberMe = true;
+        state.status = 'idle';
+        state.error = null;
+        state.verificationRequired = false;
+        clearStoredAuth();
+      })
+      .addCase(logoutUser.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload || action.error.message || 'Unable to log out.';
+        state.user = null;
+        state.token = null;
+        state.refreshToken = null;
+        state.rememberMe = true;
+        state.verificationRequired = false;
+        clearStoredAuth();
+      });
   },
 });
 

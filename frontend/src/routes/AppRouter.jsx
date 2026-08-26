@@ -17,6 +17,8 @@ const LandingPage = lazy(() => import('../pages/landing/LandingPage'));
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('../pages/auth/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('../pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('../pages/auth/ResetPasswordPage'));
+const VerifyEmailPage = lazy(() => import('../pages/auth/VerifyEmailPage'));
 const EmailVerificationSuccessPage = lazy(() => import('../pages/auth/EmailVerificationSuccessPage'));
 const JobsPage = lazy(() => import('../pages/jobs/JobsPage'));
 const JobDetailsPage = lazy(() => import('../pages/jobs/JobDetailsPage'));
@@ -88,6 +90,8 @@ export default function AppRouter() {
               <Route path={ROUTES.login.slice(1)} element={<LoginPage />} />
               <Route path={ROUTES.register.slice(1)} element={<RegisterPage />} />
               <Route path={ROUTES.forgotPassword.slice(1)} element={<ForgotPasswordPage />} />
+              <Route path={ROUTES.resetPassword.slice(1)} element={<ResetPasswordPage />} />
+              <Route path={ROUTES.verifyEmail.slice(1)} element={<VerifyEmailPage />} />
             </Route>
 
             <Route element={<AuthLayout />}>

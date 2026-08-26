@@ -4,11 +4,12 @@ import uuid
 import logging
 from typing import Callable
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose.exceptions import ExpiredSignatureError, JWTError
 from sqlalchemy.orm import Session
 
+from app.core.security import ACCESS_TOKEN_COOKIE_NAME
 from app.core.security import decode_token
 from app.database.database import get_db
 from app.repositories.auth_repository import AuthRepository
@@ -19,8 +20,9 @@ logger = logging.getLogger("smarthire.security")
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+    request: Request, token: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ) -> CurrentUserResponse:
+    token = token or request.cookies.get(ACCESS_TOKEN_COOKIE_NAME)
     if not token:
         logger.warning("security_event type=auth missing_token")
         raise HTTPException(
@@ -73,6 +75,8 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found."
         )
+    if "email_verified_at" in user:
+        user["is_verified"] = user["email_verified_at"] is not None
 
     return CurrentUserResponse.model_validate(user)
 

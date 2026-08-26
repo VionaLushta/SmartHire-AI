@@ -254,6 +254,118 @@ class EmailService:
         )
         return self._deliver(candidate_email, document, template)
 
+    def send_verification_email(
+        self,
+        recipient: str,
+        verification_url: str,
+        *,
+        display_name: str | None = None,
+    ) -> dict[str, str | None]:
+        self._validate_recipient(recipient)
+        name = display_name or "there"
+        subject = "Verify your SmartHire AI account"
+        plain_text = (
+            f"Hello {name},\n\n"
+            f"Please verify your SmartHire AI account by opening this link:\n{verification_url}\n\n"
+            "If you did not create this account, you can ignore this email."
+        )
+        html_body = f"""
+        <html>
+          <body style="font-family:Arial,Helvetica,sans-serif;background:#f8fafc;color:#0f172a;padding:32px;">
+            <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;padding:28px;">
+              <h1 style="margin:0 0 16px 0;font-size:24px;">Verify your account</h1>
+              <p style="margin:0 0 16px 0;">Hello {display_name or 'there'},</p>
+              <p style="margin:0 0 16px 0;">Click the link below to verify your SmartHire AI account.</p>
+              <p style="margin:24px 0;"><a href="{verification_url}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:12px 18px;border-radius:12px;">Verify account</a></p>
+              <p style="margin:0;word-break:break-all;color:#475569;">{verification_url}</p>
+            </div>
+          </body>
+        </html>
+        """.strip()
+        return self._deliver_simple_email(recipient, subject, plain_text, html_body)
+
+    def send_password_reset_email(
+        self,
+        recipient: str,
+        reset_url: str,
+        *,
+        display_name: str | None = None,
+    ) -> dict[str, str | None]:
+        self._validate_recipient(recipient)
+        name = display_name or "there"
+        subject = "Reset your SmartHire AI password"
+        plain_text = (
+            f"Hello {name},\n\n"
+            f"Reset your password by opening this link:\n{reset_url}\n\n"
+            "If you did not request this reset, you can ignore this email."
+        )
+        html_body = f"""
+        <html>
+          <body style="font-family:Arial,Helvetica,sans-serif;background:#f8fafc;color:#0f172a;padding:32px;">
+            <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;padding:28px;">
+              <h1 style="margin:0 0 16px 0;font-size:24px;">Reset your password</h1>
+              <p style="margin:0 0 16px 0;">Hello {display_name or 'there'},</p>
+              <p style="margin:0 0 16px 0;">Use the link below to set a new password.</p>
+              <p style="margin:24px 0;"><a href="{reset_url}" style="display:inline-block;background:#0f172a;color:#fff;text-decoration:none;padding:12px 18px;border-radius:12px;">Reset password</a></p>
+              <p style="margin:0;word-break:break-all;color:#475569;">{reset_url}</p>
+            </div>
+          </body>
+        </html>
+        """.strip()
+        return self._deliver_simple_email(recipient, subject, plain_text, html_body)
+
+    def send_password_changed_email(
+        self,
+        recipient: str,
+        *,
+        display_name: str | None = None,
+    ) -> dict[str, str | None]:
+        self._validate_recipient(recipient)
+        name = display_name or "there"
+        subject = "Your SmartHire AI password was changed"
+        plain_text = (
+            f"Hello {name},\n\n"
+            "Your SmartHire AI password has been changed successfully.\n"
+            "If you did not make this change, contact support immediately."
+        )
+        html_body = f"""
+        <html>
+          <body style="font-family:Arial,Helvetica,sans-serif;background:#f8fafc;color:#0f172a;padding:32px;">
+            <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;padding:28px;">
+              <h1 style="margin:0 0 16px 0;font-size:24px;">Password changed</h1>
+              <p style="margin:0 0 16px 0;">Hello {display_name or 'there'},</p>
+              <p style="margin:0;">Your SmartHire AI password has been updated successfully.</p>
+            </div>
+          </body>
+        </html>
+        """.strip()
+        return self._deliver_simple_email(recipient, subject, plain_text, html_body)
+
+    def send_welcome_email(
+        self,
+        recipient: str,
+        *,
+        display_name: str | None = None,
+    ) -> dict[str, str | None]:
+        self._validate_recipient(recipient)
+        name = display_name or "there"
+        subject = "Welcome to SmartHire AI"
+        plain_text = (
+            f"Hello {name},\n\n"
+            "Welcome to SmartHire AI. Your account is ready."
+        )
+        html_body = f"""
+        <html>
+          <body style="font-family:Arial,Helvetica,sans-serif;background:#f8fafc;color:#0f172a;padding:32px;">
+            <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;padding:28px;">
+              <h1 style="margin:0 0 16px 0;font-size:24px;">Welcome to SmartHire AI</h1>
+              <p style="margin:0;">Hello {display_name or 'there'}, your account is ready.</p>
+            </div>
+          </body>
+        </html>
+        """.strip()
+        return self._deliver_simple_email(recipient, subject, plain_text, html_body)
+
     def _deliver(
         self,
         recipient: str,
@@ -330,6 +442,66 @@ class EmailService:
             subject=template.subject,
             attachment=attachment_path.name,
         ).as_dict()
+
+    def _deliver_simple_email(
+        self,
+        recipient: str,
+        subject: str,
+        plain_text: str,
+        html_body: str,
+    ) -> dict[str, str | None]:
+        started = perf_counter()
+        timestamp = datetime.now(timezone.utc).isoformat()
+        message = EmailMessage()
+        message["Subject"] = subject
+        message["From"] = self.smtp_config.sender
+        message["To"] = recipient
+        message["Date"] = formatdate(localtime=True)
+        message["Message-ID"] = make_msgid()
+        message.set_content(plain_text)
+        message.add_alternative(html_body, subtype="html")
+
+        try:
+            with self.smtp_factory(
+                self.smtp_config.host,
+                self.smtp_config.port,
+                timeout=self.timeout_seconds,
+            ) as smtp:
+                if self.smtp_config.use_tls:
+                    smtp.starttls(context=ssl.create_default_context())
+                smtp.login(self.smtp_config.username, self.smtp_config.password)
+                failures = smtp.send_message(message)
+                if isinstance(failures, dict) and failures:
+                    raise EmailDeliveryError(f"SMTP rejected recipients: {failures}")
+        except smtplib.SMTPAuthenticationError as exc:
+            logger.exception("SMTP authentication failed recipient=%s timestamp=%s", recipient, timestamp)
+            raise EmailDeliveryError("SMTP authentication failed.") from exc
+        except (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected) as exc:
+            logger.exception("SMTP connection failed recipient=%s timestamp=%s", recipient, timestamp)
+            raise EmailDeliveryError("SMTP connection failed.") from exc
+        except (TimeoutError, socket.timeout) as exc:
+            logger.exception("SMTP timeout recipient=%s timestamp=%s", recipient, timestamp)
+            raise EmailDeliveryError("SMTP request timed out.") from exc
+        except OSError as exc:
+            logger.exception("SMTP delivery error recipient=%s timestamp=%s", recipient, timestamp)
+            raise EmailDeliveryError("Unable to deliver email.") from exc
+
+        message_id = message.get("Message-ID")
+        logger.info(
+            "Email delivered recipient=%s timestamp=%s status=sent duration_ms=%.1f",
+            recipient,
+            timestamp,
+            (perf_counter() - started) * 1000,
+        )
+        return {
+            "status": "sent",
+            "recipient": recipient,
+            "document": "Authentication Email",
+            "timestamp": timestamp,
+            "message_id": message_id,
+            "subject": subject,
+            "attachment": None,
+        }
 
     def _build_message(
         self,

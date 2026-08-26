@@ -3,6 +3,8 @@ export const ROUTES = {
   login: '/login',
   register: '/register',
   forgotPassword: '/forgot-password',
+  resetPassword: '/reset-password',
+  verifyEmail: '/verify-email',
   emailVerificationSuccess: '/email-verification-success',
   unauthorized: '/unauthorized',
   sessionExpired: '/session-expired',

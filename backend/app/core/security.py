@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -12,6 +13,8 @@ from app.core.config import get_settings
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 14
+ACCESS_TOKEN_COOKIE_NAME = "smarthire_access_token"
+REFRESH_TOKEN_COOKIE_NAME = "smarthire_refresh_token"
 
 
 def _secret_key() -> str:
@@ -76,5 +79,30 @@ def create_refresh_token(
     return jwt.encode(payload, _secret_key(), algorithm=ALGORITHM)
 
 
+def create_signed_token(
+    subject: str,
+    *,
+    token_type: str,
+    expires_delta: timedelta,
+    additional_claims: dict[str, Any] | None = None,
+) -> str:
+    payload = _token_payload(subject, token_type, expires_delta)
+    if additional_claims:
+        payload.update(additional_claims)
+    return jwt.encode(payload, _secret_key(), algorithm=ALGORITHM)
+
+
 def decode_token(token: str) -> dict[str, Any]:
     return jwt.decode(token, _secret_key(), algorithms=[ALGORITHM])
+
+
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def cookie_max_age_from_expiry(expiry: datetime | None) -> int | None:
+    if expiry is None:
+        return None
+    now = datetime.now(timezone.utc)
+    delta = int((expiry - now).total_seconds())
+    return max(delta, 0)

@@ -19,6 +19,7 @@ export function normalizeAuthResponse(payload) {
     user: user || (role ? { role, role_name: role } : null),
     token: data?.access_token ?? data?.accessToken ?? data?.token ?? null,
     refreshToken: data?.refresh_token ?? data?.refreshToken ?? null,
+    rememberMe: data?.remember_me ?? data?.rememberMe ?? null,
     raw: data,
   };
 }

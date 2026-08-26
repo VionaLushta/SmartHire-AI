@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Chrome, Github, Mail } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { authService } from '../../services/authService';
 import Button from '../ui/Button';
 import FormError from './FormError';
 import LoadingOverlay from './LoadingOverlay';
@@ -88,9 +89,18 @@ export default function LoginForm() {
       loginUser({
         email: values.email,
         password: values.password,
-        rememberMe: values.rememberMe,
+        remember_me: values.rememberMe,
       }),
     );
+  };
+
+  const handleOAuthLogin = (provider) => {
+    const roleName = 'Candidate';
+    const url =
+      provider === 'google'
+        ? authService.googleOAuthUrl(roleName)
+        : authService.githubOAuthUrl(roleName);
+    window.location.assign(url);
   };
 
   return (
@@ -176,17 +186,27 @@ export default function LoginForm() {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <Button type="button" variant="secondary" className="justify-start gap-2" disabled>
+          <Button
+            type="button"
+            variant="secondary"
+            className="justify-start gap-2"
+            onClick={() => handleOAuthLogin('google')}
+          >
             <Chrome className="h-4 w-4" aria-hidden="true" />
             Google
           </Button>
-          <Button type="button" variant="secondary" className="justify-start gap-2" disabled>
+          <Button
+            type="button"
+            variant="secondary"
+            className="justify-start gap-2"
+            onClick={() => handleOAuthLogin('github')}
+          >
             <Github className="h-4 w-4" aria-hidden="true" />
             GitHub
           </Button>
-          <Button type="button" variant="secondary" className="justify-start gap-2" disabled>
+          <Button type="button" variant="secondary" className="justify-start gap-2" as={Link} to="/forgot-password">
             <Mail className="h-4 w-4" aria-hidden="true" />
-            Email
+            Reset
           </Button>
         </div>
       </div>

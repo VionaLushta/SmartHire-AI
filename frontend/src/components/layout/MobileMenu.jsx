@@ -1,12 +1,22 @@
 import { X } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import Button from '../ui/Button';
 import BrandLockup from '../brand/BrandLockup';
+import { logoutUser } from '../../redux/slices/authSlice';
 
 export default function MobileMenu({ open, onClose, items = [], title = 'Menu' }) {
+  const dispatch = useDispatch();
   if (!open) {
     return null;
   }
+
+  const handleLogout = async (event) => {
+    event.preventDefault();
+    await dispatch(logoutUser());
+    onClose?.();
+    window.location.assign('/login');
+  };
 
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
@@ -43,7 +53,16 @@ export default function MobileMenu({ open, onClose, items = [], title = 'Menu' }
 
               return (
                 <li key={item.label}>
-                  {isHashLink ? (
+                  {item.label === 'Logout' ? (
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className={sharedClasses}
+                    >
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                      <span>{item.label}</span>
+                    </button>
+                  ) : isHashLink ? (
                     <a href={item.to} onClick={onClose} className={sharedClasses}>
                       <Icon className="h-4 w-4" aria-hidden="true" />
                       <span>{item.label}</span>

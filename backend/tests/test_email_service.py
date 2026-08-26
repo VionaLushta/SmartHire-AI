@@ -181,3 +181,41 @@ def test_invalid_recipient_email_raises(tmp_path):
 
     with pytest.raises(EmailValidationError):
         service.send_offer_email(sample_candidate("not-an-email"), sample_job(), "Mia Carter")
+
+
+@pytest.mark.parametrize(
+    "method_name, args, expected_subject, expected_fragment",
+    [
+        (
+            "send_verification_email",
+            ("viona.lushta@example.com", "https://frontend.example.com/verify-email?token=abc"),
+            "Verify your SmartHire AI account",
+            "Verify account",
+        ),
+        (
+            "send_password_reset_email",
+            ("viona.lushta@example.com", "https://frontend.example.com/reset-password?token=abc"),
+            "Reset your SmartHire AI password",
+            "Reset password",
+        ),
+        (
+            "send_password_changed_email",
+            ("viona.lushta@example.com",),
+            "Your SmartHire AI password was changed",
+            "password has been updated",
+        ),
+    ],
+)
+def test_auth_email_delivery_methods(tmp_path, method_name, args, expected_subject, expected_fragment):
+    with patch("app.services.email_service.smtplib.SMTP") as mock_smtp:
+        service = EmailService(settings=build_settings(tmp_path), report_root=tmp_path, smtp_factory=mock_smtp)
+        smtp = mock_smtp.return_value.__enter__.return_value
+        smtp.send_message.return_value = {}
+
+        result = getattr(service, method_name)(*args)
+
+        assert result["status"] == "sent"
+        assert result["subject"] == expected_subject
+        message = smtp.send_message.call_args.args[0]
+        assert message["Subject"] == expected_subject
+        assert expected_fragment.lower() in message.get_body(preferencelist=("html",)).get_content().lower()

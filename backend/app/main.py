@@ -14,6 +14,7 @@ from app.api.auth import router as auth_router
 from app.api.ai_resume import router as ai_resume_router
 from app.api.ai_dashboard import router as ai_dashboard_router
 from app.api.analytics import router as analytics_router
+from app.api.audit_logs import router as audit_logs_router
 from app.api.company import router as company_router
 from app.api.company_dashboard import router as company_dashboard_router
 from app.api.candidate import router as candidate_router
@@ -33,6 +34,7 @@ from app.api.job_dashboard import router as job_dashboard_router
 from app.api.job_category import router as job_category_router
 from app.api.resume import router as resume_router
 from app.api.saved_job import router as saved_job_router
+from app.services.auth_service import AuthenticationService
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("smarthire.api")
@@ -50,6 +52,7 @@ OPENAPI_TAGS = [
     {"name": "talent search", "description": "Recruiter and admin candidate search, filtering, favorites, and talent pool exports."},
     {"name": "recruiter notes", "description": "Private recruiter collaboration threads, mentions, replies, and pinned internal notes."},
     {"name": "notifications", "description": "Role-scoped notification center for recruitment, system, and workflow alerts."},
+    {"name": "audit logs", "description": "Admin-only audit trail, activity history, security events, and exports."},
 ]
 
 
@@ -62,6 +65,7 @@ async def lifespan(app: FastAPI):
 
         db = SessionLocal()
         db.execute(text("SELECT 1"))
+        AuthenticationService(db)
         db.close()
         logger.info("database connection verified")
     except Exception as exc:
@@ -142,6 +146,7 @@ app.include_router(company_dashboard_router)
 app.include_router(candidate_dashboard_router)
 app.include_router(candidate_router)
 app.include_router(candidates_router)
+app.include_router(audit_logs_router)
 app.include_router(interviews_router)
 app.include_router(notifications_router)
 app.include_router(recruiter_notes_router)

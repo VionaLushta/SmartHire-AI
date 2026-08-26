@@ -121,6 +121,7 @@ def test_privileged_registration_rejected():
             first_name="A",
             last_name="B",
             email="test@example.com",
+            phone="+1 555 013 2048",
             password="Password1",
             role_name="Admin",
         )

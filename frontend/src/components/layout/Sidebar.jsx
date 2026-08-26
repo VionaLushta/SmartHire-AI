@@ -1,17 +1,20 @@
 import { useMemo, useState } from 'react';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import Button from '../ui/Button';
 import Avatar from '../ui/Avatar';
 import Badge from '../ui/Badge';
 import MobileMenu from './MobileMenu';
 import { adminNavigation, candidateNavigation, companyNavigation, dashboardNavigation } from '../../constants/navigation';
-import { useSelector } from 'react-redux';
 import BrandLockup from '../brand/BrandLockup';
 import { getDisplayName } from '../../utils/dashboard';
+import { logoutUser } from '../../redux/slices/authSlice';
 
 export default function Sidebar({ mobileOpen, onMobileClose }) {
   const [collapsed, setCollapsed] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
   const displayName = getDisplayName(user || {});
@@ -47,6 +50,11 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       );
     }
     return false;
+  };
+
+  const handleLogout = async () => {
+    await dispatch(logoutUser());
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -106,6 +114,24 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
             {navigation.map((item) => {
               const Icon = item.icon;
               const active = isItemActive(item);
+              if (item.label === 'Logout') {
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={handleLogout}
+                    className={[
+                      'group flex w-full items-center gap-3 rounded-[14px] border-l-2 px-3 py-3 text-[15px] font-medium transition duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-white',
+                      'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900',
+                      collapsed ? 'justify-center' : '',
+                    ].join(' ')}
+                    aria-label={item.label}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {!collapsed ? <span>{item.label}</span> : null}
+                  </button>
+                );
+              }
               return (
                 isHashItem(item) ? (
                   <a

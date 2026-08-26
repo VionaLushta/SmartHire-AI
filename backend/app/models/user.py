@@ -37,6 +37,13 @@ class User(Base):
     )
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    email_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    auth_provider: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    auth_provider_subject: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, index=True
+    )
     profile_picture_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
     city: Mapped[str | None] = mapped_column(String(100), nullable=True)
     country: Mapped[str | None] = mapped_column(String(100), nullable=True)
