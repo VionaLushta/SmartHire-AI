@@ -1,55 +1,104 @@
 import { Link } from 'react-router-dom';
+import { Mail, MapPin, Phone } from 'lucide-react';
 import BrandLockup from '../brand/BrandLockup';
+
+const productLinks = [
+  { label: 'Why Join Us', to: '/#why-join-us' },
+  { label: 'Jobs', to: '/#open-positions' },
+  { label: 'About Us', to: '/#about-us' },
+  { label: 'Contact', to: '/#contact' },
+];
+
+const resourceLinks = [
+  { label: 'Privacy Policy', href: 'mailto:contact@smarthire.ai?subject=Privacy%20Policy' },
+  { label: 'Terms of Service', href: 'mailto:contact@smarthire.ai?subject=Terms%20of%20Service' },
+  { label: 'Careers', to: '/#open-positions' },
+  { label: 'Support', href: 'mailto:contact@smarthire.ai?subject=Support' },
+];
 
 export default function Footer() {
   return (
     <footer id="contact" className="border-t border-[rgba(15,23,42,0.08)] bg-white">
-      <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="max-w-md space-y-4">
-            <BrandLockup linkTo="/" subtitle="Premium hiring software" className="px-0 py-0" />
-            <p className="text-sm leading-6 text-slate-500">
-              SmartHire AI helps teams screen faster, align sooner, and present a more polished
-              hiring experience.
+      <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <div className="grid gap-10 lg:grid-cols-[1.25fr_0.75fr_0.75fr]">
+          <div className="space-y-6">
+            <BrandLockup
+              linkTo="/"
+              className="px-0 py-0"
+              subtitle="Intelligent Recruitment Platform"
+            />
+
+            <p className="max-w-md text-sm leading-7 text-slate-600">
+              Helping companies hire faster, smarter, and with confidence.
             </p>
+
+            <div className="space-y-4 text-sm text-slate-600">
+              <div className="flex items-start gap-3">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
+                <span>Prishtina, Kosovo</span>
+              </div>
+              <a
+                href="tel:+38349123456"
+                className="flex items-start gap-3 transition hover:text-slate-900"
+              >
+                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
+                <span>+383 49 123 456</span>
+              </a>
+              <a
+                href="mailto:contact@smarthire.ai"
+                className="flex items-start gap-3 transition hover:text-slate-900"
+              >
+                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
+                <span>
+                  contact@smarthire.ai
+                  <span className="block text-xs text-slate-500">General inquiries</span>
+                </span>
+              </a>
+              <a
+                href="mailto:careers@smarthire.ai"
+                className="flex items-start gap-3 transition hover:text-slate-900"
+              >
+                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
+                <span>
+                  careers@smarthire.ai
+                  <span className="block text-xs text-slate-500">Job applications</span>
+                </span>
+              </a>
+            </div>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-2">
-            <nav aria-label="Product links" className="space-y-3">
-              <p className="text-sm font-semibold text-slate-900">Product</p>
-              <div className="flex flex-col gap-2 text-sm text-slate-500">
-                <Link className="transition hover:text-slate-900" to="/#features">
-                  Features
+          <nav aria-label="Product links" className="space-y-4">
+            <p className="text-sm font-semibold text-slate-950">Product</p>
+            <div className="flex flex-col gap-3 text-sm text-slate-600">
+              {productLinks.map((item) => (
+                <Link key={item.label} className="transition hover:text-slate-950" to={item.to}>
+                  {item.label}
                 </Link>
-                <Link className="transition hover:text-slate-900" to="/jobs">
-                  Jobs
-                </Link>
-                <Link className="transition hover:text-slate-900" to="/#contact">
-                  About Us
-                </Link>
-              </div>
-            </nav>
+              ))}
+            </div>
+          </nav>
 
-            <nav aria-label="About Us links" className="space-y-3">
-              <p className="text-sm font-semibold text-slate-900">About Us</p>
-              <div className="flex flex-col gap-2 text-sm text-slate-500">
-                <a className="transition hover:text-slate-900" href="mailto:hello@smarthire.ai">
-                  Contact
-                </a>
-                <Link className="transition hover:text-slate-900" to="/">
-                  Privacy
-                </Link>
-                <Link className="transition hover:text-slate-900" to="/jobs">
-                  Careers
-                </Link>
-              </div>
-            </nav>
-          </div>
+          <nav aria-label="Resources links" className="space-y-4">
+            <p className="text-sm font-semibold text-slate-950">Resources</p>
+            <div className="flex flex-col gap-3 text-sm text-slate-600">
+              {resourceLinks.map((item) =>
+                item.to ? (
+                  <Link key={item.label} className="transition hover:text-slate-950" to={item.to}>
+                    {item.label}
+                  </Link>
+                ) : (
+                  <a key={item.label} className="transition hover:text-slate-950" href={item.href}>
+                    {item.label}
+                  </a>
+                ),
+              )}
+            </div>
+          </nav>
         </div>
 
-        <div className="mt-10 flex flex-col gap-3 border-t border-[rgba(15,23,42,0.08)] pt-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 SmartHire AI</p>
-          <p>Enterprise hiring, designed with care.</p>
+        <div className="mt-10 border-t border-[rgba(15,23,42,0.08)] pt-6 text-sm text-slate-500 sm:flex sm:items-center sm:justify-between">
+          <p>© 2026 SmartHire Technologies.</p>
+          <p>All rights reserved.</p>
         </div>
       </div>
     </footer>

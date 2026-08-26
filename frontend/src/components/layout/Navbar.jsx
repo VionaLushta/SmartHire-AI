@@ -12,7 +12,11 @@ export default function Navbar() {
     <>
       <header className="sticky top-0 z-40 border-b border-[rgba(15,23,42,0.08)] bg-[rgba(245,247,250,0.94)]">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-          <BrandLockup linkTo="/" className="px-0 py-0" subtitle="Premium hiring software" />
+          <BrandLockup
+            linkTo="/"
+            className="px-0 py-0"
+            subtitle="Intelligent Recruitment Platform"
+          />
 
           <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex" aria-label="Primary">
             {publicNavigation.map((item) => (

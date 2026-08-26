@@ -31,37 +31,37 @@ export const features = [
   {
     icon: Sparkles,
     title: 'AI Resume Matching',
-    description: 'Read every resume in context, then surface structured signals, highlights, and fit confidence.',
+    description: 'Turn resumes into clear fit signals at a glance.',
     to: '/register',
   },
   {
     icon: BarChart3,
     title: 'Smart Candidate Ranking',
-    description: 'Prioritize the strongest applicants with an explainable shortlist that hiring teams can trust.',
+    description: 'Rank applicants with a shortlist teams can trust.',
     to: '/company/dashboard#candidates',
   },
   {
     icon: RefreshCcw,
     title: 'Recruitment Analytics',
-    description: 'Track funnel movement, hiring velocity, and quality signals in one clean reporting layer.',
+    description: 'See hiring progress in one clean reporting view.',
     to: '/company/dashboard#analytics',
   },
   {
     icon: Settings2,
     title: 'Hiring Dashboard',
-    description: 'Give recruiters a command center for jobs, candidates, interviews, and team activity.',
+    description: 'Manage jobs, candidates, and interviews from one place.',
     to: '/company/dashboard',
   },
   {
     icon: UserRound,
     title: 'Candidate Dashboard',
-    description: 'Let candidates manage their profile, saved jobs, applications, and resume progress from one view.',
+    description: 'Let candidates track their profile and applications easily.',
     to: '/candidate/dashboard',
   },
   {
     icon: ClipboardCheck,
     title: 'Power BI Reporting',
-    description: 'Export the hiring story into executive-ready reporting that fits broader BI workflows.',
+    description: 'Export hiring data into executive-ready reports.',
     to: '/company/dashboard#analytics',
   },
 ];
@@ -69,19 +69,19 @@ export const features = [
 export const steps = [
   {
     title: 'Our team creates jobs',
-    description: 'Define the role, requirements, and hiring priorities in a single streamlined flow.',
+    description: 'Set the role and requirements in one step.',
   },
   {
     title: 'Candidate uploads resume',
-    description: 'Applicants submit clean profiles that are easy to read and ready for analysis.',
+    description: 'Applicants submit a simple, clean profile.',
   },
   {
     title: 'SmartHire scores the profile',
-    description: 'The platform extracts skills, relevance, and ranking signals automatically.',
+    description: 'SmartHire pulls the key signals automatically.',
   },
   {
     title: 'Recruiter hires best match',
-    description: 'Move from shortlist to offer with confidence and a faster review cycle.',
+    description: 'Move from shortlist to offer with less effort.',
   },
 ];
 
@@ -165,7 +165,7 @@ export const faqs = [
   {
     question: 'What does SmartHire AI do?',
     answer:
-      'It helps recruiters and companies review candidates faster with a premium, structured hiring workflow.',
+      'It helps recruiters review candidates faster with a clear hiring workflow.',
   },
   {
     question: 'Is any backend logic included here?',
@@ -194,3 +194,131 @@ export const finalCtaIcons = {
   scroll: ScrollText,
   star: Star,
 };
+
+export const joinBenefits = [
+  {
+    title: 'Career Growth',
+    description: 'Mentorship, ownership, and room to grow.',
+    icon: GraduationCap,
+    tone: 'sky',
+  },
+  {
+    title: 'Learning Culture',
+    description: 'Modern tools and experienced teammates.',
+    icon: Sparkles,
+    tone: 'violet',
+  },
+  {
+    title: 'Great Team',
+    description: 'Talented people who move with care.',
+    icon: Users,
+    tone: 'emerald',
+  },
+  {
+    title: 'Flexible Environment',
+    description: 'Balanced schedules and a modern workplace.',
+    icon: Settings2,
+    tone: 'amber',
+  },
+  {
+    title: 'Meaningful Impact',
+    description: 'Build products candidates depend on.',
+    icon: ClipboardCheck,
+    tone: 'rose',
+  },
+];
+
+export const openPositions = [
+  {
+    title: 'Frontend Developer',
+    department: 'Engineering',
+    location: 'Prishtina, Kosovo',
+    type: 'Full-time',
+  },
+  {
+    title: 'Backend Developer',
+    department: 'Engineering',
+    location: 'Prishtina, Kosovo',
+    type: 'Full-time',
+  },
+  {
+    title: 'Data Engineer',
+    department: 'Data',
+    location: 'Remote / Kosovo',
+    type: 'Full-time',
+  },
+  {
+    title: 'AI Engineer',
+    department: 'AI',
+    location: 'Prishtina, Kosovo',
+    type: 'Full-time',
+  },
+  {
+    title: 'UI/UX Designer',
+    department: 'Product Design',
+    location: 'Prishtina, Kosovo',
+    type: 'Contract',
+  },
+];
+
+export const hiringProcess = [
+  {
+    title: 'Apply',
+    description: 'Share your application and resume.',
+  },
+  {
+    title: 'Resume Review',
+    description: 'We review your background and fit.',
+  },
+  {
+    title: 'Interview',
+    description: 'Meet the team and talk through the role.',
+  },
+  {
+    title: 'Technical Assessment',
+    description: 'Show your skills with a practical task.',
+  },
+  {
+    title: 'Offer',
+    description: 'We move quickly for the right match.',
+  },
+  {
+    title: 'Welcome',
+    description: 'Join SmartHire Technologies and get started.',
+  },
+];
+
+export const employeeTestimonials = [
+  {
+    name: 'Arta Hoxha',
+    role: 'Backend Developer',
+    quote:
+      'The team cares about clarity and craft. I get to work on real product problems with room to grow.',
+    image:
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    name: 'Liridon Krasniqi',
+    role: 'Product Designer',
+    quote:
+      'There is a strong sense of ownership here. We move fast, but we never lose sight of the user.',
+    image:
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    name: 'Elira Dervishi',
+    role: 'Data Engineer',
+    quote:
+      'I love building systems that help recruiters make better decisions for thousands of candidates.',
+    image:
+      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=800&q=80',
+  },
+];
+
+export const trustedTechLogos = [
+  { name: 'Gjirafa', src: '/brand-logos/gjirafa.svg', className: 'h-7' },
+  { name: 'TEB Kosovo', src: '/brand-logos/teb.svg', className: 'h-7' },
+  { name: 'ONE FOR', src: '/brand-logos/onefor.svg', className: 'h-7' },
+  { name: 'IPKO', src: '/brand-logos/ipko.png', className: 'h-8' },
+  { name: 'Fourteen', src: '/brand-logos/fourteen.png', className: 'h-7' },
+];

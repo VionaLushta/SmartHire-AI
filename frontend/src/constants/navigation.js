@@ -20,10 +20,10 @@ import {
 } from 'lucide-react';
 
 export const publicNavigation = [
-  { label: 'Home', to: '/', icon: Home },
-  { label: 'Features', to: '/#features', icon: Sparkles },
-  { label: 'Jobs', to: '/jobs', icon: BriefcaseBusiness },
-  { label: 'About Us', to: '/#contact', icon: Users },
+  { label: 'Home', to: '/#home', icon: Home },
+  { label: 'Why Join Us', to: '/#why-join-us', icon: Sparkles },
+  { label: 'Jobs', to: '/#open-positions', icon: BriefcaseBusiness },
+  { label: 'About Us', to: '/#about-us', icon: Users },
   { label: 'Contact', to: '/#contact', icon: MessageSquareQuote },
 ];
 

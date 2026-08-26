@@ -3,7 +3,10 @@ import { ArrowRight, PlayCircle } from 'lucide-react';
 
 export default function HeroSection() {
   return (
-    <section className="relative isolate overflow-hidden px-4 pb-16 pt-10 sm:px-6 lg:px-8 lg:pb-20 lg:pt-14">
+    <section
+      id="home"
+      className="relative isolate overflow-hidden px-4 pb-16 pt-10 sm:px-6 lg:px-8 lg:pb-20 lg:pt-14"
+    >
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(248,250,255,0.98)_0%,rgba(241,245,255,0.92)_38%,rgba(255,255,255,1)_100%)]" />
       <div className="absolute left-[-8rem] top-[-6rem] -z-10 h-80 w-80 rounded-full bg-[#2563eb]/8 blur-3xl" />
       <div className="absolute right-[-6rem] top-[10rem] -z-10 h-96 w-96 rounded-full bg-[#7c3aed]/8 blur-3xl" />
