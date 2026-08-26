@@ -31,13 +31,13 @@ export default function Navbar() {
               to="/login"
               className="hidden rounded-[14px] px-4 py-2 text-[15px] font-medium text-slate-600 transition duration-150 ease-out hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-[#f5f7fa] sm:inline-flex"
             >
-              Sign In
+              Log in
             </Link>
             <Link
               to="/register"
               className="inline-flex h-11 items-center justify-center rounded-[14px] border border-[#1d4ed8] bg-[#2563eb] px-4 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgba(37,99,235,0.18)] transition duration-150 ease-out hover:bg-[#1d4ed8] focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-[#f5f7fa]"
             >
-              Start hiring
+              Get Started
               <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
             </Link>
 

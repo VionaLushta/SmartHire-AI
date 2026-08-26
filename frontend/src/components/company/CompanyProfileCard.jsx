@@ -3,6 +3,7 @@ import { Building2, Globe, MapPin, Mail, Users, Sparkles } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import Button from '../ui/Button';
 import { getInitials } from '../../utils/dashboard';
+import { PLATFORM_ORGANIZATION_NAME } from '../../constants/app';
 
 export default function CompanyProfileCard({ company, stats = {} }) {
   const initials = getInitials({
@@ -11,7 +12,7 @@ export default function CompanyProfileCard({ company, stats = {} }) {
     email: company?.website || company?.industry,
   });
 
-  const companyName = company?.company_name || company?.name || 'Company';
+  const companyName = company?.company_name || company?.name || PLATFORM_ORGANIZATION_NAME;
 
   return (
     <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
@@ -20,11 +21,11 @@ export default function CompanyProfileCard({ company, stats = {} }) {
           <Avatar initials={initials} size="lg" />
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
-              Company Profile
+              Our Company
             </p>
             <h3 className="mt-2 text-[24px] font-bold tracking-[-0.04em] text-slate-900">{companyName}</h3>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              {company?.description || 'Company details are sourced directly from the backend.'}
+              {company?.description || 'Organization details are sourced directly from the backend.'}
             </p>
           </div>
         </div>
@@ -78,7 +79,7 @@ export default function CompanyProfileCard({ company, stats = {} }) {
 
       <div className="mt-6 flex items-center gap-2 rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3 text-sm text-slate-600">
         <Sparkles className="h-4 w-4 text-slate-700" aria-hidden="true" />
-        Backed by the company dashboard API response.
+        Backed by the hiring dashboard API response.
       </div>
     </div>
   );

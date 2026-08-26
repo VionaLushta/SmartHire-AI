@@ -7,6 +7,7 @@ import { jobService } from '../../services/jobService';
 import { resumeService } from '../../services/resumeService';
 import { savedJobService } from '../../services/savedJobService';
 import { unwrapItems, unwrapResponse, clampPercent } from '../../utils/dashboard';
+import { PLATFORM_ORGANIZATION_NAME } from '../../constants/app';
 
 const initialState = {
   dashboard: null,
@@ -43,7 +44,7 @@ async function enrichJobCard(baseJob) {
     companyDetail?.name ||
     source.company_name ||
     source.company?.name ||
-    `Company ${baseJob.company_id ?? source.company_id ?? ''}`.trim();
+    PLATFORM_ORGANIZATION_NAME;
 
   return {
     ...baseJob,
@@ -77,7 +78,7 @@ async function enrichApplicationRow(application) {
       application.company?.name ||
       companyDetail?.name ||
       jobDetail?.company_name ||
-      `Company ${jobDetail?.company_id ?? application.company_id ?? ''}`.trim(),
+      PLATFORM_ORGANIZATION_NAME,
     job_title: application.job_title ?? application.job?.title ?? jobDetail?.title ?? 'Applied role',
     status: application.status ?? 'submitted',
     applied_at: application.created_at ?? application.applied_at ?? application.submitted_at ?? null,

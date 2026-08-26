@@ -8,6 +8,7 @@ import PasswordInput from './PasswordInput';
 import PasswordStrength from './PasswordStrength';
 import { clearAuthError, registerUser } from '../../redux/slices/authSlice';
 import { classNames } from '../../utils/classNames';
+import { PLATFORM_ORGANIZATION_NAME } from '../../constants/app';
 
 const initialState = {
   firstName: '',
@@ -17,7 +18,6 @@ const initialState = {
   password: '',
   confirmPassword: '',
   role: 'Candidate',
-  companyName: '',
   acceptTerms: false,
 };
 
@@ -51,9 +51,6 @@ function validate(values) {
   }
 
   if (!values.role) errors.role = 'Select a role.';
-  if (values.role === 'Company' && !values.companyName.trim()) {
-    errors.companyName = 'Company name is required.';
-  }
   if (!values.acceptTerms) errors.acceptTerms = 'You must accept the terms to continue.';
 
   return errors;
@@ -104,7 +101,6 @@ export default function RegisterForm() {
       password: true,
       confirmPassword: true,
       role: true,
-      companyName: true,
       acceptTerms: true,
     });
 
@@ -121,7 +117,7 @@ export default function RegisterForm() {
         email: values.email,
         password: values.password,
         role_name: values.role,
-        company_name: values.companyName,
+        company_name: PLATFORM_ORGANIZATION_NAME,
         accept_terms: values.acceptTerms,
       }),
     );
@@ -268,29 +264,8 @@ export default function RegisterForm() {
       </div>
 
       {values.role === 'Company' ? (
-        <div className="space-y-2">
-          <label htmlFor="companyName" className="text-sm font-medium text-slate-700">
-            Company Name
-          </label>
-          <input
-            id="companyName"
-            name="companyName"
-            type="text"
-            value={values.companyName}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            placeholder="SmartHire Demo Company"
-            aria-invalid={Boolean((touched.companyName || submitted) && errors.companyName)}
-            className={classNames(
-              'h-11 w-full rounded-xl border border-[rgba(15,23,42,0.08)] bg-white px-4 text-sm text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)] outline-none transition duration-150 ease-out placeholder:text-slate-400 focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10',
-              (touched.companyName || submitted) && errors.companyName
-                ? 'border-[#ef4444]/30 bg-[#fff5f5] focus:border-[#ef4444] focus:ring-[#ef4444]/10'
-                : 'hover:border-[rgba(15,23,42,0.12)]',
-            )}
-          />
-          {(touched.companyName || submitted) && errors.companyName ? (
-            <p className="text-xs font-medium text-rose-600">{errors.companyName}</p>
-          ) : null}
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          Your account will be assigned to <span className="font-semibold text-slate-900">{PLATFORM_ORGANIZATION_NAME}</span>.
         </div>
       ) : null}
 

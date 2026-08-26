@@ -9,6 +9,7 @@ import ApplyModal from '../../components/jobs/ApplyModal';
 import LoadingState from '../../components/jobs/LoadingState';
 import EmptyState from '../../components/ui/EmptyState';
 import { formatDateShort, formatSalaryRange, clampPercent } from '../../utils/dashboard';
+import { PLATFORM_ORGANIZATION_NAME } from '../../constants/app';
 
 export default function JobDetailsPage() {
   const { id } = useParams();
@@ -62,7 +63,7 @@ export default function JobDetailsPage() {
         <div className="border-b border-slate-200 bg-slate-50 px-6 py-8 md:px-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">{selectedJob.company_name || 'Company'}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">{selectedJob.company_name || PLATFORM_ORGANIZATION_NAME}</p>
               <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 md:text-5xl">{selectedJob.title}</h1>
             </div>
 
@@ -94,7 +95,7 @@ export default function JobDetailsPage() {
                 {selectedJob.company_name?.slice(0, 2)?.toUpperCase() || 'CO'}
               </div>
               <div>
-                <p className="font-semibold text-slate-950">{selectedJob.company_name || 'Company'}</p>
+                <p className="font-semibold text-slate-950">{selectedJob.company_name || PLATFORM_ORGANIZATION_NAME}</p>
                 <p className="text-sm text-slate-500">{selectedJob.department_name || 'General team'}</p>
               </div>
             </div>

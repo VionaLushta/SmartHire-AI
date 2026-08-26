@@ -4,7 +4,7 @@ import { testimonials } from './section-data';
 
 export default function TestimonialsSection() {
   return (
-    <section className="px-4 py-16 sm:px-6 lg:px-8">
+    <section id="about" className="px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
         <SectionHeading
           eyebrow="Teams"

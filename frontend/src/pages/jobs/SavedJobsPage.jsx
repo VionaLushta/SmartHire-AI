@@ -7,6 +7,7 @@ import LoadingState from '../../components/jobs/LoadingState';
 import { savedJobService } from '../../services/savedJobService';
 import { jobService } from '../../services/jobService';
 import { unwrapItems, unwrapResponse } from '../../utils/dashboard';
+import { PLATFORM_ORGANIZATION_NAME } from '../../constants/app';
 
 export default function SavedJobsPage() {
   const [items, setItems] = useState([]);
@@ -73,7 +74,7 @@ export default function SavedJobsPage() {
               <div key={savedJob.saved_job_id || savedJob.job_id} className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-500">{job.company_name || 'Company'}</p>
+                    <p className="text-sm font-medium text-slate-500">{job.company_name || PLATFORM_ORGANIZATION_NAME}</p>
                     <h2 className="mt-1 text-2xl font-semibold text-slate-950">{job.title || 'Open role'}</h2>
                   </div>
                   <div className="flex items-center gap-3">

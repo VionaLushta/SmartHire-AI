@@ -32,37 +32,43 @@ export const features = [
     icon: Sparkles,
     title: 'AI Resume Matching',
     description: 'Read every resume in context, then surface structured signals, highlights, and fit confidence.',
+    to: '/register',
   },
   {
     icon: BarChart3,
     title: 'Smart Candidate Ranking',
     description: 'Prioritize the strongest applicants with an explainable shortlist that hiring teams can trust.',
+    to: '/company/dashboard#candidates',
   },
   {
     icon: RefreshCcw,
     title: 'Recruitment Analytics',
     description: 'Track funnel movement, hiring velocity, and quality signals in one clean reporting layer.',
+    to: '/company/dashboard#analytics',
   },
   {
     icon: Settings2,
-    title: 'Company Dashboard',
+    title: 'Hiring Dashboard',
     description: 'Give recruiters a command center for jobs, candidates, interviews, and team activity.',
+    to: '/company/dashboard',
   },
   {
     icon: UserRound,
     title: 'Candidate Dashboard',
     description: 'Let candidates manage their profile, saved jobs, applications, and resume progress from one view.',
+    to: '/candidate/dashboard',
   },
   {
     icon: ClipboardCheck,
     title: 'Power BI Reporting',
     description: 'Export the hiring story into executive-ready reporting that fits broader BI workflows.',
+    to: '/company/dashboard#analytics',
   },
 ];
 
 export const steps = [
   {
-    title: 'Company creates job',
+    title: 'Our team creates jobs',
     description: 'Define the role, requirements, and hiring priorities in a single streamlined flow.',
   },
   {
@@ -80,10 +86,9 @@ export const steps = [
 ];
 
 export const stats = [
-  { label: 'Jobs', value: 1200, suffix: '+' },
-  { label: 'Candidates', value: 48000, suffix: '+' },
-  { label: 'Companies', value: 980, suffix: '+' },
-  { label: 'Success Rate', value: 94, suffix: '%' },
+  { label: 'Hiring Teams Using SmartHire', value: 150, suffix: '+' },
+  { label: 'Candidates Screened', value: 12500, suffix: '+' },
+  { label: 'Average AI Accuracy', value: 94, suffix: '%' },
 ];
 
 export const comparisons = [

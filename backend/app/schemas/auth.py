@@ -44,23 +44,12 @@ class RegisterRequest(BaseModel):
     @field_validator("company_name")
     @classmethod
     def validate_company_name(cls, value: str | None) -> str | None:
-        return clean_text(value, "Company name", max_length=255) if value is not None else None
+        return clean_text(value, "Organization name", max_length=255) if value is not None else None
 
     @field_validator("password")
     @classmethod
     def validate_password(cls, value: str) -> str:
         return validate_password_strength(value)
-
-    @field_validator("company_name")
-    @classmethod
-    def require_company_name_for_company(
-        cls, value: str | None, info
-    ) -> str | None:
-        data = info.data or {}
-        if data.get("role_name") == "Company" and not value:
-            raise ValueError("Company name is required for company registration.")
-        return value
-
 
 class RefreshRequest(BaseModel):
     refresh_token: str | None = Field(default=None, min_length=1)

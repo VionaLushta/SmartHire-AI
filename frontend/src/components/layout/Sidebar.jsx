@@ -18,7 +18,9 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
   const displayName = getDisplayName(user || {});
-  const roleLabel = String(user?.role_name || user?.role || 'Workspace').replace(/_/g, ' ');
+  const roleLabel = String(user?.role_name || user?.role || 'Workspace')
+    .replace(/_/g, ' ')
+    .replace(/^Company$/, 'Hiring team');
 
   const navigation = useMemo(() => {
     const roleName = String(user?.role_name || user?.role || '').toLowerCase();

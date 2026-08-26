@@ -22,7 +22,7 @@ class CompanyService:
         if self.repo.get_by_name(payload.name):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Company name already exists.",
+                detail="Organization name already exists.",
             )
         return CompanyRead.model_validate(self.repo.create(payload))
 
@@ -72,7 +72,7 @@ class CompanyService:
         ):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Company name already exists.",
+                detail="Organization name already exists.",
             )
         updated = self.repo.update(company_id, payload)
         if updated is None:

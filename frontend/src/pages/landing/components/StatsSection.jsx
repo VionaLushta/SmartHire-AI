@@ -19,7 +19,7 @@ export default function StatsSection() {
                 key={stat.label}
                 className={[
                   'rounded-[16px] border border-slate-200 bg-slate-50 p-6 shadow-sm transition duration-150 ease-out hover:border-slate-300',
-                  index === 0 || index === 3 ? 'xl:col-span-2' : 'xl:col-span-1',
+                  'xl:col-span-2',
                 ].join(' ')}
               >
                 <p className="text-sm uppercase tracking-[0.24em] text-slate-500">{stat.label}</p>

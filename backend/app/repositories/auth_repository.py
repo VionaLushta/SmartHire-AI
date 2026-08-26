@@ -399,7 +399,7 @@ class AuthRepository:
         self,
         *,
         role_name: str = "Company",
-        company_name: str = "SmartHire Demo Company",
+        company_name: str = "SmartHire Technologies",
         email: str = "viona.lushta@icloud.com",
         password_hash: str,
         first_name: str = "Viona",
@@ -439,7 +439,7 @@ class AuthRepository:
             self.assign_user_to_company(
                 company_id=company["company_id"],
                 user_id=user["user_id"],
-                position="Company Owner",
+                position="Hiring Lead",
             )
         return {"user": user, "company": company}
 

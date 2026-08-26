@@ -4,6 +4,7 @@ import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import SkillBadge from './SkillBadge';
 import { formatSalaryRange, formatDateShort, clampPercent } from '../../utils/dashboard';
+import { PLATFORM_ORGANIZATION_NAME } from '../../constants/app';
 
 export default function JobCard({ job, onSave, isSaved = false, onApply }) {
   const skills = Array.isArray(job.skills) ? job.skills : Array.isArray(job.required_skills) ? job.required_skills : [];
@@ -17,7 +18,7 @@ export default function JobCard({ job, onSave, isSaved = false, onApply }) {
             {job.company_name?.slice(0, 2)?.toUpperCase() || 'CO'}
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-500">{job.company_name || 'Company'}</p>
+            <p className="text-sm font-medium text-slate-500">{job.company_name || PLATFORM_ORGANIZATION_NAME}</p>
             <h3 className="mt-1 text-xl font-semibold text-slate-950">{job.title}</h3>
           </div>
         </div>

@@ -86,7 +86,7 @@ class AuthenticationService:
         )
 
         if role_name == "Company":
-            company_name = payload.company_name or f"{payload.first_name} {payload.last_name} Company"
+            company_name = payload.company_name or "SmartHire Technologies"
             company = self.repo.get_company_by_name(company_name) or self.repo.create_company(
                 name=company_name,
                 industry="Technology",
@@ -95,7 +95,7 @@ class AuthenticationService:
             self.repo.assign_user_to_company(
                 company_id=company["company_id"],
                 user_id=user["user_id"],
-                position="Company Owner",
+                position="Hiring Lead",
             )
 
         verification_raw = self._issue_email_verification_token(user["user_id"])
@@ -390,12 +390,16 @@ class AuthenticationService:
                 auth_provider_subject=profile.provider_subject,
             )
             if role_name == "Company":
-                company_name = f"{first_name} {last_name} Company"
-                company = self.repo.create_company(name=company_name, industry="Technology", location="Remote")
+                company_name = "SmartHire Technologies"
+                company = self.repo.get_company_by_name(company_name) or self.repo.create_company(
+                    name=company_name,
+                    industry="Technology",
+                    location="Remote",
+                )
                 self.repo.assign_user_to_company(
                     company_id=company["company_id"],
                     user_id=user["user_id"],
-                    position="Company Owner",
+                    position="Hiring Lead",
                 )
         else:
             updates: dict[str, Any] = {}

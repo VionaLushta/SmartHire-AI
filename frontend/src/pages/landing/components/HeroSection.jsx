@@ -1,33 +1,29 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, PlayCircle } from 'lucide-react';
-import BrandLockup from '../../../components/brand/BrandLockup';
-
-const candidateRows = [
-  { name: 'Amina Rahman', role: 'Senior Recruiter', match: '96%' },
-  { name: 'Jonas Weber', role: 'Hiring Manager', match: '91%' },
-  { name: 'Leah Chen', role: 'Talent Ops', match: '88%' },
-];
-
-const heroStats = [
-  { label: 'Open roles', value: '24' },
-  { label: 'Shortlist velocity', value: '48h' },
-  { label: 'AI confidence', value: '94%' },
-];
 
 export default function HeroSection() {
   return (
-    <section className="px-4 pb-16 pt-10 sm:px-6 lg:px-8 lg:pb-20 lg:pt-16">
-      <div className="mx-auto grid w-full max-w-7xl gap-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
-        <div className="max-w-2xl lg:pt-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm">
-            <BrandLockup compact subtitle="Enterprise hiring software" className="gap-2 px-0 py-0" />
+    <section className="relative isolate overflow-hidden px-4 pb-16 pt-10 sm:px-6 lg:px-8 lg:pb-20 lg:pt-14">
+      <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(248,250,255,0.98)_0%,rgba(241,245,255,0.92)_38%,rgba(255,255,255,1)_100%)]" />
+      <div className="absolute left-[-8rem] top-[-6rem] -z-10 h-80 w-80 rounded-full bg-[#2563eb]/8 blur-3xl" />
+      <div className="absolute right-[-6rem] top-[10rem] -z-10 h-96 w-96 rounded-full bg-[#7c3aed]/8 blur-3xl" />
+      <div className="absolute inset-x-0 bottom-0 -z-10 h-24 bg-gradient-to-b from-transparent to-white/70" />
+
+      <div className="mx-auto grid w-full max-w-7xl gap-12 lg:min-h-[70vh] lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] lg:items-start">
+        <div className="max-w-2xl lg:pt-10">
+          <div className="inline-flex items-center rounded-full bg-[#e9ebff] px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.24em] text-[#3656ff] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+            AI-powered hiring platform
           </div>
 
-          <h1 className="mt-6 max-w-3xl text-[48px] font-extrabold tracking-[-0.05em] text-slate-950">
-            Hiring software that feels calm, credible, and built for serious teams.
+          <h1 className="mt-6 max-w-3xl text-[clamp(2.75rem,5vw,4.8rem)] font-extrabold leading-[0.96] tracking-[-0.06em] text-slate-950">
+            Hiring software that feels{' '}
+            <span className="bg-gradient-to-r from-[#2563eb] via-[#4f46e5] to-[#7c3aed] bg-clip-text text-transparent">
+              calm, credible,
+            </span>{' '}
+            and built for serious teams.
           </h1>
 
-          <p className="mt-6 max-w-xl text-[16px] font-medium leading-7 text-slate-600">
+          <p className="mt-6 max-w-xl text-[17px] leading-8 text-slate-600">
             SmartHire AI gives recruiting teams a cleaner way to screen resumes, rank candidates,
             and report hiring progress without the clutter of a generic SaaS template.
           </p>
@@ -35,103 +31,29 @@ export default function HeroSection() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
               to="/register"
-              className="inline-flex h-12 items-center justify-center rounded-[14px] border border-[#1d4ed8] bg-[#2563eb] px-6 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgba(37,99,235,0.18)] transition duration-150 ease-out hover:bg-[#1d4ed8] focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-transparent"
+              className="inline-flex h-12 items-center justify-center rounded-[14px] border border-[#1d4ed8] bg-[#2563eb] px-6 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(37,99,235,0.18)] transition duration-150 ease-out hover:bg-[#1d4ed8] focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-transparent"
             >
               Start hiring
               <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
             </Link>
             <a
               href="#features"
-              className="inline-flex h-12 items-center justify-center rounded-[14px] border border-slate-200 bg-white px-6 text-[15px] font-semibold text-slate-700 shadow-sm transition duration-150 ease-out hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-transparent"
+              className="inline-flex h-12 items-center justify-center rounded-[14px] border border-slate-200 bg-white px-6 text-[15px] font-semibold text-slate-700 shadow-[0_2px_10px_rgba(15,23,42,0.04)] transition duration-150 ease-out hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-transparent"
             >
-              <PlayCircle className="mr-2 h-4 w-4" aria-hidden="true" />
-              View features
+              <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#eff4ff] text-[#2563eb]">
+                <PlayCircle className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+              </span>
+              See how it works
             </a>
-          </div>
-
-          <div className="mt-10 grid gap-4 sm:grid-cols-6">
-            {heroStats.map((stat, index) => (
-              <div
-                key={stat.label}
-                className={[
-                  'rounded-[14px] border border-slate-200 bg-white p-4',
-                  index === 0 ? 'sm:col-span-2' : 'sm:col-span-1',
-                ].join(' ')}
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-                  {stat.label}
-                </p>
-                <p className="mt-3 text-[32px] font-bold tracking-[-0.04em] text-slate-950">
-                  {stat.value}
-                </p>
-              </div>
-            ))}
           </div>
         </div>
 
-        <div className="relative">
-          <div className="rounded-[20px] border border-slate-200 bg-white p-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] lg:mt-6">
-            <div className="rounded-[16px] border border-slate-200 bg-slate-50 p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
-                    Product preview
-                  </p>
-                  <h2 className="mt-2 text-[32px] font-bold tracking-[-0.04em] text-slate-950">
-                    Hiring dashboard
-                  </h2>
-                </div>
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-700">
-                  Live
-                </span>
-              </div>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                {[
-                  { label: 'Pipeline', value: '128' },
-                  { label: 'Shortlist', value: '32' },
-                  { label: 'Reporting', value: 'Power BI' },
-                ].map((item) => (
-                  <div key={item.label} className="rounded-[14px] border border-slate-200 bg-white p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-                      {item.label}
-                    </p>
-                    <p className="mt-3 text-lg font-semibold tracking-[-0.03em] text-slate-950">
-                      {item.value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 overflow-hidden rounded-[16px] border border-slate-200 bg-white">
-                <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-                  <p className="text-sm font-semibold text-slate-950">Top candidates</p>
-                  <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-500">
-                    AI match
-                  </p>
-                </div>
-                <div className="divide-y divide-slate-200">
-                  {candidateRows.map((row) => (
-                    <div key={row.name} className="grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-4">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-950">{row.name}</p>
-                        <p className="mt-1 text-sm text-slate-500">{row.role}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-slate-950">{row.match}</p>
-                        <div className="mt-2 h-2 w-24 rounded-full bg-slate-100">
-                          <div
-                            className="h-full rounded-full bg-[#2563eb]"
-                            style={{ width: row.match }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="relative hidden lg:block">
+          <div className="absolute inset-0 rounded-[40px] border border-dashed border-slate-200/80 bg-white/20" />
+          <div className="absolute left-14 top-14 h-48 w-48 rounded-full bg-[#2563eb]/6 blur-3xl" />
+          <div className="absolute right-20 bottom-10 h-56 w-56 rounded-full bg-[#7c3aed]/6 blur-3xl" />
+          <div className="absolute left-10 top-28 h-24 w-24 rounded-[28px] border border-slate-200/70 bg-white/70 shadow-[0_18px_50px_rgba(15,23,42,0.05)]" />
+          <div className="absolute right-24 top-20 h-16 w-16 rounded-[22px] border border-slate-200/70 bg-white/80 shadow-[0_18px_50px_rgba(15,23,42,0.05)]" />
         </div>
       </div>
     </section>

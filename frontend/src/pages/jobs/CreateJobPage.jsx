@@ -46,7 +46,7 @@ export default function CreateJobPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-10">
       <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Company roles</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Open positions</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Create a new role</h1>
       </div>
 

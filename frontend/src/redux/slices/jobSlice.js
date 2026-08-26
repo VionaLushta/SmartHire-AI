@@ -27,7 +27,7 @@ function normalizeJob(job = {}) {
     ...job,
     job_id: job.job_id ?? job.id ?? null,
     title: job.title ?? 'Position',
-    company_name: job.company_name ?? job.company?.name ?? 'Company',
+    company_name: job.company_name ?? job.company?.name ?? PLATFORM_ORGANIZATION_NAME,
     department_name: job.department_name ?? job.department?.name ?? 'General',
     location: job.location ?? 'Remote',
     employment_type: job.employment_type ?? 'Full-time',
@@ -60,7 +60,7 @@ async function enrichJob(job) {
 
   return normalizeJob({
     ...job,
-    company_name: job.company_name || company?.name || 'Company',
+    company_name: job.company_name || company?.name || PLATFORM_ORGANIZATION_NAME,
     department_name: job.department_name || department?.name || 'General',
     skill_names: categories.map((category) => category.name),
     required_skills: requiredSkills.length
@@ -277,3 +277,4 @@ const jobSlice = createSlice({
 export const { clearJobError, setJobPage, clearSelectedJob } = jobSlice.actions;
 
 export default jobSlice.reducer;
+import { PLATFORM_ORGANIZATION_NAME } from '../../constants/app';

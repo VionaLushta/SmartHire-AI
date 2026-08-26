@@ -1,4 +1,5 @@
 import {
+  Home,
   LayoutDashboard,
   BriefcaseBusiness,
   FileText,
@@ -19,10 +20,11 @@ import {
 } from 'lucide-react';
 
 export const publicNavigation = [
+  { label: 'Home', to: '/', icon: Home },
   { label: 'Features', to: '/#features', icon: Sparkles },
-  { label: 'Pricing', to: '/#pricing', icon: BarChart3 },
-  { label: 'Contact', to: '/#contact', icon: MessageSquareQuote },
   { label: 'Jobs', to: '/jobs', icon: BriefcaseBusiness },
+  { label: 'About Us', to: '/#contact', icon: Users },
+  { label: 'Contact', to: '/#contact', icon: MessageSquareQuote },
 ];
 
 export const adminNavigation = [
@@ -30,7 +32,7 @@ export const adminNavigation = [
   { label: 'Applications', to: '/admin/applications', icon: FileText },
   { label: 'Candidates', to: '/admin/candidates', icon: Users },
   { label: 'Jobs', to: '/admin/jobs', icon: BriefcaseBusiness },
-  { label: 'Companies', to: '/admin/companies', icon: Building2 },
+  { label: 'Departments', to: '/admin/companies', icon: Building2 },
   { label: 'Analytics', to: '/admin/analytics', icon: BarChart3 },
   { label: 'Reports', to: '/admin/reports', icon: BookOpenCheck },
   { label: 'Settings', to: '/admin/settings', icon: Settings },
@@ -43,7 +45,7 @@ export const dashboardNavigation = [
   { label: 'Applications', to: '/candidate/dashboard', icon: FileText },
   { label: 'Resume', to: '/resume', icon: NotebookPen },
   { label: 'Profile', to: '/profile', icon: UserRound },
-  { label: 'Company Dashboard', to: '/company/dashboard', icon: Building2 },
+  { label: 'Hiring Dashboard', to: '/company/dashboard', icon: Building2 },
   { label: 'Settings', to: '/candidate/dashboard', icon: Settings },
   { label: 'Logout', to: '/login', icon: LogOut },
 ];
@@ -71,7 +73,7 @@ export const companyNavigation = [
   { label: 'Departments', to: '#departments', icon: Building2 },
   { label: 'Trainings', to: '#trainings', icon: GraduationCap },
   { label: 'Analytics', to: '#analytics', icon: BarChart3 },
-  { label: 'Company Profile', to: '#company-profile', icon: UserRound },
+  { label: 'Our Company', to: '#company-profile', icon: UserRound },
   { label: 'Settings', to: '#settings', icon: Settings },
   { label: 'Logout', to: '/login', icon: LogOut },
 ];
@@ -82,8 +84,8 @@ export const dashboardPageMeta = {
     breadcrumbs: ['Dashboard', 'Candidate Dashboard'],
   },
   '/company/dashboard': {
-    title: 'Company Dashboard',
-    breadcrumbs: ['Dashboard', 'Company Dashboard'],
+    title: 'Hiring Dashboard',
+    breadcrumbs: ['Dashboard', 'Hiring Dashboard'],
   },
   '/admin/dashboard': {
     title: 'Admin Dashboard',
@@ -98,8 +100,8 @@ export const dashboardPageMeta = {
     breadcrumbs: ['Dashboard', 'Admin', 'Users'],
   },
   '/admin/companies': {
-    title: 'Companies Management',
-    breadcrumbs: ['Dashboard', 'Admin', 'Companies'],
+    title: 'Departments Management',
+    breadcrumbs: ['Dashboard', 'Admin', 'Departments'],
   },
   '/admin/jobs': {
     title: 'Jobs Management',

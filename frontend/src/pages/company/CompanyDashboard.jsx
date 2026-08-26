@@ -218,7 +218,7 @@ export default function CompanyDashboard() {
   if (status === 'loading' && !dashboard) {
     return (
       <LoadingState
-        title="Loading company dashboard..."
+        title="Loading hiring dashboard..."
         description="Refreshing jobs, applications, and hiring analytics."
       />
     );
@@ -227,7 +227,7 @@ export default function CompanyDashboard() {
   if (error && !dashboard) {
     return (
       <ErrorState
-        title="Unable to load the company dashboard"
+        title="Unable to load the hiring dashboard"
         description={typeof error === 'string' ? error : 'Please try again in a moment.'}
         action={
           <Button
@@ -255,7 +255,7 @@ export default function CompanyDashboard() {
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-500">
               Review hiring performance, track candidate quality, and move through your pipeline
-              with a premium company dashboard built on the live backend data.
+              with a premium hiring dashboard built on the live backend data.
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -315,8 +315,8 @@ export default function CompanyDashboard() {
       <section id="dashboard" className="scroll-mt-24">
         <SectionHeader
           eyebrow="Overview"
-          title="Company statistics"
-          description="A compact summary of the live hiring pipeline pulled straight from the company dashboard endpoint."
+        title="Hiring statistics"
+        description="A compact summary of the live hiring pipeline pulled straight from the hiring dashboard endpoint."
         />
         <div className="mt-6">
           <StatisticsGrid items={stats} />
@@ -339,7 +339,7 @@ export default function CompanyDashboard() {
           ) : (
             <EmptyState
               title="No active jobs"
-              description="The backend will populate active jobs once company job snapshots are available."
+              description="The backend will populate active jobs once internal job snapshots are available."
             />
           )}
         </div>
@@ -384,7 +384,7 @@ export default function CompanyDashboard() {
           ) : (
             <EmptyState
               title="No candidates yet"
-              description="Candidate cards will appear once the analytics endpoint returns company-level results."
+              description="Candidate cards will appear once the analytics endpoint returns enterprise-level results."
             />
           )}
         </div>
@@ -397,7 +397,7 @@ export default function CompanyDashboard() {
           description="This summary stays grounded in the current dashboard metrics and recent applications."
         />
         <div className="mt-6 grid gap-6 lg:grid-cols-3">
-          <DashboardCard title="Interview volume" description="Current interview activity across the company.">
+          <DashboardCard title="Interview volume" description="Current interview activity across the enterprise.">
             <div className="text-4xl font-semibold text-slate-950">{dashboard?.interviews_count ?? 0}</div>
             <p className="mt-2 text-sm text-slate-600">Interviews currently tracked by the backend.</p>
           </DashboardCard>
@@ -413,11 +413,11 @@ export default function CompanyDashboard() {
             </div>
             <p className="mt-2 text-sm text-slate-600">Calculated from the recent job snapshots.</p>
           </DashboardCard>
-          <DashboardCard title="AI average score" description="How the company is trending overall.">
+          <DashboardCard title="AI average score" description="How the enterprise is trending overall.">
             <div className="text-4xl font-semibold text-slate-950">
               {formatMetricPercent(dashboard?.ai_average_score)}
             </div>
-            <p className="mt-2 text-sm text-slate-600">Average AI match from the company dashboard endpoint.</p>
+            <p className="mt-2 text-sm text-slate-600">Average AI match from the hiring dashboard endpoint.</p>
           </DashboardCard>
         </div>
       </section>
@@ -621,8 +621,8 @@ export default function CompanyDashboard() {
 
       <section id="company-profile" className="scroll-mt-24">
         <SectionHeader
-          eyebrow="Company Profile"
-          title="Company information"
+          eyebrow="Our Company"
+          title="Our company"
           description="The dashboard keeps the company profile connected to the backend so details stay consistent."
         />
         <div className="mt-6">
@@ -637,7 +637,7 @@ export default function CompanyDashboard() {
           description="Quick actions stay lightweight until later workflow tickets introduce deeper CRUD flows."
         />
         <div className="mt-6 grid gap-6 lg:grid-cols-3">
-          <DashboardCard title="Quick actions" description="Entry points for the next company workflow tickets.">
+          <DashboardCard title="Quick actions" description="Entry points for the next internal workflow tickets.">
             <div className="space-y-3">
               <Button as={Link} to="/jobs" variant="primary" className="w-full">
                 Browse Jobs
@@ -651,7 +651,7 @@ export default function CompanyDashboard() {
             </div>
           </DashboardCard>
 
-          <DashboardCard title="Hiring health" description="A quick look at the current company funnel.">
+          <DashboardCard title="Hiring health" description="A quick look at the current enterprise funnel.">
             <div className="space-y-3">
               <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Open roles</p>
