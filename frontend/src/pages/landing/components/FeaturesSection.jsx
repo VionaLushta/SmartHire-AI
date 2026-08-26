@@ -1,5 +1,3 @@
-import { Link } from 'react-router-dom';
-import { ArrowUpRight } from 'lucide-react';
 import SectionHeading from './SectionHeading';
 import { features } from './section-data';
 
@@ -35,15 +33,6 @@ export default function FeaturesSection() {
                 </p>
               </div>
 
-              <div className="mt-6 flex justify-end">
-                <Link
-                  to={feature.to}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-[#eff4ff] text-[#2563eb] transition duration-150 ease-out hover:bg-[#dfe8ff] focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-white"
-                  aria-label={`Open ${feature.title}`}
-                >
-                  <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-                </Link>
-              </div>
             </article>
           ))}
         </div>
