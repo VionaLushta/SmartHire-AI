@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, insert, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.models.company_user import CompanyUser
@@ -9,6 +9,8 @@ from app.schemas.job import JobCreate, JobUpdate
 
 
 class JobRepository:
+    PUBLISHED_STATUSES = {"active", "open"}
+
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -55,6 +57,8 @@ class JobRepository:
             .values(
                 title=payload.title,
                 description=payload.description,
+                responsibilities=payload.responsibilities,
+                requirements=payload.requirements,
                 employment_type=payload.employment_type,
                 experience_level=payload.experience_level,
                 salary_min=payload.salary_min,
@@ -75,6 +79,27 @@ class JobRepository:
 
     def list(self) -> list[dict]:
         statement = select(self._table()).order_by(self._table().c.job_id)
+        return [dict(row) for row in self.db.execute(statement).mappings().all()]
+
+    def list_for_company(self, company_id: int) -> list[dict]:
+        statement = (
+            select(self._table())
+            .where(self._table().c.company_id == company_id)
+            .order_by(self._table().c.job_id)
+        )
+        return [dict(row) for row in self.db.execute(statement).mappings().all()]
+
+    def list_published(self) -> list[dict]:
+        statement = (
+            select(self._table())
+            .where(
+                or_(
+                    self._table().c.status.is_(None),
+                    self._table().c.status.in_(self.PUBLISHED_STATUSES),
+                )
+            )
+            .order_by(self._table().c.job_id)
+        )
         return [dict(row) for row in self.db.execute(statement).mappings().all()]
 
     def get_by_id(self, job_id: int) -> dict | None:

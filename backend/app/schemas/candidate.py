@@ -23,6 +23,7 @@ class CandidateBase(BaseModel):
     linkedin_url: str | None = Field(default=None, max_length=255)
     github_url: str | None = Field(default=None, max_length=255)
     portfolio_url: str | None = Field(default=None, max_length=255)
+    about_me: str | None = Field(default=None, max_length=4000)
 
     @field_validator("first_name", "last_name", "city", "country")
     @classmethod
@@ -55,3 +56,7 @@ class CandidateRead(CandidateBase):
     role_id: int
     created_at: datetime
     updated_at: datetime
+    resumes: list[dict] = Field(default_factory=list)
+    certificates: list[dict] = Field(default_factory=list)
+    education: list[dict] = Field(default_factory=list)
+    experience: list[dict] = Field(default_factory=list)

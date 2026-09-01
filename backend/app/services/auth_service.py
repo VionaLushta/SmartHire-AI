@@ -10,8 +10,9 @@ from typing import Any
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from jose.exceptions import JWTError
+from jose import jwk, jwt
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
@@ -37,7 +38,12 @@ from app.schemas.auth import (
     TokenResponse,
 )
 from app.services.audit_log_service import record_audit_event
-from app.services.email_service import EmailService
+from app.services.email_service import EmailConfigurationError, EmailDeliveryError, EmailService
+
+ADMIN_REGISTRATION_REJECTION = "Administrator accounts cannot be created from the registration page."
+ADMIN_LOGIN_REJECTION = (
+    "Only the official SmartHire AI administrator account can log in as Admin."
+)
 
 
 @dataclass(frozen=True)
@@ -48,14 +54,21 @@ class OAuthProfile:
     first_name: str
     last_name: str
     email_verified: bool
+    avatar_url: str | None = None
 
 
 class AuthenticationService:
-    def __init__(self, db: Session, email_service: EmailService | None = None) -> None:
+    def __init__(
+        self,
+        db: Session,
+        email_service: EmailService | None = None,
+        background_tasks: BackgroundTasks | None = None,
+    ) -> None:
         self.repo = AuthRepository(db)
         self.logger = logging.getLogger("smarthire.auth")
         self.settings = get_settings()
         self.email_service = email_service
+        self.background_tasks = background_tasks
         self._ensure_baseline()
 
     def register(self, payload: RegisterRequest) -> TokenResponse:
@@ -64,12 +77,24 @@ class AuthenticationService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="You must accept the terms to continue.",
             )
+        if str(payload.role_name or "").casefold() == "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=ADMIN_REGISTRATION_REJECTION,
+            )
+        if str(payload.role_name or "Candidate").casefold() != "candidate":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only candidate accounts can be created from the public website.",
+            )
         if self.repo.get_user_by_email(payload.email) is not None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail="Email already exists."
             )
 
-        role_name = payload.role_name
+        # Public registration creates candidate accounts only. Admin and company
+        # accounts continue to use their existing controlled authentication paths.
+        role_name = "Candidate"
         role = self.repo.get_role_by_name(role_name)
         if role is None:
             raise HTTPException(
@@ -81,6 +106,7 @@ class AuthenticationService:
             last_name=payload.last_name,
             email=payload.email,
             phone=payload.phone,
+            city=payload.city,
             password_hash=hash_password(payload.password),
             role_id=role["role_id"],
         )
@@ -100,7 +126,7 @@ class AuthenticationService:
 
         verification_raw = self._issue_email_verification_token(user["user_id"])
         verification_url = self._frontend_url(
-            "/verify-email",
+            "/candidate/verify-email",
             token=verification_raw,
         )
         self._send_verification_email(user, verification_url)
@@ -119,11 +145,11 @@ class AuthenticationService:
         return TokenResponse(
             user=CurrentUserResponse.model_validate(self.repo.get_user_by_id(user["user_id"])),
             requires_verification=True,
-            redirect_to="/email-verification-success",
+            redirect_to="/candidate/email-verification-success",
             expires_in=0,
         )
 
-    def login(self, payload: LoginRequest) -> TokenResponse:
+    def login(self, payload: LoginRequest, *, login_metadata: dict[str, str | None] | None = None) -> TokenResponse:
         user = self.repo.get_user_by_email(payload.email)
         if user is None or not verify_password(payload.password, user["password_hash"]):
             self.logger.warning("login failed email=%s", payload.email)
@@ -141,16 +167,58 @@ class AuthenticationService:
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials."
             )
 
+        self._require_allowed_admin_user(user)
         if self.settings.require_verified_login and user.get("email_verified_at") is None:
             verification_raw = self._issue_email_verification_token(user["user_id"])
-            verification_url = self._frontend_url("/verify-email", token=verification_raw)
+            verification_url = self._frontend_url("/candidate/verify-email", token=verification_raw)
             self._send_verification_email(user, verification_url)
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Please verify your email address before logging in.",
             )
 
-        return self._issue_session(user, remember_me=payload.remember_me)
+        self.repo.update_user(user["user_id"], last_login_at=datetime.now(timezone.utc))
+        token = self._issue_session(user, remember_me=payload.remember_me)
+        if str(user.get("role_name") or "").casefold() == "candidate":
+            self._send_login_notification(user, login_metadata or {})
+        return token
+
+    def candidate_login(self, payload: LoginRequest, *, login_metadata: dict[str, str | None] | None = None) -> TokenResponse:
+        user = self.repo.get_user_by_email(payload.email)
+        if user is None or str(user.get("role_name") or "").casefold() != "candidate":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid candidate credentials.")
+        return self.login(payload, login_metadata=login_metadata)
+
+    def admin_login(self, payload: LoginRequest, *, login_metadata: dict[str, str | None] | None = None) -> TokenResponse:
+        user = self.repo.get_user_by_email(payload.email)
+        if user is None or str(user.get("role_name") or "").casefold() != "admin":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid administrator credentials.")
+        return self.login(payload, login_metadata=login_metadata)
+
+    def change_password(self, user: CurrentUserResponse, payload) -> None:
+        current = self.repo.get_user_by_id(user.user_id)
+        if current is None or not verify_password(payload.current_password, current["password_hash"]):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect.")
+        self.repo.update_user(user.user_id, password_hash=hash_password(payload.password))
+        self._revoke_all_refresh_tokens_for_user(user.user_id)
+
+    def _send_login_notification(self, user: dict, metadata: dict[str, str | None]) -> None:
+        logged_at = datetime.now(timezone.utc)
+        try:
+            mailer = self._mailer()
+            if not hasattr(mailer, "send_login_notification_email"):
+                return
+            mailer.send_login_notification_email(
+                user["email"],
+                first_name=user["first_name"],
+                login_date=logged_at.strftime("%Y-%m-%d"),
+                login_time=logged_at.strftime("%H:%M:%S UTC"),
+                login_method=metadata.get("login_method") or "Email",
+                device=metadata.get("device") or "Unknown browser",
+                ip_address=metadata.get("ip_address"),
+            )
+        except (EmailConfigurationError, EmailDeliveryError, OSError):
+            self.logger.warning("login notification email could not be delivered email=%s", user.get("email"))
 
     def refresh(self, payload: RefreshRequest | None = None, refresh_token: str | None = None) -> TokenResponse:
         token_value = refresh_token or (payload.refresh_token if payload else None)
@@ -253,7 +321,7 @@ class AuthenticationService:
         if user is None:
             return
         raw_token = self._issue_password_reset_token(user["user_id"])
-        reset_url = self._frontend_url("/reset-password", token=raw_token)
+        reset_url = self._frontend_url("/candidate/reset-password", token=raw_token)
         self._send_password_reset_email(user, reset_url)
         record_audit_event(
             self.repo.db,
@@ -324,20 +392,28 @@ class AuthenticationService:
         )
         return CurrentUserResponse.model_validate(user)
 
-    def oauth_start_url(self, provider: str, *, role_name: str = "Candidate", redirect_uri: str) -> str:
+    def oauth_start_url(
+        self,
+        provider: str,
+        *,
+        role_name: str = "Candidate",
+        redirect_uri: str,
+        source: str = "login",
+        audience: str = "",
+    ) -> str:
         provider_key = self._normalize_provider(provider)
         state = create_signed_token(
             provider_key,
             token_type="oauth_state",
             expires_delta=timedelta(minutes=10),
-            additional_claims={"provider": provider_key, "role_name": role_name},
+            additional_claims={"provider": provider_key, "role_name": role_name, "source": source, "audience": audience},
         )
         if provider_key == "google":
-            client_id = self.settings.oauth_google_client_id
+            client_id = self.settings.google_client_id
             scope = "openid email profile"
             base = "https://accounts.google.com/o/oauth2/v2/auth"
         elif provider_key == "github":
-            client_id = self.settings.oauth_github_client_id
+            client_id = self.settings.github_client_id
             scope = "read:user user:email"
             base = "https://github.com/login/oauth/authorize"
         else:
@@ -363,6 +439,7 @@ class AuthenticationService:
         code: str,
         state: str,
         redirect_uri: str,
+        login_metadata: dict[str, str | None] | None = None,
     ) -> TokenResponse:
         provider_key = self._normalize_provider(provider)
         state_payload = self._decode_oauth_state(state)
@@ -370,11 +447,42 @@ class AuthenticationService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="OAuth state mismatch.")
 
         profile = self._fetch_oauth_profile(provider_key, code=code, redirect_uri=redirect_uri)
+        oauth_account = self.repo.get_oauth_account(provider_key, profile.provider_subject)
         user = self.repo.get_user_by_oauth(provider_key, profile.provider_subject)
         if user is None:
             user = self.repo.get_user_by_email(profile.email)
+        elif user.get("email") != profile.email:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This Google account is already linked to another user.",
+            )
+
+        if oauth_account is not None and user is not None:
+            existing_user_id = str(oauth_account.get("user_id") or "")
+            current_user_id = str(user.get("user_id") or "")
+            if existing_user_id and current_user_id and existing_user_id != current_user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="This Google account is already linked to another user.",
+                )
 
         role_name = str(state_payload.get("role_name") or "Candidate")
+        source = str(state_payload.get("source") or "login").strip().lower()
+        candidate_audience = str(state_payload.get("audience") or "").strip().lower() == "candidate"
+        if candidate_audience:
+            role_name = "Candidate"
+            if user is not None and str(user.get("role_name") or "").casefold() != "candidate":
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This account is not a candidate account.")
+        if role_name.casefold() == "admin":
+            if source == "register":
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=ADMIN_REGISTRATION_REJECTION,
+                )
+            self._require_allowed_admin_email(
+                profile.email,
+                detail=ADMIN_LOGIN_REJECTION,
+            )
         role = self.repo.get_role_by_name(role_name) or self.repo.ensure_role(role_name, f"{role_name} user")
         if user is None:
             first_name, last_name = self._split_name(profile.first_name, profile.last_name)
@@ -386,8 +494,10 @@ class AuthenticationService:
                 password_hash=hash_password(secrets.token_urlsafe(32)),
                 role_id=role["role_id"],
                 email_verified_at=datetime.now(timezone.utc) if profile.email_verified else None,
+                last_login_at=datetime.now(timezone.utc),
                 auth_provider=provider_key,
                 auth_provider_subject=profile.provider_subject,
+                profile_picture_url=profile.avatar_url,
             )
             if role_name == "Company":
                 company_name = "SmartHire Technologies"
@@ -401,14 +511,21 @@ class AuthenticationService:
                     user_id=user["user_id"],
                     position="Hiring Lead",
                 )
+            self.repo.upsert_oauth_account(
+                user_id=user["user_id"],
+                provider=provider_key,
+                provider_subject=profile.provider_subject,
+                provider_email=profile.email,
+            )
         else:
             updates: dict[str, Any] = {}
-            if user.get("auth_provider") is None:
-                updates["auth_provider"] = provider_key
-            if user.get("auth_provider_subject") is None:
-                updates["auth_provider_subject"] = profile.provider_subject
+            updates["auth_provider"] = provider_key
+            updates["auth_provider_subject"] = profile.provider_subject
             if profile.email_verified and user.get("email_verified_at") is None:
                 updates["email_verified_at"] = datetime.now(timezone.utc)
+            if profile.avatar_url and not user.get("profile_picture_url"):
+                updates["profile_picture_url"] = profile.avatar_url
+            updates["last_login_at"] = datetime.now(timezone.utc)
             if updates:
                 self.repo.update_user(user["user_id"], **updates)
             self.repo.upsert_oauth_account(
@@ -419,12 +536,22 @@ class AuthenticationService:
             )
 
         refreshed_user = self.repo.get_user_by_id(uuid.UUID(str(user["user_id"])))
-        return self._issue_session(refreshed_user, remember_me=True)
+        token = self._issue_session(refreshed_user, remember_me=True)
+        if str(refreshed_user.get("role_name") or "").casefold() == "candidate":
+            self._send_login_notification(refreshed_user, login_metadata or {})
+        return token
 
-    def build_oauth_callback_redirect(self, user: CurrentUserResponse) -> str:
-        return self._frontend_url(self._dashboard_path_for_role(user.role_name))
+    def build_oauth_callback_redirect(self, token: TokenResponse, *, remember_me: bool = True) -> str:
+        query: dict[str, str] = {}
+        if token.access_token:
+            query["access_token"] = token.access_token
+        if token.refresh_token:
+            query["refresh_token"] = token.refresh_token
+        query["remember_me"] = "true" if remember_me else "false"
+        return self._frontend_url(token.redirect_to or "/candidate/dashboard", **query)
 
     def _issue_session(self, user: dict, *, remember_me: bool) -> TokenResponse:
+        self._require_allowed_admin_user(user)
         claims = {"role_name": user["role_name"]}
         access_expires = timedelta(minutes=self.settings.access_token_expire_minutes)
         refresh_days = (
@@ -491,7 +618,33 @@ class AuthenticationService:
 
     def _send_verification_email(self, user: dict, verification_url: str) -> None:
         display_name = f"{user['first_name']} {user['last_name']}".strip()
-        self._mailer().send_verification_email(user["email"], verification_url, display_name=display_name)
+        if self.background_tasks is not None:
+            self.background_tasks.add_task(
+                self._deliver_verification_email,
+                user["email"],
+                verification_url,
+                display_name,
+            )
+            return
+        self._deliver_verification_email(user["email"], verification_url, display_name)
+
+    def _deliver_verification_email(
+        self,
+        recipient: str,
+        verification_url: str,
+        display_name: str,
+    ) -> None:
+        try:
+            self._mailer().send_verification_email(
+                recipient,
+                verification_url,
+                display_name=display_name,
+            )
+        except (EmailConfigurationError, EmailDeliveryError, OSError):
+            self.logger.warning(
+                "verification email could not be delivered email=%s",
+                recipient,
+            )
 
     def _send_password_reset_email(self, user: dict, reset_url: str) -> None:
         display_name = f"{user['first_name']} {user['last_name']}".strip()
@@ -503,7 +656,26 @@ class AuthenticationService:
 
     def _send_welcome_email(self, user: dict) -> None:
         display_name = f"{user['first_name']} {user['last_name']}".strip()
-        self._mailer().send_welcome_email(user["email"], display_name=display_name)
+        if self.background_tasks is not None:
+            self.background_tasks.add_task(
+                self._deliver_welcome_email,
+                user["email"],
+                display_name,
+            )
+            return
+        self._deliver_welcome_email(user["email"], display_name)
+
+    def _deliver_welcome_email(self, recipient: str, display_name: str) -> None:
+        try:
+            self._mailer().send_welcome_email(
+                recipient,
+                display_name=display_name,
+            )
+        except (EmailConfigurationError, EmailDeliveryError, OSError):
+            self.logger.warning(
+                "welcome email could not be delivered email=%s",
+                recipient,
+            )
 
     def _mailer(self) -> EmailService:
         if self.email_service is None:
@@ -526,6 +698,16 @@ class AuthenticationService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported OAuth provider.")
         return normalized
 
+    def oauth_source_from_state(self, state: str | None, default: str = "login") -> str:
+        if not state:
+            return default
+        try:
+            payload = self._decode_oauth_state(state)
+        except HTTPException:
+            return default
+        source = str(payload.get("source") or default).strip().lower()
+        return source if source in {"login", "register"} else default
+
     def _decode_oauth_state(self, state: str) -> dict[str, Any]:
         try:
             payload = decode_token(state)
@@ -545,33 +727,31 @@ class AuthenticationService:
             "https://oauth2.googleapis.com/token",
             data={
                 "code": code,
-                "client_id": self.settings.oauth_google_client_id,
-                "client_secret": self.settings.oauth_google_client_secret,
+                "client_id": self.settings.google_client_id,
+                "client_secret": self.settings.google_client_secret,
                 "redirect_uri": redirect_uri,
                 "grant_type": "authorization_code",
             },
             timeout=20,
         )
         token_response.raise_for_status()
-        access_token = token_response.json().get("access_token")
-        profile_response = httpx.get(
-            "https://openidconnect.googleapis.com/v1/userinfo",
-            headers={"Authorization": f"Bearer {access_token}"},
-            timeout=20,
-        )
-        profile_response.raise_for_status()
-        data = profile_response.json()
-        email = str(data.get("email") or "")
+        payload = token_response.json()
+        id_token = str(payload.get("id_token") or "")
+        if not id_token:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google account token is missing.")
+        claims = self._verify_google_id_token(id_token)
+        email = str(claims.get("email") or "")
         if not email:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google account email is missing.")
-        names = self._split_name(str(data.get("given_name") or ""), str(data.get("family_name") or ""))
+        names = self._split_name(str(claims.get("given_name") or ""), str(claims.get("family_name") or ""))
         return OAuthProfile(
             provider="google",
-            provider_subject=str(data.get("sub") or ""),
+            provider_subject=str(claims.get("sub") or ""),
             email=email,
             first_name=names[0],
             last_name=names[1],
-            email_verified=bool(data.get("email_verified", False)),
+            email_verified=bool(claims.get("email_verified", False)),
+            avatar_url=str(claims.get("picture") or "") or None,
         )
 
     def _fetch_github_profile(self, *, code: str, redirect_uri: str) -> OAuthProfile:
@@ -579,8 +759,8 @@ class AuthenticationService:
             "https://github.com/login/oauth/access_token",
             data={
                 "code": code,
-                "client_id": self.settings.oauth_github_client_id,
-                "client_secret": self.settings.oauth_github_client_secret,
+                "client_id": self.settings.github_client_id,
+                "client_secret": self.settings.github_client_secret,
                 "redirect_uri": redirect_uri,
             },
             headers={"Accept": "application/json"},
@@ -588,6 +768,8 @@ class AuthenticationService:
         )
         token_response.raise_for_status()
         access_token = token_response.json().get("access_token")
+        if not access_token:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="GitHub account token is missing.")
         profile_response = httpx.get(
             "https://api.github.com/user",
             headers={"Authorization": f"Bearer {access_token}", "Accept": "application/vnd.github+json"},
@@ -621,6 +803,7 @@ class AuthenticationService:
             first_name=first_name,
             last_name=last_name,
             email_verified=True,
+            avatar_url=str(data.get("avatar_url") or "") or None,
         )
 
     def _dashboard_path_for_role(self, role_name: str) -> str:
@@ -632,11 +815,33 @@ class AuthenticationService:
         return "/candidate/dashboard"
 
     def _frontend_url(self, path: str, **query: str) -> str:
-        base = self.settings.frontend_base_url.rstrip("/")
+        base = self.settings.frontend_url.rstrip("/")
         url = f"{base}{path}"
         if query:
             url = f"{url}?{urlencode(query)}"
         return url
+
+    def _normalize_email(self, email: str | None) -> str:
+        return str(email or "").strip()
+
+    def _allowed_admin_email(self) -> str:
+        return self._normalize_email(self.settings.admin_email)
+
+    def _require_allowed_admin_email(self, email: str, *, detail: str = ADMIN_REGISTRATION_REJECTION) -> None:
+        if self._normalize_email(email) != self._allowed_admin_email():
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=detail,
+            )
+
+    def _require_allowed_admin_user(self, user: dict) -> None:
+        if str(user.get("role_name") or "").casefold() != "admin":
+            return
+        if self._normalize_email(user.get("email")) != self._allowed_admin_email():
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=ADMIN_LOGIN_REJECTION,
+            )
 
     def _build_url(self, base: str, query: dict[str, str]) -> str:
         return str(httpx.URL(base).copy_merge_params(query))
@@ -645,3 +850,29 @@ class AuthenticationService:
         first_name = (first or "").strip() or "User"
         last_name = (last or "").strip() or "Account"
         return first_name, last_name
+
+    def _verify_google_id_token(self, id_token: str) -> dict[str, Any]:
+        headers = jwt.get_unverified_header(id_token)
+        kid = str(headers.get("kid") or "")
+        algorithm = str(headers.get("alg") or "RS256")
+        certs_response = httpx.get("https://www.googleapis.com/oauth2/v3/certs", timeout=20)
+        certs_response.raise_for_status()
+        keys = certs_response.json().get("keys", [])
+        jwk_key = next((key for key in keys if str(key.get("kid") or "") == kid), None)
+        if jwk_key is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google token verification failed.")
+        public_key = jwk.construct(jwk_key, algorithm)
+        key_material = public_key.to_pem().decode("utf-8") if hasattr(public_key, "to_pem") else public_key
+        claims = jwt.decode(
+            id_token,
+            key_material,
+            algorithms=[algorithm],
+            audience=self.settings.google_client_id,
+            options={"verify_iss": False},
+        )
+        issuer = str(claims.get("iss") or "")
+        if issuer not in {"https://accounts.google.com", "accounts.google.com"}:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google token issuer is invalid.")
+        if not claims.get("email_verified"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google email is not verified.")
+        return claims

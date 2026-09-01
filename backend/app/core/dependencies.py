@@ -87,6 +87,17 @@ def get_current_active_user(
     return current_user
 
 
+def get_current_user_optional(
+    request: Request,
+    token: str | None = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> CurrentUserResponse | None:
+    token = token or request.cookies.get(ACCESS_TOKEN_COOKIE_NAME)
+    if not token:
+        return None
+    return get_current_user(request, token, db)
+
+
 def require_role(*roles: str) -> Callable:
     normalized_roles = {role.lower() for role in roles}
 
@@ -109,3 +120,19 @@ def require_role(*roles: str) -> Callable:
         return current_user
 
     return dependency
+
+
+def require_candidate(
+    current_user: CurrentUserResponse = Depends(get_current_user),
+) -> CurrentUserResponse:
+    if str(current_user.role_name or "").casefold() != "candidate":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Candidate access required.")
+    return current_user
+
+
+def require_admin(
+    current_user: CurrentUserResponse = Depends(get_current_user),
+) -> CurrentUserResponse:
+    if str(current_user.role_name or "").casefold() != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Administrator access required.")
+    return current_user

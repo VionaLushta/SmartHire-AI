@@ -13,13 +13,16 @@ class Settings(BaseSettings):
     email_verification_token_expire_minutes: int = 60
     password_reset_token_expire_minutes: int = 30
     require_verified_login: bool = True
-    frontend_base_url: str = "http://localhost:5173"
+    admin_email: str = "contact.smarthireai@proton.me"
+    admin_password: str = ""
+    frontend_url: str = "http://localhost:5173"
+    backend_url: str = "http://127.0.0.1:8000/api"
     cookie_secure: bool = False
     cookie_same_site: str = "lax"
-    oauth_google_client_id: str = ""
-    oauth_google_client_secret: str = ""
-    oauth_github_client_id: str = ""
-    oauth_github_client_secret: str = ""
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    github_client_id: str = ""
+    github_client_secret: str = ""
     upload_folder: str = "app/uploads"
     report_folder: str = "app/reports"
     cors_origins: str = ""
@@ -36,6 +39,26 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
+
+    @property
+    def frontend_base_url(self) -> str:
+        return self.frontend_url
+
+    @property
+    def oauth_google_client_id(self) -> str:
+        return self.google_client_id
+
+    @property
+    def oauth_google_client_secret(self) -> str:
+        return self.google_client_secret
+
+    @property
+    def oauth_github_client_id(self) -> str:
+        return self.github_client_id
+
+    @property
+    def oauth_github_client_secret(self) -> str:
+        return self.github_client_secret
 
 
 @lru_cache

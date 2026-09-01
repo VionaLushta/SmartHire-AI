@@ -1,7 +1,34 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+function normalizeBaseURL(value) {
+  const raw = String(value || '').trim().replace(/\/+$/, '');
+  if (!raw) {
+    return 'http://127.0.0.1:8000';
+  }
+
+  return raw.endsWith('/api') ? raw.slice(0, -4) || raw : raw;
+}
+
+const baseURL = normalizeBaseURL(
+  import.meta.env.VITE_BACKEND_URL ||
+    import.meta.env.VITE_API_URL ||
+    'http://127.0.0.1:8000',
+);
+const isDev = import.meta.env.DEV;
 const AUTH_STORAGE_KEY = 'smarthire-auth';
+
+function resolveRequestUrl(config) {
+  const requestBase = String(config?.baseURL || baseURL || '').replace(/\/+$/, '');
+  const requestPath = String(config?.url || '').replace(/^\/+/, '');
+  if (!requestPath) {
+    return requestBase || baseURL;
+  }
+  try {
+    return new URL(requestPath, `${requestBase}/`).toString();
+  } catch {
+    return `${requestBase}/${requestPath}`;
+  }
+}
 
 export function readStoredAuth() {
   if (typeof window === 'undefined') {
@@ -60,6 +87,47 @@ export const api = axios.create({
   },
 });
 
+function logAuthRequest(config) {
+  if (!isDev) {
+    return;
+  }
+
+  const method = String(config?.method || 'get').toUpperCase();
+  const url = resolveRequestUrl(config);
+  const body = config?.data ?? null;
+  console.info('[auth request]', { method, url, body });
+}
+
+function logAuthResponse(response) {
+  if (!isDev) {
+    return;
+  }
+
+  console.info('[auth response]', {
+    status: response?.status ?? null,
+    url: resolveRequestUrl(response?.config),
+    body: response?.data ?? null,
+  });
+}
+
+function logAuthError(error) {
+  if (!isDev) {
+    return;
+  }
+
+  const config = error?.config || {};
+  const method = String(config.method || 'get').toUpperCase();
+  const url = resolveRequestUrl(config);
+  console.error('[auth error]', {
+    method,
+    url,
+    status: error?.response?.status ?? null,
+    responseData: error?.response?.data ?? null,
+    request: error?.request ?? null,
+    message: error?.message ?? null,
+  });
+}
+
 api.interceptors.request.use((config) => {
   const persistedAuth = readStoredAuth();
   const token = persistedAuth?.token ?? null;
@@ -75,6 +143,7 @@ api.interceptors.request.use((config) => {
     return Promise.reject(new Error('You appear to be offline. Please check your connection and try again.'));
   }
 
+  logAuthRequest(config);
   return config;
 });
 
@@ -85,15 +154,22 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const message = error.message || 'Request failed';
 
+    logAuthError(error);
+
     if (!navigator.onLine) {
       return Promise.reject(new Error('You appear to be offline. Please check your connection and try again.'));
     }
 
     const requestUrl = String(originalRequest.url || '');
-    const isAuthEndpoint = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register');
+    const isAuthEndpoint = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register') || requestUrl.includes('/auth/candidate/login') || requestUrl.includes('/auth/candidate/register') || requestUrl.includes('/auth/admin/login');
 
     if (status === 401 && !originalRequest.__isRefreshRequest && !isAuthEndpoint) {
       const persistedAuth = readStoredAuth();
+      // Public pages may make optional enrichment requests that return 401 for guests.
+      // Do not turn an anonymous API response into a global session-expired redirect.
+      if (!persistedAuth?.token) {
+        return Promise.reject(error);
+      }
       if (!originalRequest.__refreshed) {
         try {
           originalRequest.__refreshed = true;
@@ -131,6 +207,7 @@ api.interceptors.response.use(
     }
 
     if (
+      !isDev &&
       !originalRequest.__retried &&
       [408, 429, 500, 502, 503, 504].includes(status)
     ) {
@@ -143,8 +220,14 @@ api.interceptors.response.use(
       return Promise.reject(new Error('The request timed out. Please try again.'));
     }
 
+    if (error.response) {
+      return Promise.reject(error);
+    }
+
     if (typeof message === 'string' && message.includes('Network Error')) {
-      return Promise.reject(new Error('Network error. Please check your connection and try again.'));
+      error.requestUrl = resolveRequestUrl(originalRequest);
+      error.requestMethod = String(originalRequest.method || 'GET').toUpperCase();
+      return Promise.reject(error);
     }
 
     return Promise.reject(error);

@@ -61,7 +61,7 @@ export default function ForgotPasswordPage() {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@company.com"
+                placeholder="example@gmail.com"
                 className={classNames(
                   'h-11 w-full rounded-[1.1rem] border border-slate-200 bg-white px-4 text-sm text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[#2563eb] focus:ring-2 focus:ring-[rgba(37,99,235,0.12)]',
                   submitted && error

@@ -3,7 +3,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import uuid
 
+import pytest
 from sqlalchemy import insert
+from pydantic import ValidationError
 
 from app.models.application import Application
 from app.models.company import Company
@@ -180,6 +182,11 @@ def test_job_skill_crud_and_grouping(test_db):
     assert {skill.name for skill in grouped_after_delete.optional_skills} == {"Docker"}
 
 
+def test_job_skill_create_requires_category():
+    with pytest.raises(ValidationError):
+        JobSkillUpsertRequest(name="Python", is_required=True)
+
+
 def test_candidate_skill_detection(test_db):
     seeded = _seed_environment(test_db)
     service = JobSkillService(test_db)
@@ -260,3 +267,16 @@ def test_skill_analytics_generation(test_db):
     assert analytics.average_skill_match_per_job
     assert any(point.label == "Python" for point in analytics.required_skills_coverage)
     assert any(point.label == "Power BI" for point in analytics.optional_skills_coverage)
+
+
+def test_skill_library_seed_and_grouping(test_db):
+    service = JobSkillService(test_db)
+
+    created = service.seed_skill_library()
+    library = service.get_skill_library()
+
+    assert created > 0
+    assert library.total_skills == created
+    backend_group = next(group for group in library.categories if group.category == "Backend")
+    assert any(skill.name == "Python" for skill in backend_group.skills)
+    assert any(group.category == "DevOps" for group in library.categories)

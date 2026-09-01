@@ -45,28 +45,21 @@ class JobService:
         job["category_ids"] = [category["category_id"] for category in categories]
         return JobRead.model_validate(job)
 
-    def list_jobs(self, current_user: CurrentUserResponse) -> list[JobRead]:
-        if current_user.role_name != "Admin":
-            return []
-        jobs = self.repo.list()
+    def list_jobs(self, current_user: CurrentUserResponse | None) -> list[JobRead]:
+        jobs = self._list_jobs_for_user(current_user)
         for job in jobs:
             job["category_ids"] = self.repo.fetch_job_category_ids(job["job_id"])
         return [JobRead.model_validate(job) for job in jobs]
 
-    def get_job(self, job_id: int, current_user: CurrentUserResponse) -> JobRead:
+    def get_job(
+        self, job_id: int, current_user: CurrentUserResponse | None
+    ) -> JobRead:
         job = self.repo.get_by_id(job_id)
         if job is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Job not found."
             )
-        if (
-            current_user.role_name != "Admin"
-            and self.repo.get_company_for_user(job["company_id"], current_user.user_id)
-            is None
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden."
-            )
+        self._assert_job_read_access(job, current_user)
         job["category_ids"] = self.repo.fetch_job_category_ids(job_id)
         return JobRead.model_validate(job)
 
@@ -150,3 +143,36 @@ class JobService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Job not found."
             )
+
+    def _list_jobs_for_user(
+        self, current_user: CurrentUserResponse | None
+    ) -> list[dict]:
+        if current_user is None:
+            return self.repo.list_published()
+
+        role_name = str(current_user.role_name or "").lower()
+        if role_name == "admin":
+            return self.repo.list()
+        if role_name in {"company", "recruiter"}:
+            if current_user.company_id is None:
+                return []
+            return self.repo.list_for_company(int(current_user.company_id))
+        return self.repo.list_published()
+
+    def _assert_job_read_access(
+        self, job: dict, current_user: CurrentUserResponse | None
+    ) -> None:
+        if current_user is None:
+            if job.get("status") in self.repo.PUBLISHED_STATUSES or job.get("status") is None:
+                return
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")
+
+        role_name = str(current_user.role_name or "").lower()
+        if role_name == "admin":
+            return
+        if role_name in {"company", "recruiter"}:
+            if self.repo.get_company_for_user(job["company_id"], current_user.user_id) is not None:
+                return
+        if job.get("status") in self.repo.PUBLISHED_STATUSES or job.get("status") is None:
+            return
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")

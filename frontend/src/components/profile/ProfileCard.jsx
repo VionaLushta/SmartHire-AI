@@ -48,7 +48,7 @@ export default function ProfileCard({ profile, completion = 0, onEdit }) {
 
       <div className="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
         <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-slate-500" /><span className="text-sm font-medium text-slate-700">Professional bio</span></div>
-        <p className="text-sm leading-6 text-slate-600">{profile?.bio || 'No bio added yet. Add a short summary to clarify your value proposition and strengths.'}</p>
+        <p className="text-sm leading-6 text-slate-600">{profile?.about_me || 'No bio added yet.'}</p>
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">

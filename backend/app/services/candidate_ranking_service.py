@@ -40,6 +40,7 @@ from app.schemas.candidate_ranking import (
     RankingRiskLevel,
 )
 from app.schemas.auth import CurrentUserResponse
+from app.services.audit_log_service import record_audit_event
 
 logger = logging.getLogger("smarthire.performance")
 
@@ -69,6 +70,17 @@ class CandidateRankingService:
             job_id,
             len(response.ranking),
             (perf_counter() - started) * 1000,
+        )
+        record_audit_event(
+            self.db,
+            user_id=current_user.user_id,
+            user_role=str(current_user.role_name or "Recruiter"),
+            action="Candidate Ranking Generated",
+            entity_type="CandidateRanking",
+            entity_id=str(job_id),
+            description="Candidate ranking generated.",
+            status="Success",
+            metadata={"limit": limit},
         )
         return response
 
@@ -162,6 +174,17 @@ class CandidateRankingService:
             job_id,
             report_format,
             (perf_counter() - started) * 1000,
+        )
+        record_audit_event(
+            self.db,
+            user_id=current_user.user_id,
+            user_role=str(current_user.role_name or "Recruiter"),
+            action="Candidate Ranking Generated",
+            entity_type="CandidateRanking",
+            entity_id=str(job_id),
+            description="Candidate ranking exported.",
+            status="Success",
+            metadata={"format": report_format},
         )
         return content, media_type, filename
 

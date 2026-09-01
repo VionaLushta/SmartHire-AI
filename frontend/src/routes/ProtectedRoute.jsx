@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import LoadingScreenPage from '../pages/errors/LoadingScreenPage';
-import { getDashboardPathForRole } from '../utils/auth';
+import { getDashboardPathForRole, getSafeInternalPath } from '../utils/auth';
 
 export default function ProtectedRoute({
   children,
@@ -18,14 +18,28 @@ export default function ProtectedRoute({
 
   if (publicOnly) {
     if (authenticated) {
-      return <Navigate to={getDashboardPathForRole(user?.role_name || user?.role)} replace />;
+      const roleName = String(user?.role_name || user?.role || '').toLowerCase();
+      const isAdminLogin = location.pathname.startsWith('/admin/login');
+      const isCandidateAuth = location.pathname.startsWith('/candidate/');
+      const shouldRedirect = (isAdminLogin && roleName === 'admin') || (isCandidateAuth && roleName === 'candidate');
+      if (!shouldRedirect) {
+        return children || <Outlet />;
+      }
+      const search = location.search ? new URLSearchParams(location.search) : null;
+      const returnTo = getSafeInternalPath(search?.get('returnTo') || location.state?.returnTo, '');
+      return (
+        <Navigate
+          to={returnTo || getDashboardPathForRole(user?.role_name || user?.role)}
+          replace
+        />
+      );
     }
 
     return children || <Outlet />;
   }
 
   if (!authenticated) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+    return <Navigate to={location.pathname.startsWith('/admin') ? '/admin/login' : '/candidate/login'} replace state={{ from: location }} />;
   }
 
   const roleName = String(user?.role_name || user?.role || '').toLowerCase();

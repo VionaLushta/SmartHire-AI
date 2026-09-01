@@ -2,7 +2,14 @@ import { useEffect, useId } from 'react';
 import { X } from 'lucide-react';
 import Button from './Button';
 
-export default function Modal({ open, title, children, onClose }) {
+export default function Modal({
+  open,
+  title,
+  children,
+  onClose,
+  className = '',
+  bodyClassName = '',
+}) {
   const titleId = useId();
 
   useEffect(() => {
@@ -34,7 +41,7 @@ export default function Modal({ open, title, children, onClose }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative w-full max-w-lg rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white text-slate-900 shadow-[0_24px_60px_rgba(15,23,42,0.16)]"
+        className={`relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[24px] border border-[rgba(15,23,42,0.08)] bg-white text-slate-900 shadow-[0_24px_60px_rgba(15,23,42,0.16)] ${className}`}
       >
         <div className="flex items-center justify-between border-b border-[rgba(15,23,42,0.08)] px-6 py-4">
           <h2 id={titleId} className="text-[24px] font-bold tracking-[-0.04em] text-slate-900">
@@ -44,7 +51,7 @@ export default function Modal({ open, title, children, onClose }) {
             <X className="h-5 w-5" aria-hidden="true" />
           </Button>
         </div>
-        <div className="px-6 py-5">{children}</div>
+        <div className={`min-h-0 flex-1 overflow-y-auto px-6 py-5 ${bodyClassName}`}>{children}</div>
       </div>
     </div>
   );

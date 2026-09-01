@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, PlayCircle } from 'lucide-react';
+import { ROUTES } from '../../../constants/routes';
 
 export default function HeroSection() {
   return (
@@ -33,21 +34,22 @@ export default function HeroSection() {
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
-              to="/register"
+              to={ROUTES.jobs}
               className="inline-flex h-12 items-center justify-center rounded-[14px] border border-[#1d4ed8] bg-[#2563eb] px-6 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(37,99,235,0.18)] transition duration-150 ease-out hover:bg-[#1d4ed8] focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-transparent"
             >
-              Start hiring
+              Explore Careers
               <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
             </Link>
-            <a
-              href="#features"
+            <Link
+              to={ROUTES.about}
+              state={{ scrollTo: 'our-team' }}
               className="inline-flex h-12 items-center justify-center rounded-[14px] border border-slate-200 bg-white px-6 text-[15px] font-semibold text-slate-700 shadow-[0_2px_10px_rgba(15,23,42,0.04)] transition duration-150 ease-out hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-transparent"
             >
               <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#eff4ff] text-[#2563eb]">
                 <PlayCircle className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
               </span>
-              See how it works
-            </a>
+              Meet Our Team
+            </Link>
           </div>
         </div>
 

@@ -12,6 +12,7 @@ from app.core.config import get_settings
 from app.core.validation import validate_document_upload
 from app.repositories.certificate_repository import CertificateRepository
 from app.schemas.certificate import CertificateRead
+from app.services.audit_log_service import record_audit_event
 
 MAX_CERTIFICATE_SIZE = 10 * 1024 * 1024
 logger = logging.getLogger("smarthire.uploads")
@@ -94,6 +95,16 @@ class CertificateService:
             buffer.write(file.file.read())
 
         cert = self.repo.create(user_id, title, issuer, issue_date, str(file_path))
+        record_audit_event(
+            self.repo.db,
+            user_id=user_id,
+            user_role="Candidate",
+            action="Certificate Upload",
+            entity_type="Certificate",
+            entity_id=str(cert["cert_id"]),
+            description="Candidate uploaded a certificate.",
+            status="Success",
+        )
         return CertificateRead.model_validate(cert)
 
     def list_certificates(
@@ -121,3 +132,14 @@ class CertificateService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Certificate not found."
             )
+
+    def get_download_path(self, user_id: uuid.UUID, cert_id: int) -> Path:
+        cert = self.repo.get_by_id(cert_id)
+        if cert is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate not found.")
+        if cert["user_id"] != user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Certificate does not belong to this candidate.")
+        path = Path(cert["file_path"])
+        if not path.is_file():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate file not found.")
+        return path

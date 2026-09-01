@@ -13,15 +13,17 @@ MULTISPACE_RE = re.compile(r"\s+")
 SAFE_FILENAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
 PHONE_RE = re.compile(r"^[0-9()+\-\s.]{7,30}$")
 
-ALLOWED_DOCUMENT_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg"}
+ALLOWED_DOCUMENT_EXTENSIONS = {".pdf", ".docx", ".png", ".jpg", ".jpeg"}
 ALLOWED_DOCUMENT_MIME_TYPES = {
     "application/pdf": {".pdf"},
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {".docx"},
     "image/png": {".png"},
     "image/jpeg": {".jpg", ".jpeg"},
     "image/jpg": {".jpg", ".jpeg"},
 }
 DOCUMENT_SIGNATURES: dict[str, tuple[bytes, ...]] = {
     "application/pdf": (b"%PDF-",),
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": (b"PK",),
     "image/png": (b"\x89PNG\r\n\x1a\n",),
     "image/jpeg": (b"\xff\xd8\xff",),
     "image/jpg": (b"\xff\xd8\xff",),

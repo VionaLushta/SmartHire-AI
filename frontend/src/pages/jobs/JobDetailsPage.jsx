@@ -1,44 +1,61 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
-import { ArrowRight, Briefcase, Building2, CalendarDays, CheckCircle2, DollarSign, Gift, MapPin, Share2, Sparkles, Star } from 'lucide-react';
-import { applyToJob, fetchJobById, fetchSavedJobs, removeSavedJob, saveJob } from '../../redux/slices/jobSlice';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowRight, Briefcase, Building2, CalendarDays, CheckCircle2, DollarSign, MapPin, Sparkles, Star } from 'lucide-react';
+import { fetchJobById, fetchSavedJobs, removeSavedJob, saveJob } from '../../redux/slices/jobSlice';
 import Button from '../../components/ui/Button';
 import SkillBadge from '../../components/jobs/SkillBadge';
-import ApplyModal from '../../components/jobs/ApplyModal';
 import LoadingState from '../../components/jobs/LoadingState';
 import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import { formatDateShort, formatSalaryRange, clampPercent } from '../../utils/dashboard';
 import { PLATFORM_ORGANIZATION_NAME } from '../../constants/app';
 
 export default function JobDetailsPage() {
   const { id } = useParams();
   const dispatch = useDispatch();
-  const { selectedJob, savedJobs } = useSelector((state) => state.jobs);
-  const [applyOpen, setApplyOpen] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
+  const { selectedJob, selectedJobStatus, selectedJobError, savedJobs } = useSelector((state) => state.jobs);
 
   useEffect(() => {
     if (id) {
       dispatch(fetchJobById(id));
-      dispatch(fetchSavedJobs());
+      if (user?.user_id) {
+        dispatch(fetchSavedJobs());
+      }
     }
-  }, [dispatch, id]);
+  }, [dispatch, id, user?.user_id]);
+
+  const applyPath = useMemo(() => `/jobs/${id}/apply`, [id]);
+  const authenticated = Boolean(user);
 
   const isSaved = useMemo(
     () => savedJobs.some((savedJob) => String(savedJob.job_id ?? savedJob.job?.job_id ?? '') === String(id)),
     [id, savedJobs],
   );
 
-  if (!selectedJob) {
+  if (selectedJobStatus === 'loading' || (!selectedJob && !selectedJobError)) {
     return <LoadingState title="Loading job details..." />;
   }
 
-  const match = clampPercent(selectedJob.ai_match ?? selectedJob.ai_average_score ?? 72);
+  if (selectedJobError) {
+    return (
+      <ErrorState
+        title="Unable to load job details"
+        description={selectedJobError}
+        onRetry={() => dispatch(fetchJobById(id))}
+      />
+    );
+  }
+
+  const match = clampPercent(selectedJob.ai_match ?? selectedJob.ai_average_score ?? 0);
   const skills = Array.isArray(selectedJob.required_skills) && selectedJob.required_skills.length
     ? selectedJob.required_skills
     : Array.isArray(selectedJob.skill_names)
       ? selectedJob.skill_names
-      : ['Product strategy', 'Cross-functional leadership'];
+      : [];
+  const optionalSkills = Array.isArray(selectedJob.optional_skills) ? selectedJob.optional_skills : [];
 
   async function handleSave() {
     if (isSaved) {
@@ -49,12 +66,11 @@ export default function JobDetailsPage() {
   }
 
   async function handleApply() {
-    setApplyOpen(true);
-  }
-
-  async function confirmApply() {
-    await dispatch(applyToJob(id));
-    setApplyOpen(false);
+    if (!authenticated) {
+      navigate(`/candidate/apply-auth?returnTo=${encodeURIComponent(applyPath)}`);
+      return;
+    }
+    navigate(applyPath);
   }
 
   return (
@@ -82,11 +98,10 @@ export default function JobDetailsPage() {
               <span className="inline-flex items-center gap-2"><CalendarDays className="h-4 w-4 text-slate-400" aria-hidden="true" />Deadline {formatDateShort(selectedJob.deadline)}</span>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Button variant="primary" onClick={handleApply}>Apply now</Button>
-              <Button variant="secondary" onClick={handleSave}>{isSaved ? 'Saved' : 'Save job'}</Button>
-              <Button variant="ghost">Share</Button>
-            </div>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="primary" onClick={handleApply}>Apply now</Button>
+            <Button variant="secondary" onClick={handleSave}>{isSaved ? 'Saved' : 'Save job'}</Button>
+          </div>
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
@@ -122,17 +137,13 @@ export default function JobDetailsPage() {
         <main className="space-y-6">
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-semibold text-slate-950">Role overview</h2>
-            <p className="mt-4 text-base leading-7 text-slate-600">{selectedJob.description || 'This role is designed to help the team deliver meaningful business outcomes and create a high-performing workplace.'}</p>
+            <p className="mt-4 text-base leading-7 text-slate-600">{selectedJob.description || 'No description provided.'}</p>
           </section>
 
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-950">Responsibilities</h2>
             <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-              {(selectedJob.responsibilities ? selectedJob.responsibilities.split('\n').filter(Boolean) : [
-                'Drive product strategy and execution across key hiring priorities.',
-                'Partner closely with cross-functional teams to shape roadmap and delivery.',
-                'Measure outcomes and iterate quickly based on hiring and candidate experience data.',
-              ]).map((item) => (
+              {(selectedJob.responsibilities ? selectedJob.responsibilities.split('\n').filter(Boolean) : []).map((item) => (
                 <li key={item} className="flex gap-3">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-500" aria-hidden="true" />
                   <span>{item}</span>
@@ -144,11 +155,7 @@ export default function JobDetailsPage() {
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-950">Requirements</h2>
             <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-              {(selectedJob.requirements ? selectedJob.requirements.split('\n').filter(Boolean) : [
-                'Experience building and shipping products in a fast-moving environment.',
-                'Strong communication and stakeholder management.',
-                'Comfort working with product, design, and data teams.',
-              ]).map((item) => (
+              {(selectedJob.requirements ? selectedJob.requirements.split('\n').filter(Boolean) : []).map((item) => (
                 <li key={item} className="flex gap-3">
                   <Star className="mt-0.5 h-4 w-4 text-amber-500" aria-hidden="true" />
                   <span>{item}</span>
@@ -166,6 +173,23 @@ export default function JobDetailsPage() {
                 </SkillBadge>
               ))}
             </div>
+          </section>
+
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-slate-950">Optional skills</h2>
+            {optionalSkills.length ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {optionalSkills.map((skill) => (
+                  <SkillBadge key={typeof skill === 'string' ? skill : skill.name} tone="neutral">
+                    {typeof skill === 'string' ? skill : skill.name}
+                  </SkillBadge>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm leading-7 text-slate-600">
+                No optional skills are listed for this role yet.
+              </p>
+            )}
           </section>
         </main>
 
@@ -196,14 +220,6 @@ export default function JobDetailsPage() {
           </section>
         </aside>
       </div>
-
-      <ApplyModal
-        open={applyOpen}
-        job={selectedJob}
-        onClose={() => setApplyOpen(false)}
-        onConfirm={confirmApply}
-        submitting={false}
-      />
     </div>
   );
 }

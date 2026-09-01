@@ -1,19 +1,22 @@
 import { Link } from 'react-router-dom';
 import { Mail, MapPin, Phone } from 'lucide-react';
 import BrandLockup from '../brand/BrandLockup';
+import { ROUTES } from '../../constants/routes';
+
+const OFFICIAL_CONTACT_EMAIL = 'smarthireaii@proton.me';
 
 const productLinks = [
-  { label: 'Why Join Us', to: '/#why-join-us' },
-  { label: 'Jobs', to: '/#open-positions' },
-  { label: 'About Us', to: '/#about-us' },
-  { label: 'Contact', to: '/#contact' },
+  { label: 'Home', to: ROUTES.home },
+  { label: 'Jobs', to: ROUTES.jobs },
+  { label: 'About Us', to: ROUTES.about },
+  { label: 'Contact', to: ROUTES.contact },
 ];
 
 const resourceLinks = [
-  { label: 'Privacy Policy', href: 'mailto:contact@smarthire.ai?subject=Privacy%20Policy' },
-  { label: 'Terms of Service', href: 'mailto:contact@smarthire.ai?subject=Terms%20of%20Service' },
-  { label: 'Careers', to: '/#open-positions' },
-  { label: 'Support', href: 'mailto:contact@smarthire.ai?subject=Support' },
+  { label: 'Privacy Policy', href: `mailto:${OFFICIAL_CONTACT_EMAIL}?subject=Privacy%20Policy` },
+  { label: 'Terms of Service', href: `mailto:${OFFICIAL_CONTACT_EMAIL}?subject=Terms%20of%20Service` },
+  { label: 'Careers', to: ROUTES.careers },
+  { label: 'Support', href: `mailto:${OFFICIAL_CONTACT_EMAIL}?subject=Support` },
 ];
 
 export default function Footer() {
@@ -45,12 +48,12 @@ export default function Footer() {
                 <span>+383 49 123 456</span>
               </a>
               <a
-                href="mailto:contact@smarthire.ai"
+                href={`mailto:${OFFICIAL_CONTACT_EMAIL}`}
                 className="flex items-start gap-3 transition hover:text-slate-900"
               >
                 <Mail className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
                 <span>
-                  contact@smarthire.ai
+                  {OFFICIAL_CONTACT_EMAIL}
                   <span className="block text-xs text-slate-500">General inquiries</span>
                 </span>
               </a>

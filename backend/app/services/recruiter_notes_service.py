@@ -31,6 +31,7 @@ from app.schemas.recruiter_notes import (
     RecruiterNoteUpdateRequest,
     RecruiterNotesThreadResponse,
 )
+from app.services.audit_log_service import record_audit_event
 
 logger = logging.getLogger("smarthire.performance")
 
@@ -492,6 +493,17 @@ class RecruiterNotesService:
             with self.activity_path.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps(payload, default=str, ensure_ascii=False))
                 handle.write("\n")
+            record_audit_event(
+                self.db,
+                user_id=actor.user_id,
+                user_role=str(actor.role_name or "Unknown"),
+                action=event,
+                entity_type="RecruiterNote",
+                entity_id=note_id,
+                description=message,
+                status="Success",
+                metadata=payload,
+            )
         except OSError as exc:
             raise RecruiterNotesPersistenceError("Unable to write recruiter activity log.") from exc
 

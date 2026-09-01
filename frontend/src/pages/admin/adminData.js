@@ -46,25 +46,6 @@ function findByNames(source = [], names = []) {
   });
 }
 
-function buildFallbackRows(analytics) {
-  const candidateCount = firstNumber(analytics?.metrics?.total_candidates);
-  if (!candidateCount) {
-    return [];
-  }
-
-  return [
-    {
-      candidate_id: 'candidate-1',
-      candidate_name: 'Candidate review queue',
-      applied_position: 'Open requisition',
-      primary_match: clampPercent(analytics?.metrics?.average_ai_match_score),
-      alternative_role: 'Review queue',
-      status: 'Under review',
-      applied_date: null,
-    },
-  ];
-}
-
 export function buildAdminKpis(analytics = {}) {
   const metrics = analytics.metrics || {};
   const funnel = asArray(analytics.funnel || analytics.charts?.pie_chart_hiring_funnel);
@@ -185,7 +166,7 @@ export function buildCandidateRows(analytics = {}) {
     interview_status: candidate.interview_status || candidate.interview || candidate.status || 'Not scheduled',
   }));
 
-  return rows.length ? rows : buildFallbackRows(analytics);
+  return rows;
 }
 
 export function buildStatusDistribution(analytics = {}) {

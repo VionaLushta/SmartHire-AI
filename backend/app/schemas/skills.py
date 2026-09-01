@@ -24,9 +24,25 @@ class JobSkillGroupResponse(BaseModel):
     optional_skills: list[JobSkillRead]
 
 
+class SkillLibraryItem(BaseModel):
+    skill_id: int
+    name: str
+    category: str | None = None
+
+
+class SkillLibraryGroup(BaseModel):
+    category: str
+    skills: list[SkillLibraryItem]
+
+
+class SkillLibraryResponse(BaseModel):
+    total_skills: int
+    categories: list[SkillLibraryGroup]
+
+
 class JobSkillUpsertRequest(BaseModel):
     name: str = Field(min_length=1, max_length=120)
-    category: str | None = Field(default=None, max_length=120)
+    category: str = Field(min_length=1, max_length=120)
     is_required: bool = True
     required_level: int | None = Field(default=None, ge=0)
 
@@ -37,8 +53,8 @@ class JobSkillUpsertRequest(BaseModel):
 
     @field_validator("category")
     @classmethod
-    def validate_category(cls, value: str | None) -> str | None:
-        return clean_optional_text(value, "Skill category", max_length=120)
+    def validate_category(cls, value: str) -> str:
+        return clean_text(value, "Skill category", max_length=120)
 
 
 class JobSkillUpdateRequest(BaseModel):

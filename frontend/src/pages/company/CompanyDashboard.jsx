@@ -113,6 +113,15 @@ export default function CompanyDashboard() {
     }
   }, [companyId, dispatch, status]);
 
+  useEffect(() => {
+    const handleJobsChanged = () => {
+      dispatch(loadCompanyDashboard({ companyId }));
+    };
+
+    window.addEventListener('jobs:changed', handleJobsChanged);
+    return () => window.removeEventListener('jobs:changed', handleJobsChanged);
+  }, [companyId, dispatch]);
+
   const stats = useMemo(() => {
     const acceptedCandidates = recentApplications.filter((item) =>
       ['accepted', 'hired'].includes(String(item.status || '').toLowerCase()),

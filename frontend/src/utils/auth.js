@@ -9,6 +9,23 @@ export function getDashboardPathForRole(role) {
   return '/candidate/dashboard';
 }
 
+export function getSafeInternalPath(value, fallback = '/candidate/dashboard') {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed || !trimmed.startsWith('/') || trimmed.startsWith('//') || trimmed.includes('://')) {
+    return fallback;
+  }
+
+  if (trimmed.startsWith('/login') || trimmed.startsWith('/register') || trimmed.startsWith('/candidate/login') || trimmed.startsWith('/candidate/register') || trimmed.startsWith('/admin/login')) {
+    return fallback;
+  }
+
+  return trimmed;
+}
+
 export function normalizeAuthResponse(payload) {
   const response = payload?.data ?? payload ?? {};
   const data = response?.data ?? response;
@@ -26,21 +43,28 @@ export function normalizeAuthResponse(payload) {
 
 export function getAuthErrorMessage(error, fallback = 'Something went wrong. Please try again.') {
   const response = error?.response?.data;
+  const status = error?.response?.status;
 
   if (typeof response === 'string') {
-    return response;
-  }
-
-  if (response?.detail) {
-    return response.detail;
+    return status ? `${status} ${response}` : response;
   }
 
   if (response?.message) {
-    return response.message;
+    return status ? `${status} ${response.message}` : response.message;
   }
 
   if (Array.isArray(response?.errors) && response.errors.length > 0) {
-    return response.errors[0]?.message || response.errors[0]?.detail || fallback;
+    const firstError = response.errors[0];
+    const location = Array.isArray(firstError?.loc)
+      ? firstError.loc.filter((part) => part !== 'body').join('.')
+      : '';
+    const message = firstError?.msg || firstError?.message || firstError?.detail || fallback;
+    const formattedError = location ? `${location}: ${message}` : message;
+    return status ? `${status} ${formattedError}` : formattedError;
+  }
+
+  if (response?.detail) {
+    return status ? `${status} ${response.detail}` : response.detail;
   }
 
   if (error?.message) {

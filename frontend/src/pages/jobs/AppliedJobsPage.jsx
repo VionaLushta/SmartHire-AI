@@ -30,6 +30,8 @@ export default function AppliedJobsPage() {
         );
 
         setItems(enriched);
+      } catch {
+        setItems([]);
       } finally {
         setLoading(false);
       }
@@ -76,7 +78,11 @@ export default function AppliedJobsPage() {
                   <div>
                     <p className="text-sm font-medium text-slate-500">{job.company_name || PLATFORM_ORGANIZATION_NAME}</p>
                     <h2 className="mt-1 text-2xl font-semibold text-slate-950">{job.title || 'Applied role'}</h2>
-                    <p className="mt-2 text-sm text-slate-600">Status: {application.status || 'submitted'}</p>
+                    <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-600">
+                      <span className="rounded-full bg-amber-50 px-3 py-1 font-medium capitalize text-amber-700">Status: {(application.status || 'pending').replace('_', ' ')}</span>
+                      <span className="rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-700">AI Match: {application.overall_score ?? 0}%</span>
+                      <span className="rounded-full bg-slate-100 px-3 py-1">Applied: {application.created_at ? new Date(application.created_at).toLocaleDateString() : 'Unknown'}</span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <Button as={Link} to={job.job_id ? `/jobs/${job.job_id}` : '/jobs'} variant="secondary">

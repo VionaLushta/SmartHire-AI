@@ -14,20 +14,17 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=8)
     remember_me: bool = True
 
-    @field_validator("password")
-    @classmethod
-    def validate_password(cls, value: str) -> str:
-        return validate_password_strength(value)
-
 
 class RegisterRequest(BaseModel):
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
     email: EmailStr
     phone: str = Field(min_length=7, max_length=30)
+    city: str | None = Field(default=None, max_length=100)
     password: str = Field(min_length=8)
-    # Public registration must never grant a privileged role.
-    role_name: Literal["Candidate", "Company"] = "Candidate"
+    confirm_password: str | None = Field(default=None, min_length=8)
+    # Public registration must never grant a privileged role unless the backend allows it.
+    role_name: Literal["Candidate", "Company", "Admin"] = "Candidate"
     company_name: str | None = Field(default=None, max_length=255)
     accept_terms: bool = True
 
@@ -41,6 +38,11 @@ class RegisterRequest(BaseModel):
     def validate_phone(cls, value: str) -> str:
         return clean_text(value, "Phone number", max_length=30)
 
+    @field_validator("city")
+    @classmethod
+    def validate_city(cls, value: str | None) -> str | None:
+        return clean_text(value, "City", max_length=100) if value is not None else None
+
     @field_validator("company_name")
     @classmethod
     def validate_company_name(cls, value: str | None) -> str | None:
@@ -50,6 +52,14 @@ class RegisterRequest(BaseModel):
     @classmethod
     def validate_password(cls, value: str) -> str:
         return validate_password_strength(value)
+
+    @field_validator("confirm_password")
+    @classmethod
+    def validate_confirm_password(cls, value: str | None, info) -> str | None:
+        password = info.data.get("password") if info.data else None
+        if value is not None and password and value != password:
+            raise ValueError("Passwords do not match.")
+        return value
 
 class RefreshRequest(BaseModel):
     refresh_token: str | None = Field(default=None, min_length=1)
@@ -79,6 +89,24 @@ class ResetPasswordRequest(BaseModel):
         return value
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=8)
+    password: str = Field(min_length=8)
+    confirm_password: str = Field(min_length=8)
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        return validate_password_strength(value)
+
+    @field_validator("confirm_password")
+    @classmethod
+    def validate_confirm_password(cls, value: str, info) -> str:
+        if info.data.get("password") and value != info.data["password"]:
+            raise ValueError("Passwords do not match.")
+        return value
+
+
 class TokenResponse(BaseModel):
     access_token: str | None = None
     refresh_token: str | None = None
@@ -100,6 +128,7 @@ class CurrentUserResponse(BaseModel):
     email: EmailStr
     phone: str | None = None
     email_verified_at: datetime | None = None
+    last_login_at: datetime | None = None
     auth_provider: str | None = None
     auth_provider_subject: str | None = None
     company_id: int | None = None
@@ -112,6 +141,7 @@ class CurrentUserResponse(BaseModel):
     linkedin_url: str | None = None
     github_url: str | None = None
     portfolio_url: str | None = None
+    about_me: str | None = None
     created_at: datetime
     updated_at: datetime
 

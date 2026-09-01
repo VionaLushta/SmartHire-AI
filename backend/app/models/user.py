@@ -40,6 +40,9 @@ class User(Base):
     email_verified_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    last_login_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     auth_provider: Mapped[str | None] = mapped_column(String(50), nullable=True)
     auth_provider_subject: Mapped[str | None] = mapped_column(
         String(255), nullable=True, index=True
@@ -50,6 +53,7 @@ class User(Base):
     linkedin_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
     github_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
     portfolio_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    about_me: Mapped[str | None] = mapped_column(String(4000), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow,

@@ -34,11 +34,12 @@ export default function ResumeUploader({
     if (!file) return;
     const allowedTypes = [
       'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/msword',
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
     ];
 
-    if (file && !allowedTypes.includes(file.type) && !file.name?.match(/\.(pdf|docx|doc)$/i)) {
+    if (file && !allowedTypes.includes(file.type) && !file.name?.match(/\.(pdf|png|jpe?g)$/i)) {
       return;
     }
 
@@ -76,7 +77,7 @@ export default function ResumeUploader({
           <div>
             <h3 className="text-[24px] font-bold tracking-[-0.04em] text-slate-950">Upload your resume</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              PDF, DOCX, and DOC formats supported.
+              PDF, PNG, JPG, and JPEG formats supported.
             </p>
           </div>
 
@@ -88,7 +89,7 @@ export default function ResumeUploader({
           <input
             ref={inputRef}
             type="file"
-            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg,image/jpg"
             className="hidden"
             aria-label="Upload resume"
             onChange={handleInputChange}

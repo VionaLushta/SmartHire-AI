@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useNotifications } from '../../context/NotificationContext';
 import JobForm from '../../components/jobs/JobForm';
 import { fetchJobById, updateJob } from '../../redux/slices/jobSlice';
 import { departmentService } from '../../services/departmentService';
@@ -11,6 +12,7 @@ export default function EditJobPage() {
   const { id } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { success } = useNotifications();
   const { selectedJob } = useSelector((state) => state.jobs);
   const [departments, setDepartments] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -24,8 +26,8 @@ export default function EditJobPage() {
     async function loadMetadata() {
       try {
         const [departmentResponse, categoryResponse] = await Promise.all([
-          departmentService.list(),
-          jobCategoryService.list(),
+          departmentService.list({ page_size: 100 }),
+          jobCategoryService.list({ page_size: 100 }),
         ]);
 
         setDepartments(unwrapItems(departmentResponse));
@@ -45,6 +47,7 @@ export default function EditJobPage() {
     setSubmitting(false);
 
     if (updateJob.fulfilled.match(resultAction)) {
+      success('Job updated', 'The role was saved successfully.');
       navigate(`/jobs/${id}`);
     }
   }

@@ -17,6 +17,10 @@ export function unwrapItems(payload) {
     return data.results;
   }
 
+  if (Array.isArray(data?.jobs)) {
+    return data.jobs;
+  }
+
   return [];
 }
 

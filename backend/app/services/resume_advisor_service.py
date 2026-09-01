@@ -36,6 +36,7 @@ from app.schemas.resume_advisor import (
     ResumeAdvisorReport,
     ResumeAdvisorRoadmapItem,
 )
+from app.services.audit_log_service import record_audit_event
 from app.templates.pdf_letter import (
     build_body_paragraphs,
     build_bullet_list,
@@ -119,6 +120,17 @@ class ResumeAdvisorService:
             if report_format == "json"
             else self._export_pdf(report)
         )
+        record_audit_event(
+            self.db,
+            user_id=current_user.user_id,
+            user_role=str(current_user.role_name or "Candidate"),
+            action="Resume Advisor Generated",
+            entity_type="ResumeAdvisor",
+            entity_id=str(report.report_id),
+            description="Resume advisor report exported.",
+            status="Success",
+            metadata={"format": report_format, "candidate_id": str(current_user.user_id)},
+        )
         logger.info(
             "resume advisor exported format=%s candidate_id=%s duration_ms=%.1f",
             report_format,
@@ -138,6 +150,17 @@ class ResumeAdvisorService:
         context = self._load_context(user_id)
         report = self._build_report(context)
         self._persist_snapshot(report, regenerate=regenerate)
+        record_audit_event(
+            self.db,
+            user_id=user_id,
+            user_role="Candidate",
+            action="Resume Advisor Generated",
+            entity_type="ResumeAdvisor",
+            entity_id=str(report.report_id),
+            description="Resume advisor report generated.",
+            status="Success",
+            metadata={"regenerate": regenerate},
+        )
         logger.info(
             "resume advisor report generated candidate_id=%s resume_id=%s score=%s duration_ms=%.1f",
             report.candidate_id,

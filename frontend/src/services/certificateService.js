@@ -8,4 +8,5 @@ export const certificateService = {
     },
   }),
   remove: (id) => api.delete(`/certificates/${id}`),
+  download: (id) => api.get(`/certificates/${id}/download`, { responseType: 'blob' }),
 };

@@ -27,6 +27,7 @@ from app.models.skill import Skill
 from app.models.user import User
 from app.repositories.job_dashboard_repository import JobDashboardRepository
 from app.services.analytics_service import AnalyticsService
+from app.services.audit_log_service import record_audit_event
 from app.services.job_skill_service import JobSkillService
 from app.services.nlp_matcher import calculate_similarity, score_job_fit
 
@@ -105,8 +106,8 @@ class PowerBIService:
                 "total_applications": len(applications),
                 "accepted": status_counts.get("accepted", 0),
                 "rejected": status_counts.get("rejected", 0),
-                "interview": status_counts.get("interview_scheduled", 0),
-                "hold": status_counts.get("on_hold", 0),
+                "interview": status_counts.get("interview", 0),
+                "hold": status_counts.get("reviewed", 0),
                 "average_match_score": round(mean(ai_scores), 2) if ai_scores else 0.0,
                 "highest_match_score": round(max(ai_scores), 2) if ai_scores else 0.0,
                 "lowest_match_score": round(min(ai_scores), 2) if ai_scores else 0.0,
@@ -191,6 +192,17 @@ class PowerBIService:
             raise PowerBIExportError("Unsupported export format.")
         if report_format == "powerbi":
             payload = self.powerbi_dataset(current_user).model_dump()
+            record_audit_event(
+                self.db,
+                user_id=current_user.user_id,
+                user_role=str(getattr(current_user, "role_name", "Admin") or "Admin"),
+                action="Power BI Export",
+                entity_type="PowerBI",
+                entity_id="powerbi_dataset",
+                description="Power BI dataset exported.",
+                status="Success",
+                metadata={"format": report_format, "dataset": dataset},
+            )
             return (
                 json.dumps(payload, default=str, indent=2).encode("utf-8"),
                 "application/json",
@@ -210,6 +222,17 @@ class PowerBIService:
                 "rows": table.rows,
             }
             filename = f"{table.name}.json"
+            record_audit_event(
+                self.db,
+                user_id=current_user.user_id,
+                user_role=str(getattr(current_user, "role_name", "Admin") or "Admin"),
+                action="Power BI Export",
+                entity_type="PowerBI",
+                entity_id=table.name,
+                description="Power BI dataset exported.",
+                status="Success",
+                metadata={"format": report_format, "dataset": dataset},
+            )
             return json.dumps(payload, default=str, indent=2).encode("utf-8"), "application/json", filename
         if report_format == "csv":
             output = []
@@ -226,6 +249,17 @@ class PowerBIService:
                 report_format,
                 (perf_counter() - started) * 1000,
             )
+            record_audit_event(
+                self.db,
+                user_id=current_user.user_id,
+                user_role=str(getattr(current_user, "role_name", "Admin") or "Admin"),
+                action="Power BI Export",
+                entity_type="PowerBI",
+                entity_id=table.name,
+                description="Power BI dataset exported.",
+                status="Success",
+                metadata={"format": report_format, "dataset": dataset},
+            )
             return output_bytes, "text/csv", f"{table.name}.csv"
         raise PowerBIExportError("Unsupported export format.")
 
@@ -241,8 +275,8 @@ class PowerBIService:
             "total_applications": len(applications),
             "accepted": status_counts.get("accepted", 0),
             "rejected": status_counts.get("rejected", 0),
-            "interview": status_counts.get("interview_scheduled", 0),
-            "hold": status_counts.get("on_hold", 0),
+            "interview": status_counts.get("interview", 0),
+            "hold": status_counts.get("reviewed", 0),
             "average_match_score": round(mean(ai_scores), 2) if ai_scores else 0.0,
             "highest_match_score": round(max(ai_scores), 2) if ai_scores else 0.0,
             "lowest_match_score": round(min(ai_scores), 2) if ai_scores else 0.0,
@@ -268,7 +302,7 @@ class PowerBIService:
         applications = self._application_rows()
         ai_reviewed = sum(1 for row in applications if row.get("overall_score") is not None)
         recruiter_reviewed = len(self._audit_logs())
-        interviews = sum(1 for row in applications if self._normalize_status(row.get("status")) == "interview_scheduled")
+        interviews = sum(1 for row in applications if self._normalize_status(row.get("status")) in {"interview", "hired"})
         accepted = sum(1 for row in applications if self._normalize_status(row.get("status")) == "accepted")
         rejected = sum(1 for row in applications if self._normalize_status(row.get("status")) == "rejected")
         rows = [
@@ -298,7 +332,7 @@ class PowerBIService:
             scores = [float(item.get("overall_score") or 0) for item in items if item.get("overall_score") is not None]
             accepted = sum(1 for item in items if self._normalize_status(item.get("status")) == "accepted")
             rejected = sum(1 for item in items if self._normalize_status(item.get("status")) == "rejected")
-            interviews = sum(1 for item in items if self._normalize_status(item.get("status")) == "interview_scheduled")
+            interviews = sum(1 for item in items if self._normalize_status(item.get("status")) in {"interview", "hired"})
             rows.append(
                 {
                     "job_id": job_id,
@@ -862,11 +896,11 @@ class PowerBIService:
             return "accepted"
         if value in {"rejected", "reject"}:
             return "rejected"
-        if value in {"interview_scheduled", "interview"}:
-            return "interview_scheduled"
+        if value in {"interview_scheduled", "interview", "interviewed"}:
+            return "interview"
         if value in {"on_hold", "hold"}:
-            return "on_hold"
-        return value or "submitted"
+            return "reviewed"
+        return value or "pending"
 
     def _require_admin(self, current_user: Any) -> None:
         if getattr(current_user, "role_name", None) != "Admin":

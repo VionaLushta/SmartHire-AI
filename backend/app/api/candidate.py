@@ -5,7 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, require_candidate
 from app.database.database import get_db
 from app.schemas.auth import CurrentUserResponse
 from app.schemas.candidate import CandidateRead, CandidateUpdate
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/candidate", tags=["candidate"])
 
 @router.get("/profile", response_model=CandidateRead)
 def get_candidate_profile(
-    current_user: CurrentUserResponse = Depends(get_current_user),
+    current_user: CurrentUserResponse = Depends(require_candidate),
     db: Session = Depends(get_db),
 ) -> CandidateRead:
     service = CandidateService(db)
@@ -26,7 +26,7 @@ def get_candidate_profile(
 @router.put("/profile", response_model=CandidateRead)
 def update_candidate_profile(
     payload: CandidateUpdate,
-    current_user: CurrentUserResponse = Depends(get_current_user),
+    current_user: CurrentUserResponse = Depends(require_candidate),
     db: Session = Depends(get_db),
 ) -> CandidateRead:
     service = CandidateService(db)

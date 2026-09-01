@@ -32,7 +32,7 @@ logger = logging.getLogger("smarthire.performance")
 class CompanyProfile:
     name: str = "SmartHire AI"
     address: str = "1200 Market Street, Suite 400, San Francisco, CA 94103"
-    email: str = "hr@smarthire.ai"
+    email: str = "smarthireaii@proton.me"
     phone: str = "+1 (555) 013-2048"
     website: str = "www.smarthire.ai"
 

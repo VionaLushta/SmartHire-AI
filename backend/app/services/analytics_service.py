@@ -313,16 +313,17 @@ class AnalyticsService:
                 .where(*conditions)
             )
             or 0,
-            "Shortlisted": count_for(
+            "Reviewed": count_for(
                 Application.__table__.c.status.in_(
-                    ("shortlisted", "interviewed", "accepted")
+                    ("reviewed", "interview", "accepted", "rejected", "hired")
                 )
             ),
-            "Interviewed": count_for(
-                Application.__table__.c.status.in_(("interviewed", "accepted"))
+            "Interview": count_for(
+                Application.__table__.c.status.in_(("interview", "hired"))
             ),
             "Accepted": count_for(Application.__table__.c.status == "accepted"),
             "Rejected": count_for(Application.__table__.c.status == "rejected"),
+            "Hired": count_for(Application.__table__.c.status == "hired"),
         }
         self._cache[cache_key] = funnel
         return funnel
@@ -344,6 +345,16 @@ class AnalyticsService:
                 func.avg(AIAnalysis.__table__.c.experience_score).label(
                     "experience_match"
                 ),
+                func.max(AIAnalysis.__table__.c.resume_score).label("resume_score"),
+                func.max(AIAnalysis.__table__.c.education_score).label("education_match"),
+                func.max(AIAnalysis.__table__.c.language_score).label("language_match"),
+                func.max(AIAnalysis.__table__.c.missing_skills).label("missing_skills"),
+                func.max(AIAnalysis.__table__.c.strengths).label("strengths"),
+                func.max(AIAnalysis.__table__.c.recommendations).label("ai_recommendation"),
+                func.max(Application.__table__.c.status).label("status"),
+                func.max(Job.__table__.c.title).label("job_title"),
+                func.max(Job.__table__.c.department_id).label("department_id"),
+                func.max(User.__table__.c.email).label("email"),
             )
             .select_from(
                 Application.__table__.join(
@@ -376,6 +387,16 @@ class AnalyticsService:
                 "ai_score": round(float(row["ai_score"] or 0), 2),
                 "skill_match": round(float(row["skill_match"] or 0), 2),
                 "experience_match": round(float(row["experience_match"] or 0), 2),
+                "resume_score": round(float(row["resume_score"] or 0), 2),
+                "education_match": round(float(row["education_match"] or 0), 2),
+                "language_match": round(float(row["language_match"] or 0), 2),
+                "missing_skills": row["missing_skills"],
+                "strengths": row["strengths"],
+                "ai_recommendation": row["ai_recommendation"],
+                "status": row["status"],
+                "job_title": row["job_title"],
+                "department_id": row["department_id"],
+                "email": row["email"],
             }
             for row in self.db.execute(statement).mappings()
         ]

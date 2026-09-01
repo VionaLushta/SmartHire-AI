@@ -13,9 +13,12 @@ from app.models.job import Department, Job, SavedJob
 from app.models.resume import Resume
 from app.models.training import TrainingEnrollment
 from app.models.user import User
+from app.repositories.job_repository import JobRepository
 
 
 class CandidateDashboardRepository:
+    PUBLISHED_STATUSES = JobRepository.PUBLISHED_STATUSES
+
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -130,7 +133,10 @@ class CandidateDashboardRepository:
                     department_table.c.department_id == job_table.c.department_id,
                 )
             )
-            .where(job_table.c.status.is_(None) | (job_table.c.status == "active"))
+            .where(
+                job_table.c.status.is_(None)
+                | job_table.c.status.in_(self.PUBLISHED_STATUSES)
+            )
             .order_by(job_table.c.created_at.desc())
             .limit(limit)
         )

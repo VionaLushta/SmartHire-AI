@@ -12,7 +12,7 @@ from app.services.email_service import (
     EmailService,
     EmailValidationError,
 )
-from app.templates.email_templates import render_offer_email
+from app.templates.email_templates import render_offer_email, render_welcome_email
 from app.services.pdf_generator import GeneratedDocumentResult
 
 
@@ -53,6 +53,19 @@ def test_template_rendering_includes_branding():
         applied_position="Senior Backend Engineer",
         recruiter_name="Mia Carter",
     )
+
+
+def test_welcome_template_includes_sign_in_link_without_credentials():
+    template = render_welcome_email(
+        display_name="Viona Lushta",
+        login_url="https://app.example.com/login",
+    )
+
+    assert template.subject == "Welcome to SmartHire AI"
+    assert "Viona Lushta" in template.plain_text
+    assert "https://app.example.com/login" in template.plain_text
+    assert "password" not in template.plain_text.lower()
+    assert 'href="https://app.example.com/login"' in template.html_body
 
     assert template.subject == "SmartHire AI | Offer of Employment - Viona Lushta"
     assert "SmartHire AI" in template.html_body
@@ -203,6 +216,12 @@ def test_invalid_recipient_email_raises(tmp_path):
             ("viona.lushta@example.com",),
             "Your SmartHire AI password was changed",
             "password has been updated",
+        ),
+        (
+            "send_welcome_email",
+            ("viona.lushta@example.com",),
+            "Welcome to SmartHire AI",
+            "Sign in to SmartHire AI",
         ),
     ],
 )

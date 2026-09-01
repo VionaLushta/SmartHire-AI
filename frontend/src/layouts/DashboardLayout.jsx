@@ -56,7 +56,7 @@ export default function DashboardLayout() {
       return { actionLabel: 'Browse jobs', actionTo: '/jobs' };
     }
     if (location.pathname.startsWith('/company')) {
-      return { actionLabel: 'Create job', actionTo: '/jobs' };
+      return { actionLabel: 'Create job', actionTo: '/jobs/new' };
     }
     if (roleName === 'candidate') {
       return { actionLabel: 'Browse jobs', actionTo: '/jobs' };

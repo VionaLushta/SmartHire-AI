@@ -1,24 +1,61 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import AdminCard from '../../components/admin/AdminCard';
 import StatusBadge from '../../components/admin/StatusBadge';
 import EmptyState from '../../components/admin/EmptyState';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import LoadingState from '../../components/jobs/LoadingState';
+import { applicationService } from '../../services/applicationService';
+import { unwrapItems } from '../../utils/dashboard';
 
-const applications = [
-  { application_id: 1, candidate: 'Lena Carter', company: 'Northstar Labs', job: 'Senior Product Manager', ai_score: 92, status: 'interview', interview: 'Scheduled' },
-  { application_id: 2, candidate: 'Ibrahim Ali', company: 'BrightPilot', job: 'Data Analyst', ai_score: 87, status: 'accepted', interview: 'Completed' },
-  { application_id: 3, candidate: 'Sophia Reed', company: 'Apex Studio', job: 'Frontend Engineer', ai_score: 81, status: 'pending', interview: 'Pending' },
-];
+const statuses = ['pending', 'reviewed', 'interview', 'accepted', 'rejected', 'hired'];
 
 export default function AdminApplicationsPage() {
   const [query, setQuery] = useState('');
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadApplications() {
+      try {
+        const response = await applicationService.list();
+        if (mounted) setApplications(unwrapItems(response));
+      } catch (err) {
+        if (mounted) setError(err?.response?.data?.detail || 'Unable to load applications.');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    loadApplications();
+    const interval = window.setInterval(loadApplications, 15000);
+    const onFocus = () => loadApplications();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      mounted = false;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
+
+  async function handleStatusChange(applicationId, nextStatus) {
+    try {
+      const response = await applicationService.updateStatus(applicationId, nextStatus);
+      setApplications((current) => current.map((item) => item.application_id === applicationId ? { ...item, ...response.data } : item));
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'Unable to update application status.');
+    }
+  }
   const filteredApplications = useMemo(() => {
     const term = query.trim().toLowerCase();
     if (!term) return applications;
-    return applications.filter((application) => `${application.candidate} ${application.company} ${application.job}`.toLowerCase().includes(term));
+    return applications.filter((application) => `${application.candidate_name} ${application.company_name} ${application.job_title} ${application.department_name}`.toLowerCase().includes(term));
   }, [query]);
+
+  if (loading) return <LoadingState title="Loading applications..." description="Retrieving live candidate applications." />;
 
   return (
     <AdminCard title="Applications management" description="Review application health, AI scoring, and interview status.">
@@ -28,6 +65,7 @@ export default function AdminApplicationsPage() {
           <Input className="pl-9" aria-label="Search applications" placeholder="Search applications" value={query} onChange={(event) => setQuery(event.target.value)} />
         </div>
       </div>
+      {error ? <p className="mb-4 text-sm font-medium text-rose-600">{error}</p> : null}
 
       {filteredApplications.length ? (
         <div className="overflow-hidden rounded-2xl border border-slate-200">
@@ -45,15 +83,17 @@ export default function AdminApplicationsPage() {
             <tbody className="divide-y divide-slate-200 bg-white">
               {filteredApplications.map((application) => (
                 <tr key={application.application_id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-900">{application.candidate}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{application.company}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{application.job}</td>
-                  <td className="px-4 py-3 font-semibold text-slate-900">{application.ai_score}%</td>
-                  <td className="px-4 py-3"><StatusBadge status={application.status} /></td>
+                  <td className="px-4 py-3 font-medium text-slate-900">{application.candidate_name || application.candidate_email}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{application.company_name}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{application.job_title}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-900">{application.overall_score ?? 0}%</td>
+                  <td className="px-4 py-3"><StatusBadge status={application.status || 'pending'} /></td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
-                      <Button size="sm" variant="secondary" type="button">Interview</Button>
-                      <Button size="sm" variant="ghost" type="button">View</Button>
+                      <select className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm" value={application.status || 'pending'} onChange={(event) => handleStatusChange(application.application_id, event.target.value)}>
+                        {statuses.map((status) => <option key={status} value={status}>{status}</option>)}
+                      </select>
+                      <Button as={Link} to={`/admin/candidates/${application.user_id}`} size="sm" variant="ghost">View</Button>
                     </div>
                   </td>
                 </tr>

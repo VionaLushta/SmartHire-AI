@@ -7,9 +7,12 @@ from app.models.application import AIAnalysis, Application
 from app.models.company import Company
 from app.models.interview import Interview
 from app.models.job import Department, Job
+from app.repositories.job_repository import JobRepository
 
 
 class CompanyDashboardRepository:
+    PUBLISHED_STATUSES = JobRepository.PUBLISHED_STATUSES
+
     def __init__(self, db: Session) -> None:
         self.db = db
 
@@ -37,7 +40,10 @@ class CompanyDashboardRepository:
             self.db.scalar(
                 select(func.count())
                 .select_from(table)
-                .where(table.c.company_id == company_id, table.c.status == "active")
+                .where(
+                    table.c.company_id == company_id,
+                    table.c.status.is_(None) | table.c.status.in_(self.PUBLISHED_STATUSES),
+                )
             )
             or 0
         )

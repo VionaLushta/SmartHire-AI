@@ -1,9 +1,12 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import AuthCard from '../../components/auth/AuthCard';
 import Button from '../../components/ui/Button';
 
 export default function EmailVerificationSuccessPage() {
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo') || (typeof window !== 'undefined' ? window.sessionStorage.getItem('smarthire-candidate-return-to') : '') || '';
+  const loginPath = `/candidate/login${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`;
   return (
     <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-2xl items-center justify-center lg:min-h-[calc(100vh-4rem)]">
       <AuthCard className="w-full p-6 text-center sm:p-8">
@@ -18,7 +21,7 @@ export default function EmailVerificationSuccessPage() {
         </p>
 
         <div className="mt-8">
-          <Button as={Link} to="/login" variant="primary" size="lg" className="w-full">
+          <Button as={Link} to={loginPath} variant="primary" size="lg" className="w-full">
             Go to Login
           </Button>
         </div>

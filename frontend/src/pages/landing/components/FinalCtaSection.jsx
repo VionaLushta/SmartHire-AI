@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom';
-import { ArrowRight, BriefcaseBusiness, Users } from 'lucide-react';
+import { BriefcaseBusiness } from 'lucide-react';
 
 const aboutHighlights = [
   'Modern Workplace',
@@ -36,23 +35,6 @@ export default function FinalCtaSection() {
                     {item}
                   </span>
                 ))}
-              </div>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  to="/#open-positions"
-                  className="inline-flex h-12 items-center justify-center rounded-[14px] border border-[#1d4ed8] bg-[#2563eb] px-6 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgba(37,99,235,0.18)] transition duration-150 ease-out hover:bg-[#1d4ed8] focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-transparent"
-                >
-                  Explore Careers
-                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-                </Link>
-                <Link
-                  to="/#contact"
-                  className="inline-flex h-12 items-center justify-center rounded-[14px] border border-slate-200 bg-white px-6 text-[15px] font-semibold text-slate-700 transition duration-150 ease-out hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-transparent"
-                >
-                  <Users className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Meet Our Team
-                </Link>
               </div>
             </div>
 

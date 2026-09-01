@@ -11,11 +11,8 @@ const toneStyles = {
 
 export default function FeaturesSection() {
   return (
-    <section id="why-join-us" className="scroll-mt-24 px-4 py-14 sm:px-6 lg:px-8">
+    <section id="features" className="scroll-mt-24 px-4 py-14 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
-        <span id="features" className="sr-only" aria-hidden="true">
-          features anchor
-        </span>
         <SectionHeading
           eyebrow="Why Join Us"
           title="Why SmartHire Teams Thrive"

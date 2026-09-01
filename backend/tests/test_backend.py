@@ -20,6 +20,7 @@ from app.ml.recommendation_engine import RecommendationEngine
 from app.ml.skill_extractor import SkillExtractor
 from app.schemas.auth import RegisterRequest
 from app.schemas.job import JobCreate
+from app.services.auth_service import AuthenticationService
 from app.services.certificate_service import CertificateService
 from app.services.resume_service import ResumeService
 
@@ -115,16 +116,21 @@ def test_jwt_types():
     assert decode_token(create_refresh_token("user"))["type"] == "refresh"
 
 
-def test_privileged_registration_rejected():
-    with pytest.raises(ValidationError):
-        RegisterRequest(
-            first_name="A",
-            last_name="B",
-            email="test@example.com",
-            phone="+1 555 013 2048",
-            password="Password1",
-            role_name="Admin",
+def test_privileged_registration_rejected(test_db):
+    service = AuthenticationService(test_db)
+    with pytest.raises(HTTPException) as exc:
+        service.register(
+            RegisterRequest(
+                first_name="A",
+                last_name="B",
+                email="contact.smarthireai@proton.me",
+                phone="+1 555 013 2048",
+                password="Password1",
+                role_name="Admin",
+            )
         )
+    assert exc.value.status_code == 403
+    assert exc.value.detail == "Administrator accounts cannot be created from the registration page."
 
 
 def test_job_salary_validation():

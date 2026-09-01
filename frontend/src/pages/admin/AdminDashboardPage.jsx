@@ -21,10 +21,12 @@ import {
   BriefcaseBusiness,
   CalendarClock,
   CheckCircle2,
+  FileBarChart,
   FileDown,
   Mail,
   Send,
   Sparkles,
+  BarChart3,
   Users,
 } from 'lucide-react';
 import { analyticsService } from '../../services/analyticsService';
@@ -48,6 +50,7 @@ import {
   buildRecentActivity,
   buildStatusDistribution,
   buildTopSkills,
+  formatAdminDate,
 } from './adminData';
 
 const COLORS = ['#0f172a', '#2563eb', '#0f766e', '#b45309', '#475569', '#64748b'];
@@ -190,9 +193,14 @@ export default function AdminDashboardPage() {
     }
 
     loadAdminOverview();
+    const interval = window.setInterval(loadAdminOverview, 15000);
+    const onFocus = () => loadAdminOverview();
+    window.addEventListener('focus', onFocus);
 
     return () => {
       mounted = false;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
     };
   }, []);
 
@@ -248,15 +256,33 @@ export default function AdminDashboardPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <Button as={Link} to="/admin/candidates" variant="secondary">
-              Open candidates
+          <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center sm:gap-4 xl:w-auto">
+            <Button
+              as={Link}
+              to="/admin/candidates"
+              variant="secondary"
+              className="h-12 w-full min-w-0 rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-5 text-[15px] font-semibold text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition duration-200 ease-out hover:-translate-y-0.5 hover:border-[rgba(15,23,42,0.12)] hover:bg-slate-50 hover:shadow-lg sm:w-[192px]"
+            >
+              <Users className="h-4 w-4" aria-hidden="true" />
+              <span>Open Candidates</span>
             </Button>
-            <Button as={Link} to="/admin/reports" variant="secondary">
-              View reports
+            <Button
+              as={Link}
+              to="/admin/reports"
+              variant="secondary"
+              className="h-12 w-full min-w-0 rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-5 text-[15px] font-semibold text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition duration-200 ease-out hover:-translate-y-0.5 hover:border-[rgba(15,23,42,0.12)] hover:bg-slate-50 hover:shadow-lg sm:w-[192px]"
+            >
+              <FileBarChart className="h-4 w-4" aria-hidden="true" />
+              <span>View Reports</span>
             </Button>
-            <Button as={Link} to="/admin/analytics" variant="primary">
-              Open analytics
+            <Button
+              as={Link}
+              to="/admin/analytics"
+              variant="primary"
+              className="h-12 w-full min-w-0 rounded-[14px] border border-[#1d4ed8] bg-[#2563eb] px-5 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgba(37,99,235,0.18)] transition duration-200 ease-out hover:-translate-y-0.5 hover:border-[#1d4ed8] hover:bg-[#1d4ed8] hover:shadow-lg sm:w-[192px]"
+            >
+              <BarChart3 className="h-4 w-4" aria-hidden="true" />
+              <span>Open Analytics</span>
             </Button>
           </div>
         </div>

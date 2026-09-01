@@ -2,13 +2,29 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
+  BarChart3,
+  BadgeCheck,
   CheckCircle2,
   CalendarDays,
-  Eye,
+  FileBarChart,
   FileDown,
+  Eye,
+  Github,
+  GraduationCap,
+  Globe,
   Layers3,
+  Linkedin,
+  Mail,
   MessageSquareText,
+  MapPin,
+  Phone,
+  Code2,
+  Send,
+  Sparkles,
   Star,
+  Target,
+  Languages,
+  Users,
   Upload,
   X,
 } from 'lucide-react';
@@ -20,7 +36,9 @@ import Input from '../../components/ui/Input';
 import Avatar from '../../components/ui/Avatar';
 import StatusBadge from '../../components/admin/StatusBadge';
 import { analyticsService } from '../../services/analyticsService';
-import { unwrapResponse, formatDateShort, formatDateTimeShort, formatMetricPercent } from '../../utils/dashboard';
+import { applicationService } from '../../services/applicationService';
+import { candidateService } from '../../services/candidateService';
+import { unwrapResponse, formatDateShort, formatDateTimeShort, formatMetricPercent, clampPercent, getInitials } from '../../utils/dashboard';
 
 const tabs = [
   { id: 'overview', label: 'Overview' },
@@ -56,6 +74,32 @@ function textValue(value, fallback = 'Not provided') {
 
 function formatPlainDate(value) {
   return value ? formatDateShort(value) : 'Not provided';
+}
+
+function displayValue(value, fallback = '—') {
+  if (value === undefined || value === null) return fallback;
+  const text = String(value).trim();
+  if (!text || text === 'Not provided') return fallback;
+  return text;
+}
+
+function displayDate(value, fallback = 'Awaiting update') {
+  if (!value) return fallback;
+  const formatted = formatDateShort(value);
+  return formatted === 'Recently' ? fallback : formatted;
+}
+
+function formatAnalysisPercent(value) {
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
+
+  const numeric = Number(value);
+  if (Number.isNaN(numeric)) {
+    return '—';
+  }
+
+  return `${clampPercent(numeric)}%`;
 }
 
 function normalizeUrl(value) {
@@ -211,6 +255,15 @@ function normalizeCandidateData(analytics = {}) {
     candidateName,
     email: candidate.email || candidate.candidate_email || 'Not provided',
     phone: candidate.phone || candidate.phone_number || 'Not provided',
+    location:
+      candidate.location ||
+      candidate.city ||
+      candidate.state ||
+      candidate.country ||
+      analytics.location ||
+      analytics.city ||
+      analytics.country ||
+      'Not provided',
     university:
       candidate.university ||
       candidate.institution ||
@@ -238,6 +291,26 @@ function normalizeCandidateData(analytics = {}) {
       analytics.application_date ||
       analytics.applied_at ||
       null,
+    linkedin:
+      candidate.linkedin ||
+      candidate.linkedin_url ||
+      analytics.linkedin ||
+      analytics.linkedin_url ||
+      '',
+    github:
+      candidate.github ||
+      candidate.github_url ||
+      analytics.github ||
+      analytics.github_url ||
+      '',
+    portfolio:
+      candidate.portfolio ||
+      candidate.portfolio_url ||
+      candidate.website ||
+      analytics.portfolio ||
+      analytics.portfolio_url ||
+      candidate.website ||
+      '',
     recruiterAssigned:
       candidate.recruiter_assigned ||
       candidate.assigned_recruiter ||
@@ -329,6 +402,12 @@ function normalizeCandidateData(analytics = {}) {
       analytics.language_match,
       analytics.metrics?.language_match,
       candidate.language_match,
+    ),
+    cultureFit: firstValue(
+      analytics.culture_fit,
+      analytics.metrics?.culture_fit,
+      candidate.culture_fit,
+      candidate.culture_fit_score,
     ),
     recruiterNotes: candidate.recruiter_notes || analytics.recruiter_notes || candidate.notes || '',
     requiredSkills: skillsRequired,
@@ -479,19 +558,21 @@ function Timeline({ events = [] }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="relative pl-3 sm:pl-4">
+      <div className="absolute left-[19px] top-3 bottom-3 w-px bg-slate-200/90" />
+      <div className="space-y-4">
       {events.map((event, index) => (
-        <article key={event.id || `${event.title}-${index}`} className="relative rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-4 pl-5">
-          <div className="absolute left-0 top-5 h-10 w-1 rounded-full bg-slate-900" />
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-1">
+        <article key={event.id || `${event.title}-${index}`} className="relative rounded-[20px] bg-white p-4 pl-10 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg sm:p-5 sm:pl-12">
+          <div className={`absolute left-3 top-6 h-3.5 w-3.5 rounded-full border-4 border-white ${event.tone === 'success' ? 'bg-emerald-500' : event.tone === 'warning' ? 'bg-amber-500' : event.tone === 'danger' ? 'bg-rose-500' : 'bg-slate-400'}`} />
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
-                <h4 className="text-base font-semibold tracking-[-0.02em] text-slate-950">{event.title}</h4>
-                <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${statusToneClass(event.tone)}`}>
+                <h4 className="text-base font-semibold tracking-[-0.03em] text-slate-950">{event.title}</h4>
+                <Badge tone={event.tone === 'success' ? 'success' : event.tone === 'warning' ? 'warning' : event.tone === 'danger' ? 'danger' : 'neutral'}>
                   {index + 1}
-                </span>
+                </Badge>
               </div>
-              {event.description ? <p className="text-sm leading-6 text-slate-600">{event.description}</p> : null}
+              {event.description ? <p className="text-sm leading-7 text-slate-600">{event.description}</p> : null}
             </div>
             <span className="text-xs font-medium uppercase tracking-[0.22em] text-slate-500">
               {event.date ? formatDateTimeShort(event.date) : 'Not dated'}
@@ -499,6 +580,7 @@ function Timeline({ events = [] }) {
           </div>
         </article>
       ))}
+      </div>
     </div>
   );
 }
@@ -602,39 +684,60 @@ function normalizeDecisionState(savedEvaluation, workspace) {
 function buildEvaluationMetrics(workspace) {
   return [
     {
-      label: 'Overall Match Score',
+      label: 'Overall Match',
       value: workspace.overallMatchScore,
       hint: 'Aggregate fit signal from the analytics engine.',
+      icon: Target,
+      tone: 'primary',
     },
     {
-      label: 'Resume Similarity',
+      label: 'Resume Match',
       value: workspace.resumeSimilarity,
       hint: 'Similarity between the resume and the target role.',
+      icon: FileBarChart,
+      tone: 'slate',
     },
     {
       label: 'Skill Match',
       value: workspace.skillMatch,
       hint: 'Technical and functional skill alignment.',
+      icon: Users,
+      tone: 'emerald',
     },
     {
       label: 'Experience Match',
       value: workspace.experienceMatch,
       hint: 'Relevant depth of experience for the role.',
+      icon: BarChart3,
+      tone: 'blue',
     },
     {
       label: 'Education Match',
       value: workspace.educationMatch,
       hint: 'Education fit compared with the job criteria.',
+      icon: GraduationCap,
+      tone: 'indigo',
     },
     {
       label: 'Certificates Match',
       value: workspace.certificatesMatch,
       hint: 'Documented certifications and evidence.',
+      icon: Sparkles,
+      tone: 'amber',
     },
     {
       label: 'Language Match',
       value: workspace.languageMatch,
       hint: 'Language or communication fit when available.',
+      icon: Globe,
+      tone: 'violet',
+    },
+    {
+      label: 'Culture Fit',
+      value: workspace.cultureFit,
+      hint: 'Signals for communication style and team alignment.',
+      icon: Users,
+      tone: 'rose',
     },
   ];
 }
@@ -667,14 +770,155 @@ function formatScoreValue(value) {
   return formatMetricPercent(value);
 }
 
-function MetricCard({ label, value, hint }) {
-  const metricValue = formatScoreValue(value);
+function ScoreRing({ value, label, caption = 'AI match' }) {
+  const percent = clampPercent(value);
+  const hasValue = value !== null && value !== undefined && value !== '';
+  const ringStyle = {
+    background: `conic-gradient(#2563eb 0 ${hasValue ? percent : 0}%, #e2e8f0 ${hasValue ? percent : 0}% 100%)`,
+  };
 
   return (
-    <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{label}</p>
-      <p className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-slate-950">{metricValue}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-500">{hint}</p>
+    <div className="mx-auto flex h-52 w-52 items-center justify-center rounded-full p-3" style={ringStyle}>
+      <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-white text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{caption}</p>
+        <p className="mt-2 text-5xl font-semibold tracking-[-0.06em] text-slate-950">{hasValue ? label : '—'}</p>
+        {!hasValue ? <p className="mt-2 text-sm text-slate-500">No analysis available yet.</p> : null}
+      </div>
+    </div>
+  );
+}
+
+function EvaluationKpiCard({ title, value, description, icon: Icon, tone = 'blue' }) {
+  const percent = clampPercent(value);
+  const hasValue = value !== null && value !== undefined && value !== '';
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      setReady(true);
+      return undefined;
+    }
+
+    const raf = window.requestAnimationFrame(() => setReady(true));
+    return () => window.cancelAnimationFrame(raf);
+  }, []);
+
+  const toneStyles = {
+    blue: { shell: 'bg-blue-50 text-blue-700', bar: 'bg-blue-500' },
+    emerald: { shell: 'bg-emerald-50 text-emerald-700', bar: 'bg-emerald-500' },
+    amber: { shell: 'bg-amber-50 text-amber-700', bar: 'bg-amber-500' },
+    indigo: { shell: 'bg-indigo-50 text-indigo-700', bar: 'bg-indigo-500' },
+    violet: { shell: 'bg-violet-50 text-violet-700', bar: 'bg-violet-500' },
+    rose: { shell: 'bg-rose-50 text-rose-700', bar: 'bg-rose-500' },
+    slate: { shell: 'bg-slate-100 text-slate-700', bar: 'bg-slate-500' },
+  };
+
+  const currentTone = toneStyles[tone] || toneStyles.blue;
+
+  return (
+    <article className="group flex h-[220px] flex-col justify-between rounded-[20px] bg-white p-6 shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-xl">
+      <div className="flex items-start justify-between gap-4">
+        <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${currentTone.shell}`}>
+          {Icon ? <Icon className="h-7 w-7" /> : null}
+        </div>
+        <span className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">{title}</span>
+      </div>
+
+      <div className="space-y-3">
+        <p className="text-5xl font-semibold tracking-[-0.06em] text-slate-950">{hasValue ? formatAnalysisPercent(percent) : '—'}</p>
+        <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+          <div
+            className={`h-full rounded-full ${currentTone.bar} transition-[width] duration-700 ease-out`}
+            style={{ width: ready && hasValue ? `${percent}%` : '0%' }}
+          />
+        </div>
+        <p className="text-base leading-7 text-slate-600">{hasValue ? description : 'No analysis available yet.'}</p>
+      </div>
+    </article>
+  );
+}
+
+function EvaluationProgressRow({ label, value, tone = 'blue' }) {
+  const percent = clampPercent(value);
+  const hasValue = value !== null && value !== undefined && value !== '';
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      setReady(true);
+      return undefined;
+    }
+
+    const raf = window.requestAnimationFrame(() => setReady(true));
+    return () => window.cancelAnimationFrame(raf);
+  }, []);
+
+  const toneStyles = {
+    blue: 'bg-blue-500',
+    emerald: 'bg-emerald-500',
+    amber: 'bg-amber-500',
+    indigo: 'bg-indigo-500',
+    violet: 'bg-violet-500',
+    rose: 'bg-rose-500',
+    slate: 'bg-slate-500',
+  };
+
+  const barClass = toneStyles[tone] || toneStyles.blue;
+
+  return (
+    <div className="rounded-[18px] bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-base font-medium text-slate-900">{label}</p>
+        <p className="text-lg font-semibold tracking-[-0.04em] text-slate-950">{hasValue ? formatAnalysisPercent(percent) : 'No analysis available yet.'}</p>
+      </div>
+      <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100">
+        <div
+          className={`h-full rounded-full ${barClass} transition-[width] duration-700 ease-out`}
+          style={{ width: ready && hasValue ? `${percent}%` : '0%' }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({ label, value, hint, icon: Icon, tone = 'slate' }) {
+  const metricValue = formatScoreValue(value);
+  const toneMap = {
+    primary: 'bg-blue-50 text-blue-700 ring-blue-100',
+    blue: 'bg-sky-50 text-sky-700 ring-sky-100',
+    emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
+    amber: 'bg-amber-50 text-amber-800 ring-amber-100',
+    indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-100',
+    violet: 'bg-violet-50 text-violet-700 ring-violet-100',
+    rose: 'bg-rose-50 text-rose-700 ring-rose-100',
+    slate: 'bg-slate-50 text-slate-700 ring-slate-100',
+  };
+  const dotMap = {
+    primary: 'bg-blue-500',
+    blue: 'bg-sky-500',
+    emerald: 'bg-emerald-500',
+    amber: 'bg-amber-500',
+    indigo: 'bg-indigo-500',
+    violet: 'bg-violet-500',
+    rose: 'bg-rose-500',
+    slate: 'bg-slate-400',
+  };
+
+  return (
+    <div className="group rounded-[20px] border border-[rgba(15,23,42,0.08)] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span className={`inline-flex h-11 w-11 items-center justify-center rounded-[14px] ring-1 ${toneMap[tone] || toneMap.slate}`}>
+            {Icon ? <Icon className="h-5 w-5" /> : null}
+          </span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{label}</p>
+            <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">{metricValue}</p>
+          </div>
+        </div>
+        <span className={`mt-1 h-2.5 w-2.5 rounded-full ${dotMap[tone] || dotMap.slate}`} />
+      </div>
+      <p className="mt-3 text-sm leading-6 text-slate-500">{hint}</p>
     </div>
   );
 }
@@ -750,7 +994,7 @@ function DecisionButton({ active, label, description, onClick, tone = 'neutral' 
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`w-full rounded-[16px] border px-4 py-3 text-left transition duration-150 ease-out ${toneClass}`}
+      className={`w-full rounded-[18px] border px-4 py-4 text-left transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg ${toneClass}`}
     >
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm font-semibold">{label}</span>
@@ -779,10 +1023,24 @@ export default function AdminCandidateDetailPage() {
       try {
         setError(null);
         setLoading(true);
-        const response = await analyticsService.candidate(candidateId);
-        const data = unwrapResponse(response) || {};
+        const [analyticsResponse, profileResponse, applicationsResponse] = await Promise.all([
+          analyticsService.candidate(candidateId),
+          candidateService.get(candidateId).catch(() => null),
+          applicationService.list().catch(() => null),
+        ]);
+        const data = unwrapResponse(analyticsResponse) || {};
+        const profile = unwrapResponse(profileResponse) || {};
+        const application = (unwrapItems(applicationsResponse).find((item) => String(item.user_id) === String(candidateId)) || {});
+        const merged = {
+          ...data,
+          candidate: { ...(data.candidate || {}), ...profile, ...application },
+          job: { ...(data.job || {}), title: application.job_title || data.job?.title, department_name: application.department_name || data.job?.department_name },
+          missing_skills: application.missing_skills || data.missing_skills,
+          strengths: application.strengths || data.strengths,
+          ai_recommendation: application.ai_recommendation || data.ai_recommendation,
+        };
         if (mounted) {
-          setAnalytics(data);
+          setAnalytics(merged);
         }
       } catch (err) {
         if (mounted) {
@@ -798,9 +1056,14 @@ export default function AdminCandidateDetailPage() {
     if (candidateId) {
       loadCandidate();
     }
+    const interval = candidateId ? window.setInterval(loadCandidate, 15000) : null;
+    const onFocus = () => loadCandidate();
+    if (candidateId) window.addEventListener('focus', onFocus);
 
     return () => {
       mounted = false;
+      if (interval) window.clearInterval(interval);
+      if (candidateId) window.removeEventListener('focus', onFocus);
     };
   }, [candidateId]);
 
@@ -819,13 +1082,162 @@ export default function AdminCandidateDetailPage() {
   const resumeDownloadUrl = workspace.resume.url || workspace.resume.previewUrl;
   const certificateDownloadUrl = workspace.certificateDocuments.find((doc) => doc.url)?.url || '';
   const activeDecision = evaluation.decision || 'hold';
-  const summaryStats = [
-    { label: 'Candidate', value: workspace.candidateName },
-    { label: 'Applied Position', value: workspace.appliedPosition },
-    { label: 'Current Status', value: workspace.currentStatus },
-    { label: 'Overall Match', value: workspace.overallMatchScore !== null && workspace.overallMatchScore !== undefined ? formatMetricPercent(workspace.overallMatchScore) : 'Not scored' },
+  const overallMatchValue = clampPercent(workspace.overallMatchScore);
+  const candidateInitials = getInitials(workspace.candidate);
+  const candidatePhoto = workspace.candidate.profile_picture_url || workspace.candidate.avatar_url || workspace.candidate.photo_url || '';
+  const profileFields = [
+    { label: 'Email', value: workspace.email, icon: Mail, href: workspace.email !== 'Not provided' ? `mailto:${workspace.email}` : '' },
+    { label: 'Phone', value: workspace.phone, icon: Phone },
+    { label: 'Location', value: workspace.location, icon: MapPin },
+    { label: 'University', value: workspace.university, icon: GraduationCap },
+    { label: 'Experience', value: workspace.yearsOfExperience, icon: BarChart3 },
+    { label: 'LinkedIn', value: workspace.linkedin || 'Not provided', icon: Linkedin, href: workspace.linkedin ? workspace.linkedin : '' },
+    { label: 'GitHub', value: workspace.github || 'Not provided', icon: Github, href: workspace.github ? workspace.github : '' },
+    { label: 'Portfolio', value: workspace.portfolio || 'Not provided', icon: Globe, href: workspace.portfolio ? workspace.portfolio : '' },
   ];
-
+  const timelineSteps = [
+    {
+      label: 'Applied',
+      description: workspace.applicationDate ? formatPlainDate(workspace.applicationDate) : 'Submitted through the ATS.',
+      active: Boolean(workspace.applicationDate),
+    },
+    {
+      label: 'Resume Parsed',
+      description: workspace.hasResume ? 'Resume document is available.' : 'No resume returned yet.',
+      active: Boolean(workspace.hasResume),
+    },
+    {
+      label: 'AI Evaluation',
+      description: workspace.overallMatchScore !== null && workspace.overallMatchScore !== undefined ? `Match score ${formatMetricPercent(workspace.overallMatchScore)}.` : 'Waiting for analytics scoring.',
+      active: workspace.overallMatchScore !== null && workspace.overallMatchScore !== undefined,
+    },
+    {
+      label: 'Recruiter Review',
+      description: workspace.recruiterAssigned !== 'Not provided' ? `Assigned to ${workspace.recruiterAssigned}.` : 'Pending recruiter assignment.',
+      active: workspace.recruiterAssigned !== 'Not provided' || Boolean(workspace.recruiterNotes),
+    },
+    {
+      label: 'Interview',
+      description: workspace.interviewStage !== 'Not provided' ? workspace.interviewStage : 'No interview scheduled yet.',
+      active: String(workspace.interviewStage || workspace.currentStatus || '').toLowerCase().includes('interview'),
+    },
+    {
+      label: 'Offer',
+      description: String(workspace.currentStatus || '').toLowerCase().includes('accept') ? 'Offer stage reached.' : 'Not reached yet.',
+      active: String(workspace.currentStatus || '').toLowerCase().includes('accept'),
+    },
+  ];
+  const documentItems = [
+    {
+      label: 'Resume',
+      description: workspace.hasResume ? 'Primary resume document.' : 'No resume uploaded.',
+      tone: workspace.hasResume ? 'success' : 'neutral',
+      actionLabel: workspace.hasResume ? 'Open' : 'Unavailable',
+      onClick: openResumeDownload,
+      disabled: !resumeDownloadUrl,
+    },
+    {
+      label: 'Certificates',
+      description: workspace.certificateDocuments.length ? `${workspace.certificateDocuments.length} file(s) attached.` : 'No certificates uploaded.',
+      tone: workspace.certificateDocuments.length ? 'primary' : 'neutral',
+      actionLabel: workspace.certificateDocuments.length ? 'Open' : 'Unavailable',
+      onClick: openCertificates,
+      disabled: !certificateDownloadUrl,
+    },
+    {
+      label: 'Cover Letter',
+      description: textValue(workspace.candidate.cover_letter || workspace.candidate.coverLetter || workspace.coverLetter, 'No cover letter available.'),
+      tone: 'warning',
+      actionLabel: 'View',
+      onClick: () => setActiveTab('overview'),
+      disabled: false,
+    },
+  ];
+  const aiKpiRows = [
+    [
+      {
+        title: 'Overall Match',
+        value: workspace.overallMatchScore,
+        description: 'Strong alignment with the job requirements.',
+        icon: Target,
+        tone: 'blue',
+      },
+      {
+        title: 'Resume Match',
+        value: workspace.resumeSimilarity,
+        description: 'The resume maps well to the target role.',
+        icon: FileBarChart,
+        tone: 'indigo',
+      },
+      {
+        title: 'Technical Skills',
+        value: workspace.skillMatch,
+        description: 'Core technical capabilities look solid.',
+        icon: Code2,
+        tone: 'emerald',
+      },
+      {
+        title: 'Experience',
+        value: workspace.experienceMatch,
+        description: 'Relevant background is aligned to the role.',
+        icon: BarChart3,
+        tone: 'amber',
+      },
+    ],
+    [
+      {
+        title: 'Education',
+        value: workspace.educationMatch,
+        description: 'Academic background supports the role.',
+        icon: GraduationCap,
+        tone: 'violet',
+      },
+      {
+        title: 'Certificates',
+        value: workspace.certificatesMatch,
+        description: 'Credential coverage is in a good range.',
+        icon: BadgeCheck,
+        tone: 'blue',
+      },
+      {
+        title: 'Languages',
+        value: workspace.languageMatch,
+        description: 'Communication signals are favorable.',
+        icon: Languages,
+        tone: 'emerald',
+      },
+      {
+        title: 'Culture Fit',
+        value: workspace.cultureFit,
+        description: 'Signals suggest a strong team fit.',
+        icon: Users,
+        tone: 'rose',
+      },
+    ],
+  ];
+  const aiStrengths = asArray(workspace.strengths).slice(0, 3);
+  const aiMissing = asArray(workspace.weaknesses).slice(0, 3);
+  const aiDetectedSkills = skillGroups.detected;
+  const hasConfidence = workspace.confidenceScore !== null && workspace.confidenceScore !== undefined && workspace.confidenceScore !== '';
+  const aiConfidence = hasConfidence ? Number(workspace.confidenceScore) : null;
+  const aiConfidenceLabel = !hasConfidence || Number.isNaN(aiConfidence)
+    ? 'Low'
+    : aiConfidence >= 75
+      ? 'High'
+      : aiConfidence >= 50
+        ? 'Medium'
+        : 'Low';
+  const aiConfidenceTone = !hasConfidence || Number.isNaN(aiConfidence)
+    ? 'neutral'
+    : aiConfidence >= 75
+      ? 'success'
+      : aiConfidence >= 50
+        ? 'warning'
+        : 'danger';
+  const aiRecommendation = workspace.aiRecommendation && workspace.aiRecommendation !== 'No AI recommendation available.'
+    ? workspace.aiRecommendation
+    : 'No analysis available yet.';
+  const aiRecommendationSentence = workspace.reasoningSummary || 'Proceed to the next review step.';
   const applicationInfo = [
     { label: 'Application Date', value: formatPlainDate(workspace.applicationDate) },
     { label: 'Recruiter Assigned', value: textValue(workspace.recruiterAssigned) },
@@ -835,28 +1247,54 @@ export default function AdminCandidateDetailPage() {
     { label: 'Interview Stage', value: textValue(workspace.interviewStage) },
   ];
 
-  const handleEvaluationChange = (key, value) => {
+  function handleEvaluationChange(key, value) {
     setEvaluation((current) => ({
       ...current,
       [key]: value,
     }));
-  };
+  }
 
-  const openResumeDownload = () => {
+  function openResumeDownload() {
     if (!resumeDownloadUrl) {
       setActiveTab('resume');
       return;
     }
     window.open(resumeDownloadUrl, '_blank', 'noopener,noreferrer');
-  };
+  }
 
-  const openCertificates = () => {
+  function openCertificates() {
     if (!certificateDownloadUrl) {
       setActiveTab('certificates');
       return;
     }
     window.open(certificateDownloadUrl, '_blank', 'noopener,noreferrer');
-  };
+  }
+
+  async function shareCandidateProfile() {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    const title = `${workspace.candidateName} · Candidate Detail`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title,
+          url,
+        });
+        return;
+      }
+
+      if (navigator.clipboard?.writeText && url) {
+        await navigator.clipboard.writeText(url);
+        setEvaluationMessage('Candidate link copied to clipboard.');
+      }
+    } catch {
+      // Silent no-op for share failures in the browser.
+    }
+  }
+
+  function scrollToEvaluation() {
+    document.getElementById('ai-evaluation')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   const saveEvaluation = async () => {
     if (!candidateId || typeof window === 'undefined') return;
@@ -901,655 +1339,439 @@ export default function AdminCandidateDetailPage() {
   }
 
   return (
-    <div className="space-y-6 pb-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button as={Link} to="/admin/candidates" variant="secondary">
-          <ArrowLeft className="h-4 w-4" />
-          Back to candidates
-        </Button>
-        <StatusBadge status={workspace.currentStatus} />
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1fr_2fr_1fr]">
-        <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
-          <AdminCard title="Candidate Summary" description="Primary profile context for recruiter review.">
-            <div className="space-y-5">
-              <div className="flex items-center gap-4">
-                <Avatar initials={[workspace.candidate.first_name, workspace.candidate.last_name].filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase() || 'CA'} size="lg" className="ring-0" />
-                <div className="min-w-0">
-                  <h2 className="truncate text-2xl font-semibold tracking-[-0.04em] text-slate-950">{workspace.candidateName}</h2>
-                  <p className="mt-1 text-sm text-slate-500">{textValue(workspace.email)}</p>
+    <div className="min-h-screen bg-slate-50/70 pb-10">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="space-y-8">
+          <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+            <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+              <div className="min-w-0 space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button as={Link} to="/admin/candidates" variant="secondary" size="sm" className="h-10 rounded-[14px] px-4">
+                    <ArrowLeft className="h-4 w-4" />
+                    Back
+                  </Button>
+                  <Badge tone="primary">Candidate Detail</Badge>
+                  <Badge tone="success">{formatMetricPercent(overallMatchValue)} AI Match</Badge>
                 </div>
-              </div>
 
-              {workspace.candidate.profile_picture_url ? (
-                <img
-                  src={workspace.candidate.profile_picture_url}
-                  alt={workspace.candidateName}
-                  className="h-32 w-full rounded-[16px] border border-[rgba(15,23,42,0.08)] object-cover"
-                />
-              ) : null}
-
-              <div className="space-y-3">
-                {summaryStats.map((item) => (
-                  <div key={item.label} className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</p>
-                    <p className="mt-2 text-sm font-semibold text-slate-950">{item.value}</p>
+                <div className="flex items-start gap-4 sm:items-center">
+                  {candidatePhoto ? (
+                    <img
+                      src={candidatePhoto}
+                      alt={workspace.candidateName}
+                      className="h-20 w-20 rounded-full object-cover shadow-[0_12px_24px_rgba(15,23,42,0.12)] ring-2 ring-white"
+                    />
+                  ) : (
+                    <Avatar initials={candidateInitials} size="lg" className="h-20 w-20 text-2xl" />
+                  )}
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h1 className="truncate text-4xl font-semibold tracking-[-0.06em] text-slate-950">{workspace.candidateName}</h1>
+                      <StatusBadge status={workspace.currentStatus} />
+                    </div>
+                    <p className="mt-2 text-lg text-slate-600">{displayValue(workspace.appliedPosition, 'Applied position will appear here')}</p>
                   </div>
-                ))}
+                </div>
               </div>
 
-              <div className="grid gap-3">
-                <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Phone Number</p>
-                  <p className="mt-2 text-sm font-medium text-slate-950">{textValue(workspace.phone)}</p>
+              <div className="flex flex-wrap items-center gap-3">
+                {resumeDownloadUrl ? (
+                  <Button as="a" href={resumeDownloadUrl} target="_blank" rel="noreferrer" variant="secondary">
+                    <FileDown className="h-4 w-4" />
+                    Download Resume
+                  </Button>
+                ) : (
+                  <Button type="button" variant="secondary" disabled>
+                    <FileDown className="h-4 w-4" />
+                    Download Resume
+                  </Button>
+                )}
+                <Button type="button" variant="secondary" onClick={shareCandidateProfile}>
+                  <Send className="h-4 w-4" />
+                  Share
+                </Button>
+                <Button type="button" variant="secondary" onClick={scrollToEvaluation}>
+                  <Sparkles className="h-4 w-4" />
+                  Re-analyze
+                </Button>
+                <Button as={Link} to="/admin/candidates" variant="primary">
+                  Back
+                </Button>
+              </div>
+            </div>
+          </section>
+
+          <div className="grid gap-6 xl:grid-cols-3">
+            <AdminCard title="Candidate Overview" description="The candidate’s profile snapshot and contact context.">
+              <div className="space-y-6">
+                <p className="text-base leading-7 text-slate-600">
+                  {displayValue(
+                    workspace.professionalSummary,
+                    'A concise profile summary will appear once the backend returns parsed candidate context.',
+                  )}
+                </p>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {profileFields.map((field) => {
+                    const Icon = field.icon;
+                    const value = displayValue(field.value, 'Unavailable');
+                    const content = (
+                      <div className="rounded-2xl bg-slate-50 p-4 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg">
+                        <div className="flex items-start gap-3">
+                          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-slate-500 shadow-sm">
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{field.label}</p>
+                            <p className="mt-2 break-words text-sm font-medium text-slate-900">{value}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+
+                    return field.href && field.value ? (
+                      <a key={field.label} href={field.href} target="_blank" rel="noreferrer">
+                        {content}
+                      </a>
+                    ) : (
+                      <div key={field.label}>{content}</div>
+                    );
+                  })}
                 </div>
-                <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">University</p>
-                  <p className="mt-2 text-sm font-medium text-slate-950">{textValue(workspace.university)}</p>
+              </div>
+            </AdminCard>
+
+            <AdminCard title="Overall AI Match" description="A quick, visual read on candidate fit.">
+              <div className="space-y-6">
+                <ScoreRing value={workspace.overallMatchScore} label={formatMetricPercent(overallMatchValue)} caption="AI Match" />
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {[
+                    { label: 'Resume', value: workspace.resumeSimilarity, tone: 'blue' },
+                    { label: 'Skill', value: workspace.skillMatch, tone: 'emerald' },
+                    { label: 'Experience', value: workspace.experienceMatch, tone: 'amber' },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-2xl bg-slate-50 p-4 text-center shadow-sm">
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</p>
+                      <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">{formatScoreValue(item.value)}</p>
+                    </div>
+                  ))}
                 </div>
-                <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Degree</p>
-                  <p className="mt-2 text-sm font-medium text-slate-950">{textValue(workspace.degree)}</p>
-                </div>
-                <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Years of Experience</p>
-                  <p className="mt-2 text-sm font-medium text-slate-950">{textValue(workspace.yearsOfExperience)}</p>
-                </div>
-                <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Applied Position</p>
-                  <p className="mt-2 text-sm font-medium text-slate-950">{textValue(workspace.appliedPosition)}</p>
-                </div>
-                <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Current Status</p>
-                  <p className="mt-2 text-sm font-medium text-slate-950">{textValue(workspace.currentStatus)}</p>
-                </div>
-                <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Application Date</p>
-                  <p className="mt-2 text-sm font-medium text-slate-950">{formatPlainDate(workspace.applicationDate)}</p>
-                </div>
-                <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Recruiter Assigned</p>
-                  <p className="mt-2 text-sm font-medium text-slate-950">{textValue(workspace.recruiterAssigned)}</p>
-                </div>
-                <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Overall Match Score</p>
-                  <p className="mt-2 text-sm font-medium text-slate-950">
-                    {workspace.overallMatchScore !== null && workspace.overallMatchScore !== undefined
-                      ? formatMetricPercent(workspace.overallMatchScore)
-                      : 'Not scored'}
+
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Match Note</p>
+                  <p className="mt-2 text-base leading-7 text-slate-700">
+                    {displayValue(workspace.reasoningSummary, 'A short rationale will appear here when the analytics payload is available.')}
                   </p>
                 </div>
               </div>
+            </AdminCard>
 
-              <div className="grid gap-3">
-                <Button type="button" variant="secondary" onClick={openResumeDownload} className="w-full">
-                  <FileDown className="h-4 w-4" />
-                  Download Resume
-                </Button>
-                <Button type="button" variant="secondary" onClick={openCertificates} className="w-full">
-                  <Upload className="h-4 w-4" />
-                  Download Certificates
-                </Button>
-              </div>
-            </div>
-          </AdminCard>
-        </aside>
+            <AdminCard title="Recruiter Actions" description="Decision buttons for the current candidate.">
+              <div className="space-y-4">
+                <DecisionButton
+                  label="Accept"
+                  description="Advance the candidate toward an offer."
+                  tone="success"
+                  active={activeDecision === 'accept'}
+                  onClick={() => handleEvaluationChange('decision', 'accept')}
+                />
+                <DecisionButton
+                  label="Interview"
+                  description="Move the candidate to the interview stage."
+                  tone="warning"
+                  active={activeDecision === 'interview'}
+                  onClick={() => handleEvaluationChange('decision', 'interview')}
+                />
+                <DecisionButton
+                  label="Hold"
+                  description="Keep the application in review."
+                  active={activeDecision === 'hold'}
+                  onClick={() => handleEvaluationChange('decision', 'hold')}
+                />
+                <DecisionButton
+                  label="Reject"
+                  description="Close the application from the pipeline."
+                  tone="danger"
+                  active={activeDecision === 'reject'}
+                  onClick={() => handleEvaluationChange('decision', 'reject')}
+                />
 
-        <section className="space-y-6">
-          <AdminCard
-            title="Evaluation"
-            description="Review AI signals, compare skill fit, and record the hiring decision."
-            action={(
-              <Button type="button" variant="primary" onClick={saveEvaluation} loading={savingEvaluation}>
-                Save Evaluation
-              </Button>
-            )}
-          >
-            <div className="space-y-6">
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {evaluationMetrics.map((metric) => (
-                  <MetricCard key={metric.label} {...metric} />
-                ))}
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-[1.3fr_0.9fr]">
-                <div className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <SkillGroupCard
-                      title="Required Skills"
-                      items={skillGroups.required}
-                      tone="success"
-                      emptyLabel="No required skills were returned for this job."
-                    />
-                    <SkillGroupCard
-                      title="Optional Skills"
-                      items={skillGroups.optional}
-                      tone="neutral"
-                      emptyLabel="No optional skills were returned for this job."
-                    />
-                    <SkillGroupCard
-                      title="Detected Skills"
-                      items={skillGroups.detected}
-                      tone="success"
-                      emptyLabel="No detected skills were returned by the backend."
-                    />
-                    <SkillGroupCard
-                      title="Missing Skills"
-                      items={skillGroups.missing}
-                      tone="danger"
-                      emptyLabel="No missing skills are available for this candidate."
-                    />
-                  </div>
-
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Top Candidate Strengths</p>
-                      <div className="mt-4 space-y-2">
-                        {workspace.strengths.length ? (
-                          workspace.strengths.map((item, index) => (
-                            <div key={`strength-${index}`} className="flex items-start gap-3 rounded-[12px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-3 py-2">
-                              <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
-                              <span className="text-sm leading-6 text-slate-700">{typeof item === 'string' ? item : item.label || item.name || String(item)}</span>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-sm leading-6 text-slate-500">No strengths available from the analytics feed.</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Weaknesses</p>
-                      <div className="mt-4 space-y-2">
-                        {workspace.weaknesses.length ? (
-                          workspace.weaknesses.map((item, index) => (
-                            <div key={`weakness-${index}`} className="flex items-start gap-3 rounded-[12px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-3 py-2">
-                              <Layers3 className="mt-0.5 h-4 w-4 text-amber-600" />
-                              <span className="text-sm leading-6 text-slate-700">{typeof item === 'string' ? item : item.label || item.name || String(item)}</span>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-sm leading-6 text-slate-500">No weaknesses available from the analytics feed.</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">AI Decision</p>
-                    <div className="mt-4 space-y-4">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Overall Recommendation</p>
-                        <p className="mt-2 text-lg font-semibold tracking-[-0.03em] text-slate-950">{textValue(workspace.aiRecommendation, 'No AI recommendation available.')}</p>
-                      </div>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Confidence Score</p>
-                          <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
-                            {workspace.confidenceScore !== null && workspace.confidenceScore !== undefined ? formatMetricPercent(workspace.confidenceScore) : 'Not available'}
-                          </p>
-                        </div>
-                        <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Suggested Alternative Position</p>
-                          <p className="mt-2 text-base font-semibold tracking-[-0.03em] text-slate-950">{textValue(workspace.secondaryRole)}</p>
-                        </div>
-                      </div>
-                      <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Reasoning Summary</p>
-                        <p className="mt-2 text-sm leading-6 text-slate-600">{textValue(workspace.reasoningSummary, 'No reasoning summary available.')}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Application Timeline</p>
-                        <h4 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-slate-950">Chronological activity</h4>
-                      </div>
-                      <Badge tone="neutral">{historyEvents.length} events</Badge>
-                    </div>
-                    <div className="mt-4 max-h-[34rem] overflow-auto pr-1">
-                      <Timeline events={historyEvents} />
-                    </div>
-                  </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Current Decision</p>
+                  <p className="mt-2 text-base font-medium text-slate-900">{buildDecisionLabel(activeDecision)}</p>
                 </div>
               </div>
-
-              <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-                The evaluation panel stays read-only for AI outputs and saves recruiter input locally until the backend decision workflow is available.
-              </div>
-            </div>
-          </AdminCard>
-
-          <div className="overflow-x-auto">
-            <div className="flex min-w-max gap-2 rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-2">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === tab.id}
-                  className={tabButtonClass(activeTab === tab.id)}
-                  onClick={() => setActiveTab(tab.id)}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+            </AdminCard>
           </div>
 
-          <AdminCard className="min-h-[40rem]">
-            {activeTab === 'overview' ? (
+          <div className="grid gap-6 xl:grid-cols-2">
+            <AdminCard
+              id="ai-evaluation"
+              title="AI Evaluation"
+              description="One premium analytics card with a circular score, progress bars, and a clear recommendation."
+              action={(
+                <Button type="button" variant="primary" onClick={saveEvaluation} loading={savingEvaluation}>
+                  Save Evaluation
+                </Button>
+              )}
+            >
               <div className="space-y-6">
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Professional Summary</p>
-                    <p className="mt-3 text-sm leading-6 text-slate-600">{workspace.professionalSummary}</p>
-                  </div>
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Application Information</p>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                      {applicationInfo.map((item) => (
-                        <div key={item.label} className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</p>
-                          <p className="mt-2 text-sm font-medium text-slate-950">{item.value}</p>
-                        </div>
-                      ))}
+                <div className="rounded-[20px] bg-slate-50 p-6 shadow-sm">
+                  <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-col items-center gap-5 text-center lg:flex-row lg:text-left">
+                      <ScoreRing value={workspace.overallMatchScore} label={formatMetricPercent(overallMatchValue)} caption="Overall Match" />
+                      <div className="space-y-3">
+                        <Badge tone={aiConfidenceTone} className="px-3 py-1.5 text-[11px]">
+                          {aiConfidenceLabel} Match
+                        </Badge>
+                        <p className="max-w-xl text-xl leading-8 text-slate-800">
+                          {displayValue(aiRecommendation, 'No analysis available yet.')}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Primary Match Score</p>
-                    <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950">
-                      {workspace.primaryMatch !== null && workspace.primaryMatch !== undefined ? formatMetricPercent(workspace.primaryMatch) : 'Not scored'}
-                    </p>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">Core fit score extracted from the candidate analytics payload.</p>
-                  </div>
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Secondary Recommended Position</p>
-                    <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950">{textValue(workspace.secondaryRole)}</p>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">Alternative role suggestion from the matching engine.</p>
-                  </div>
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Current Hiring Status</p>
-                    <div className="mt-3">
-                      <StatusBadge status={workspace.currentStatus} />
+                <div className="grid gap-4">
+                  <EvaluationProgressRow label="Resume Match" value={workspace.resumeSimilarity} tone="blue" />
+                  <EvaluationProgressRow label="Technical Skills" value={workspace.skillMatch} tone="emerald" />
+                  <EvaluationProgressRow label="Experience" value={workspace.experienceMatch} tone="amber" />
+                  <EvaluationProgressRow label="Education" value={workspace.educationMatch} tone="indigo" />
+                  <EvaluationProgressRow label="Certificates" value={workspace.certificatesMatch} tone="violet" />
+                  <EvaluationProgressRow label="Languages" value={workspace.languageMatch} tone="rose" />
+                  <EvaluationProgressRow label="Culture Fit" value={workspace.cultureFit} tone="slate" />
+                </div>
+
+                <div className="rounded-[20px] bg-slate-50 p-6 shadow-sm">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Sparkles className="h-5 w-5 text-blue-600" />
+                        <p className="text-lg font-semibold tracking-[-0.04em] text-slate-950">AI Recommendation</p>
+                      </div>
+                      <p className="mt-3 text-base leading-8 text-slate-700">
+                        {displayValue(aiRecommendationSentence, 'Proceed to Technical Interview.')}
+                      </p>
                     </div>
+                    <Badge tone={aiConfidenceTone} className="px-3 py-1.5 text-[11px]">
+                      Confidence {aiConfidenceLabel}
+                    </Badge>
                   </div>
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Interview Stage</p>
-                    <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950">{textValue(workspace.interviewStage)}</p>
+
+                  <div className="mt-6 grid gap-6 lg:grid-cols-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Strengths</p>
+                      <ul className="mt-3 space-y-2 text-base leading-7 text-slate-700">
+                        {aiStrengths.length ? (
+                          aiStrengths.map((item, index) => (
+                            <li key={`ai-strength-${index}`} className="flex items-start gap-2">
+                              <CheckCircle2 className="mt-1 h-4 w-4 text-emerald-600" />
+                              <span>{typeof item === 'string' ? item : item.label || item.name || String(item)}</span>
+                            </li>
+                          ))
+                        ) : (
+                          <li>No analysis available yet.</li>
+                        )}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Missing Skills</p>
+                      <ul className="mt-3 space-y-2 text-base leading-7 text-slate-700">
+                        {aiMissing.length ? (
+                          aiMissing.map((item, index) => (
+                            <li key={`ai-missing-${index}`} className="flex items-start gap-2">
+                              <Layers3 className="mt-1 h-4 w-4 text-amber-600" />
+                              <span>{typeof item === 'string' ? item : item.label || item.name || String(item)}</span>
+                            </li>
+                          ))
+                        ) : (
+                          <li>No analysis available yet.</li>
+                        )}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Recommendation</p>
+                      <p className="mt-3 text-base leading-7 text-slate-700">
+                        {displayValue(aiRecommendationSentence, 'Proceed to Technical Interview.')}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            ) : null}
+            </AdminCard>
 
-            {activeTab === 'resume' ? (
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Resume</p>
-                    <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">Document preview</h3>
+            <AdminCard title="Recruiter Notes" description="Private notes, interview status, and saved evaluation context.">
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-slate-900">Notes</label>
+                  <textarea
+                    value={evaluation.notes}
+                    onChange={(event) => handleEvaluationChange('notes', event.target.value)}
+                    rows={12}
+                    placeholder="Add recruiter observations, interview prep, or follow-up reminders."
+                    className="mt-3 w-full resize-none rounded-2xl border-0 bg-slate-50 p-4 text-base leading-7 text-slate-900 shadow-sm outline-none transition-all duration-200 placeholder:text-slate-400 focus:shadow-lg focus:ring-2 focus:ring-blue-500/15"
+                  />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-2xl bg-slate-50 p-4 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Interview Stage</p>
+                    <p className="mt-2 text-base font-medium text-slate-900">{displayValue(workspace.interviewStage, 'Awaiting interview')}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="button" variant="secondary" onClick={() => setResumeFullscreenOpen(true)}>
+                  <div className="rounded-2xl bg-slate-50 p-4 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Assigned Recruiter</p>
+                    <p className="mt-2 text-base font-medium text-slate-900">{displayValue(workspace.recruiterAssigned, 'Unassigned')}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 p-4 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4 text-slate-500" />
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Interview Details</p>
+                  </div>
+                  <div className="mt-4 grid gap-4">
+                    <Input
+                      label="Interview Date"
+                      type="date"
+                      value={evaluation.interviewDate}
+                      onChange={(event) => handleEvaluationChange('interviewDate', event.target.value)}
+                    />
+                    <Input
+                      label="Interview Time"
+                      type="time"
+                      value={evaluation.interviewTime}
+                      onChange={(event) => handleEvaluationChange('interviewTime', event.target.value)}
+                    />
+                    <Input
+                      label="Interviewer Name"
+                      value={evaluation.interviewerName}
+                      onChange={(event) => handleEvaluationChange('interviewerName', event.target.value)}
+                      placeholder="Interview owner"
+                    />
+                    <label className="flex w-full flex-col">
+                      <span className="field-label">Interview Type</span>
+                      <select
+                        value={evaluation.interviewType}
+                        onChange={(event) => handleEvaluationChange('interviewType', event.target.value)}
+                        className="h-11 w-full rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-4 text-[15px] text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03)] outline-none transition duration-150 ease-out hover:border-[rgba(15,23,42,0.12)] focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10"
+                      >
+                        <option value="online">Online</option>
+                        <option value="onsite">On-site</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-white p-4 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Save Status</p>
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <Button type="button" variant="primary" onClick={saveEvaluation} loading={savingEvaluation}>
+                      Save Evaluation
+                    </Button>
+                    <Badge tone="neutral">Last saved {evaluation.savedAt ? formatDateTimeShort(evaluation.savedAt) : 'not yet'}</Badge>
+                  </div>
+                  {evaluationMessage ? <p className="mt-3 text-sm leading-6 text-slate-600">{evaluationMessage}</p> : null}
+                </div>
+              </div>
+            </AdminCard>
+          </div>
+
+          <AdminCard title="Timeline" description="A vertical view of the candidate journey.">
+            <Timeline events={historyEvents} />
+          </AdminCard>
+
+          <AdminCard title="Documents" description="Resume, certificates, and cover letter in one organized workspace.">
+            <div className="rounded-2xl bg-slate-50 p-5 sm:p-6">
+              <div className="grid gap-4 xl:grid-cols-3">
+                <div className="rounded-2xl bg-white p-5 shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Resume</p>
+                      <h4 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950">Primary document</h4>
+                    </div>
+                    <FileDown className="h-5 w-5 text-slate-400" />
+                  </div>
+                  <p className="mt-4 text-base leading-7 text-slate-600">
+                    {workspace.hasResume ? 'The candidate resume is available for review.' : 'A resume will appear here when uploaded.'}
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <Button type="button" variant="secondary" onClick={() => setResumeFullscreenOpen(true)} disabled={!resumeUrl}>
                       <Eye className="h-4 w-4" />
-                      Open Full Screen
+                      Preview
                     </Button>
                     {resumeDownloadUrl ? (
                       <Button as="a" href={resumeDownloadUrl} target="_blank" rel="noreferrer" variant="primary" download>
                         <FileDown className="h-4 w-4" />
-                        Download Resume
+                        Download
                       </Button>
                     ) : (
                       <Button type="button" variant="primary" disabled>
                         <FileDown className="h-4 w-4" />
-                        Download Resume
+                        Download
                       </Button>
                     )}
                   </div>
                 </div>
 
-                {resumeUrl ? (
-                  <div className="overflow-hidden rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white">
-                    <iframe
-                      title="Resume preview"
-                      src={resumeUrl}
-                      className="h-[42rem] w-full bg-white"
-                    />
-                  </div>
-                ) : workspace.hasResume ? (
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-slate-50 p-6">
-                    <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Resume available in text form</p>
-                    <pre className="mt-4 max-h-[42rem] overflow-auto whitespace-pre-wrap rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white p-4 text-sm leading-6 text-slate-700">
-                      {workspace.resume.text || 'No parsed resume text available.'}
-                    </pre>
-                  </div>
-                ) : (
-                  <EmptyState
-                    title="Resume preview unavailable"
-                    description="The backend has not returned a resume document for this candidate yet."
-                  />
-                )}
-              </div>
-            ) : null}
-
-            {activeTab === 'certificates' ? (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Certificates</p>
-                  <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">Uploaded documents</h3>
-                </div>
-
-                {workspace.certificateDocuments.length ? (
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    {workspace.certificateDocuments.map((doc) => (
-                      <article key={doc.id} className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <h4 className="text-lg font-semibold tracking-[-0.02em] text-slate-950">{doc.title}</h4>
-                            <p className="mt-1 text-sm text-slate-500">{doc.issuer}</p>
-                          </div>
-                          <Badge tone="neutral">{doc.kind || 'Document'}</Badge>
-                        </div>
-
-                        <div className="mt-4">
-                          <DocumentPreview
-                            document={doc}
-                            fallbackLabel="Certificate preview unavailable."
-                          />
-                        </div>
-
-                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                          <p className="text-xs font-medium uppercase tracking-[0.22em] text-slate-500">
-                            Uploaded {doc.uploadDate ? formatPlainDate(doc.uploadDate) : 'Recently'}
-                          </p>
-                          {doc.url ? (
-                            <Button as="a" href={doc.url} target="_blank" rel="noreferrer" variant="secondary" size="sm" download>
-                              <FileDown className="h-4 w-4" />
-                              Download
-                            </Button>
-                          ) : (
-                            <Button type="button" variant="secondary" size="sm" disabled>
-                              <FileDown className="h-4 w-4" />
-                              Download
-                            </Button>
-                          )}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState
-                    title="No certificates uploaded"
-                    description="Uploaded certificates will appear here as PDFs or image files."
-                  />
-                )}
-              </div>
-            ) : null}
-
-            {activeTab === 'skills' ? (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Skills</p>
-                  <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">Required, optional, detected, and missing skills</h3>
-                </div>
-
-                <div className="grid gap-4 xl:grid-cols-2">
-                  <SkillGroupCard
-                    title="Required Skills"
-                    items={skillGroups.required}
-                    tone="success"
-                    emptyLabel="Required skills are not available for this candidate."
-                  />
-                  <SkillGroupCard
-                    title="Optional Skills"
-                    items={skillGroups.optional}
-                    tone="neutral"
-                    emptyLabel="Optional skills are not available right now."
-                  />
-                  <SkillGroupCard
-                    title="Detected Skills"
-                    items={skillGroups.detected}
-                    tone="success"
-                    emptyLabel="Detected skills have not been returned by the backend."
-                  />
-                  <SkillGroupCard
-                    title="Missing Skills"
-                    items={skillGroups.missing}
-                    tone="danger"
-                    emptyLabel="Missing skills are unavailable for this candidate."
-                  />
-                </div>
-              </div>
-            ) : null}
-
-            {activeTab === 'insights' ? (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">AI Insights</p>
-                  <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">Evaluation summary</h3>
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Overall Match Score</p>
-                    <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950">
-                      {workspace.overallMatchScore !== null && workspace.overallMatchScore !== undefined ? formatMetricPercent(workspace.overallMatchScore) : 'Not scored'}
-                    </p>
-                  </div>
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Primary Match</p>
-                    <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950">
-                      {workspace.primaryMatch !== null && workspace.primaryMatch !== undefined ? formatMetricPercent(workspace.primaryMatch) : 'Not scored'}
-                    </p>
-                  </div>
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Secondary Match</p>
-                    <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950">
-                      {workspace.secondaryMatch !== null && workspace.secondaryMatch !== undefined ? formatMetricPercent(workspace.secondaryMatch) : 'Not scored'}
-                    </p>
-                  </div>
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Confidence Score</p>
-                    <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950">
-                      {workspace.confidenceScore !== null && workspace.confidenceScore !== undefined ? formatMetricPercent(workspace.confidenceScore) : 'Not available'}
-                    </p>
-                  </div>
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5 lg:col-span-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">AI Recommendation</p>
-                    <p className="mt-3 text-sm leading-6 text-slate-600">{textValue(workspace.aiRecommendation, 'No AI recommendation available.')}</p>
-                  </div>
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Candidate Strengths</p>
-                    <div className="mt-4 space-y-2">
-                      {workspace.strengths.length ? (
-                        workspace.strengths.map((item, index) => (
-                          <div key={`strength-${index}`} className="flex items-start gap-3 rounded-[12px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-3 py-2">
-                            <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
-                            <span className="text-sm text-slate-700">{typeof item === 'string' ? item : item.label || item.name || String(item)}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-slate-500">No strengths available.</p>
-                      )}
+                <div className="rounded-2xl bg-white p-5 shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Certificates</p>
+                      <h4 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950">Supporting files</h4>
                     </div>
+                    <FileBarChart className="h-5 w-5 text-slate-400" />
                   </div>
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Candidate Weaknesses</p>
-                    <div className="mt-4 space-y-2">
-                      {workspace.weaknesses.length ? (
-                        workspace.weaknesses.map((item, index) => (
-                          <div key={`weakness-${index}`} className="flex items-start gap-3 rounded-[12px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-3 py-2">
-                            <Layers3 className="mt-0.5 h-4 w-4 text-amber-600" />
-                            <span className="text-sm text-slate-700">{typeof item === 'string' ? item : item.label || item.name || String(item)}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-slate-500">No weaknesses available.</p>
-                      )}
+                  <p className="mt-4 text-base leading-7 text-slate-600">
+                    {workspace.certificateDocuments.length
+                      ? `${workspace.certificateDocuments.length} certificate file(s) are attached.`
+                      : 'Supporting certificates will be shown here when available.'}
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <Button type="button" variant="secondary" onClick={openCertificates} disabled={!certificateDownloadUrl}>
+                      <Eye className="h-4 w-4" />
+                      Preview
+                    </Button>
+                    {certificateDownloadUrl ? (
+                      <Button as="a" href={certificateDownloadUrl} target="_blank" rel="noreferrer" variant="primary" download>
+                        <FileDown className="h-4 w-4" />
+                        Download
+                      </Button>
+                    ) : (
+                      <Button type="button" variant="primary" disabled>
+                        <FileDown className="h-4 w-4" />
+                        Download
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-white p-5 shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Cover Letter</p>
+                      <h4 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-slate-950">Candidate narrative</h4>
                     </div>
+                    <Target className="h-5 w-5 text-slate-400" />
                   </div>
-                  <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5 lg:col-span-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Reasoning Summary</p>
-                    <p className="mt-3 text-sm leading-6 text-slate-600">{textValue(workspace.reasoningSummary, 'No reasoning summary available.')}</p>
-                    <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-medium uppercase tracking-[0.22em] text-slate-500">Suggested Alternative Role</span>
-                      <Badge tone="neutral">{textValue(workspace.secondaryRole)}</Badge>
-                    </div>
+                  <p className="mt-4 text-base leading-7 text-slate-600">
+                    {displayValue(
+                      workspace.candidate.cover_letter || workspace.candidate.coverLetter || workspace.coverLetter,
+                      'A cover letter preview will appear here if one was submitted.',
+                    )}
+                  </p>
+                  <div className="mt-5">
+                    <Button type="button" variant="secondary" className="w-full" disabled>
+                      Preview
+                    </Button>
                   </div>
-                </div>
-              </div>
-            ) : null}
-
-            {activeTab === 'history' ? (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">History</p>
-                  <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">Chronological activity</h3>
-                </div>
-                <Timeline events={historyEvents} />
-              </div>
-            ) : null}
-          </AdminCard>
-        </section>
-
-        <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
-          <AdminCard title="Recruiter Workspace" description="Decisioning, notes, and interview planning.">
-            <div className="space-y-4">
-              <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <MessageSquareText className="h-4 w-4 text-slate-500" />
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Recruiter Notes</p>
-                </div>
-                <textarea
-                  value={evaluation.notes}
-                  onChange={(event) => handleEvaluationChange('notes', event.target.value)}
-                  rows={7}
-                  placeholder="Capture internal observations, risks, and follow-up items."
-                  className="mt-2 w-full resize-none rounded-[12px] border border-[rgba(15,23,42,0.08)] bg-white p-3 text-sm leading-6 text-slate-700 outline-none placeholder:text-slate-400 focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10"
-                />
-              </div>
-
-              <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Recruiter Decision</p>
-                <div className="mt-4 grid gap-3">
-                  <DecisionButton
-                    label="Accept"
-                    description="Move the candidate toward an offer-ready state."
-                    tone="success"
-                    active={activeDecision === 'accept'}
-                    onClick={() => handleEvaluationChange('decision', 'accept')}
-                  />
-                  <DecisionButton
-                    label="Interview"
-                    description="Continue the process with an interview step."
-                    tone="warning"
-                    active={activeDecision === 'interview'}
-                    onClick={() => handleEvaluationChange('decision', 'interview')}
-                  />
-                  <DecisionButton
-                    label="Hold"
-                    description="Keep the profile in review for later."
-                    active={activeDecision === 'hold'}
-                    onClick={() => handleEvaluationChange('decision', 'hold')}
-                  />
-                  <DecisionButton
-                    label="Reject"
-                    description="Close the application from the pipeline."
-                    tone="danger"
-                    active={activeDecision === 'reject'}
-                    onClick={() => handleEvaluationChange('decision', 'reject')}
-                  />
-                </div>
-              </div>
-
-              <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Internal Rating</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <RatingPill
-                      key={value}
-                      value={value}
-                      active={evaluation.rating === value}
-                      onClick={() => handleEvaluationChange('rating', value)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <CalendarDays className="h-4 w-4 text-slate-500" />
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Interview Management</p>
-                </div>
-                <div className="mt-4 grid gap-3">
-                  <Input
-                    label="Interview Date"
-                    type="date"
-                    value={evaluation.interviewDate}
-                    onChange={(event) => handleEvaluationChange('interviewDate', event.target.value)}
-                  />
-                  <Input
-                    label="Interview Time"
-                    type="time"
-                    value={evaluation.interviewTime}
-                    onChange={(event) => handleEvaluationChange('interviewTime', event.target.value)}
-                  />
-                  <Input
-                    label="Interviewer Name"
-                    value={evaluation.interviewerName}
-                    onChange={(event) => handleEvaluationChange('interviewerName', event.target.value)}
-                    placeholder="Add interviewer name"
-                  />
-                  <label className="flex w-full flex-col">
-                    <span className="field-label">Interview Type</span>
-                    <select
-                      value={evaluation.interviewType}
-                      onChange={(event) => handleEvaluationChange('interviewType', event.target.value)}
-                      className="h-11 w-full rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-4 text-[15px] text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03)] outline-none transition duration-150 ease-out hover:border-[rgba(15,23,42,0.12)] focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10"
-                    >
-                      <option value="online">Online</option>
-                      <option value="onsite">On-site</option>
-                    </select>
-                  </label>
-                </div>
-              </div>
-
-              <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-slate-50 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Tags</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {workspace.tags.length ? (
-                    workspace.tags.map((tag, index) => (
-                      <Badge key={`${tag}-${index}`} tone="neutral">
-                        {typeof tag === 'string' ? tag : tag.label || tag.name || String(tag)}
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-sm text-slate-500">No tags available.</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Save Evaluation</p>
-                <Button type="button" variant="primary" className="mt-4 w-full" onClick={saveEvaluation} loading={savingEvaluation}>
-                  Save Evaluation
-                </Button>
-                <div className="mt-3 space-y-2 text-xs leading-5 text-slate-500">
-                  <p>Persisted locally until the decision workflow backend is available.</p>
-                  <p>Last saved: {evaluation.savedAt ? formatDateTimeShort(evaluation.savedAt) : 'Not saved yet'}</p>
-                  {evaluationMessage ? <p className="text-slate-700">{evaluationMessage}</p> : null}
                 </div>
               </div>
             </div>
           </AdminCard>
-        </aside>
+        </div>
       </div>
 
       {resumeFullscreenOpen && resumeUrl ? (

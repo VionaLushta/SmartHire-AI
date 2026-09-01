@@ -10,6 +10,8 @@ from app.core.validation import clean_optional_text, clean_text
 class JobBase(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     description: str | None = None
+    responsibilities: str | None = None
+    requirements: str | None = None
     employment_type: str | None = Field(default=None, max_length=100)
     experience_level: str | None = Field(default=None, max_length=100)
     salary_min: int | None = Field(default=None, ge=0)
@@ -36,10 +38,11 @@ class JobBase(BaseModel):
             else None
         )
 
-    @field_validator("description")
+    @field_validator("description", "responsibilities", "requirements")
     @classmethod
-    def validate_description(cls, value: str | None) -> str | None:
-        return clean_optional_text(value, "Description", max_length=5000)
+    def validate_description(cls, value: str | None, info) -> str | None:
+        field_label = (info.field_name or "Description").replace("_", " ").title()
+        return clean_optional_text(value, field_label, max_length=5000)
 
     @field_validator("category_ids")
     @classmethod
@@ -77,6 +80,8 @@ class JobCreate(JobBase):
 class JobUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = None
+    responsibilities: str | None = None
+    requirements: str | None = None
     employment_type: str | None = Field(default=None, max_length=100)
     experience_level: str | None = Field(default=None, max_length=100)
     salary_min: int | None = Field(default=None, ge=0)
@@ -98,10 +103,11 @@ class JobUpdate(BaseModel):
             else None
         )
 
-    @field_validator("description")
+    @field_validator("description", "responsibilities", "requirements")
     @classmethod
-    def validate_description(cls, value: str | None) -> str | None:
-        return clean_optional_text(value, "Description", max_length=5000)
+    def validate_description(cls, value: str | None, info) -> str | None:
+        field_label = (info.field_name or "Description").replace("_", " ").title()
+        return clean_optional_text(value, field_label, max_length=5000)
 
     @field_validator("category_ids")
     @classmethod

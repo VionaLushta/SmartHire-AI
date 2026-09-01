@@ -68,6 +68,8 @@ class Job(Base):
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    responsibilities: Mapped[str | None] = mapped_column(Text, nullable=True)
+    requirements: Mapped[str | None] = mapped_column(Text, nullable=True)
     employment_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     experience_level: Mapped[str | None] = mapped_column(String(100), nullable=True)
     salary_min: Mapped[int | None] = mapped_column(Integer, nullable=True)

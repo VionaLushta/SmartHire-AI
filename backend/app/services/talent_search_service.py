@@ -39,6 +39,7 @@ from app.schemas.talent_search import (
     TalentSearchItem,
     TalentSearchResponse,
 )
+from app.services.audit_log_service import record_audit_event
 
 logger = logging.getLogger("smarthire.performance")
 
@@ -107,6 +108,17 @@ class TalentSearchService:
             current_user.user_id,
             len(response.items),
             (perf_counter() - started) * 1000,
+        )
+        record_audit_event(
+            self.db,
+            user_id=current_user.user_id,
+            user_role=str(current_user.role_name or "Recruiter"),
+            action="Talent Search",
+            entity_type="TalentSearch",
+            entity_id=str(current_user.user_id),
+            description="Talent search executed.",
+            status="Success",
+            metadata={"query": normalized.query, "filter": normalized.smart_filter},
         )
         return response
 
@@ -253,6 +265,17 @@ class TalentSearchService:
             current_user.user_id,
             report_format,
             (perf_counter() - started) * 1000,
+        )
+        record_audit_event(
+            self.db,
+            user_id=current_user.user_id,
+            user_role=str(current_user.role_name or "Recruiter"),
+            action="Talent Search Export",
+            entity_type="TalentSearch",
+            entity_id=str(current_user.user_id),
+            description="Talent search results exported.",
+            status="Success",
+            metadata={"format": report_format},
         )
         return content, media_type, filename
 

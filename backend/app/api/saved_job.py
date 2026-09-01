@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user
+from app.core.dependencies import require_candidate
 from app.core.pagination import CollectionQuery, Page, paginate
 from app.database.database import get_db
 from app.schemas.auth import CurrentUserResponse
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/saved-jobs", tags=["saved-jobs"])
 @router.post("", response_model=SavedJobRead, status_code=status.HTTP_201_CREATED)
 def create_saved_job(
     payload: SavedJobCreate,
-    current_user: CurrentUserResponse = Depends(get_current_user),
+    current_user: CurrentUserResponse = Depends(require_candidate),
     db: Session = Depends(get_db),
 ) -> SavedJobRead:
     service = SavedJobService(db)
@@ -27,7 +27,7 @@ def create_saved_job(
 @router.get("", response_model=Page[SavedJobRead])
 def list_saved_jobs(
     query: CollectionQuery = Depends(),
-    current_user: CurrentUserResponse = Depends(get_current_user),
+    current_user: CurrentUserResponse = Depends(require_candidate),
     db: Session = Depends(get_db),
 ) -> Page[SavedJobRead]:
     service = SavedJobService(db)
@@ -37,7 +37,7 @@ def list_saved_jobs(
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_saved_job(
     job_id: int,
-    current_user: CurrentUserResponse = Depends(get_current_user),
+    current_user: CurrentUserResponse = Depends(require_candidate),
     db: Session = Depends(get_db),
 ) -> None:
     service = SavedJobService(db)

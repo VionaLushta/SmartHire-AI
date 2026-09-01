@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from sqlalchemy import func, insert, select, update, delete
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.orm import Session
 
+from app.core.skill_library import SKILL_LIBRARY
 from app.models.job import Job, JobSkill
 from app.models.skill import Skill
 
@@ -66,6 +67,30 @@ class JobSkillRepository:
             )
         )
         return [dict(row) for row in self.db.execute(statement).mappings().all()]
+
+    def list_skills(self) -> list[dict]:
+        statement = (
+            select(Skill.__table__)
+            .order_by(
+                func.coalesce(Skill.__table__.c.category, "").asc(),
+                Skill.__table__.c.name.asc(),
+            )
+        )
+        return [dict(row) for row in self.db.execute(statement).mappings().all()]
+
+    def seed_skill_library(self) -> int:
+        created = 0
+        for category, skills in SKILL_LIBRARY:
+            for name in skills:
+                if self.get_skill_by_name(name) is not None:
+                    continue
+                self.db.execute(
+                    insert(Skill.__table__).values(name=name, category=category)
+                )
+                created += 1
+        if created:
+            self.db.commit()
+        return created
 
     def get_job_skill(self, job_id: int, skill_id: int) -> dict | None:
         statement = select(JobSkill.__table__).where(

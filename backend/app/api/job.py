@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_current_user_optional
 from app.core.pagination import CollectionQuery, Page, paginate
 from app.database.database import get_db
 from app.schemas.auth import CurrentUserResponse
@@ -33,7 +33,7 @@ def create_job(
 @router.get("", response_model=Page[JobRead])
 def list_jobs(
     query: CollectionQuery = Depends(),
-    current_user: CurrentUserResponse = Depends(get_current_user),
+    current_user: CurrentUserResponse | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ) -> Page[JobRead]:
     service = JobService(db)
@@ -43,7 +43,7 @@ def list_jobs(
 @router.get("/{job_id}", response_model=JobRead)
 def get_job(
     job_id: int,
-    current_user: CurrentUserResponse = Depends(get_current_user),
+    current_user: CurrentUserResponse | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ) -> JobRead:
     service = JobService(db)
@@ -74,7 +74,7 @@ def delete_job(
 @router.get("/{job_id}/skills", response_model=JobSkillGroupResponse)
 def get_job_skills(
     job_id: int,
-    current_user: CurrentUserResponse = Depends(get_current_user),
+    current_user: CurrentUserResponse | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ) -> JobSkillGroupResponse:
     service = JobSkillService(db)

@@ -18,7 +18,7 @@ export default function UnauthorizedPage() {
         </p>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
-          <Button as={Link} to="/login" variant="primary" size="lg" className="w-full">
+          <Button as={Link} to="/candidate/login" variant="primary" size="lg" className="w-full">
             Sign in again
           </Button>
           <Button as={Link} to="/" variant="secondary" size="lg" className="w-full">

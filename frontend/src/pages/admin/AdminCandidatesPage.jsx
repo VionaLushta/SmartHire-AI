@@ -47,9 +47,14 @@ export default function AdminCandidatesPage() {
     }
 
     loadData();
+    const interval = window.setInterval(loadData, 15000);
+    const onFocus = () => loadData();
+    window.addEventListener('focus', onFocus);
 
     return () => {
       mounted = false;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
     };
   }, []);
 

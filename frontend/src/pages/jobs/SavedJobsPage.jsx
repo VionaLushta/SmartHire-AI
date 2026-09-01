@@ -12,6 +12,7 @@ import { PLATFORM_ORGANIZATION_NAME } from '../../constants/app';
 export default function SavedJobsPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     async function loadSavedJobs() {
@@ -30,9 +31,20 @@ export default function SavedJobsPage() {
         );
 
         setItems(enriched);
+      } catch {
+        setItems([]);
       } finally {
         setLoading(false);
-      }
+  }
+
+  async function removeSavedJob(savedJob) {
+    try {
+      await savedJobService.remove(savedJob.job_id);
+      setItems((current) => current.filter((item) => item.job_id !== savedJob.job_id));
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'Unable to remove this saved job.');
+    }
+  }
     }
 
     loadSavedJobs();
@@ -51,6 +63,7 @@ export default function SavedJobsPage() {
       </div>
 
       <div className="space-y-4">
+        {error ? <p className="rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{error}</p> : null}
         {loading ? (
           <LoadingState
             title="Loading saved roles..."
@@ -81,6 +94,8 @@ export default function SavedJobsPage() {
                     <Button as={Link} to={job.job_id ? `/jobs/${job.job_id}` : '/jobs'} variant="primary">
                       View role
                     </Button>
+                    {job.job_id ? <Button as={Link} to={`/jobs/${job.job_id}/apply`} variant="secondary">Apply</Button> : null}
+                    <Button variant="secondary" onClick={() => removeSavedJob(savedJob)}>Remove</Button>
                   </div>
                 </div>
               </div>

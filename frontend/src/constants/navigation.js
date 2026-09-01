@@ -18,13 +18,13 @@ import {
   CalendarClock,
   BarChart3,
 } from 'lucide-react';
+import { ROUTES } from './routes';
 
 export const publicNavigation = [
-  { label: 'Home', to: '/#home', icon: Home },
-  { label: 'Why Join Us', to: '/#why-join-us', icon: Sparkles },
-  { label: 'Jobs', to: '/#open-positions', icon: BriefcaseBusiness },
-  { label: 'About Us', to: '/#about-us', icon: Users },
-  { label: 'Contact', to: '/#contact', icon: MessageSquareQuote },
+  { label: 'Home', to: '/', icon: Home },
+  { label: 'Jobs', to: ROUTES.jobs, icon: BriefcaseBusiness },
+  { label: 'About Us', to: ROUTES.about, icon: Users },
+  { label: 'Contact', to: ROUTES.contact, icon: MessageSquareQuote },
 ];
 
 export const adminNavigation = [
@@ -36,7 +36,7 @@ export const adminNavigation = [
   { label: 'Analytics', to: '/admin/analytics', icon: BarChart3 },
   { label: 'Reports', to: '/admin/reports', icon: BookOpenCheck },
   { label: 'Settings', to: '/admin/settings', icon: Settings },
-  { label: 'Logout', to: '/login', icon: LogOut },
+  { label: 'Logout', to: '/candidate/login', icon: LogOut },
 ];
 
 export const dashboardNavigation = [
@@ -47,21 +47,19 @@ export const dashboardNavigation = [
   { label: 'Profile', to: '/profile', icon: UserRound },
   { label: 'Hiring Dashboard', to: '/company/dashboard', icon: Building2 },
   { label: 'Settings', to: '/candidate/dashboard', icon: Settings },
-  { label: 'Logout', to: '/login', icon: LogOut },
+  { label: 'Logout', to: '/candidate/login', icon: LogOut },
 ];
 
 export const candidateNavigation = [
-  { label: 'Dashboard', to: '#dashboard', icon: LayoutDashboard },
-  { label: 'Jobs', to: '/jobs', icon: BriefcaseBusiness },
-  { label: 'Applications', to: '#applications', icon: FileText },
-  { label: 'Saved Jobs', to: '#saved-jobs', icon: Bookmark },
-  { label: 'Resume', to: '/resume', icon: NotebookPen },
-  { label: 'Certificates', to: '#certificates', icon: Award },
-  { label: 'Education', to: '#education', icon: GraduationCap },
-  { label: 'Trainings', to: '#trainings', icon: BookOpenCheck },
-  { label: 'Profile', to: '/profile', icon: UserRound },
-  { label: 'Settings', to: '#settings', icon: Settings },
-  { label: 'Logout', to: '/login', icon: LogOut },
+  { label: 'Dashboard', to: '/candidate/dashboard', icon: LayoutDashboard },
+  { label: 'My Profile', to: '/profile', icon: UserRound },
+  { label: 'My Resume', to: '/resume', icon: NotebookPen },
+  { label: 'Certificates', to: '/certificates', icon: Award },
+  { label: 'Applications', to: '/applied-jobs', icon: FileText },
+  { label: 'Saved Jobs', to: '/saved-jobs', icon: Bookmark },
+  { label: 'Notifications', to: '/notifications', icon: Sparkles },
+  { label: 'Account Settings', to: '/candidate/settings', icon: Settings },
+  { label: 'Logout', to: '/candidate/login', icon: LogOut },
 ];
 
 export const companyNavigation = [
@@ -75,7 +73,7 @@ export const companyNavigation = [
   { label: 'Analytics', to: '#analytics', icon: BarChart3 },
   { label: 'Our Company', to: '#company-profile', icon: UserRound },
   { label: 'Settings', to: '#settings', icon: Settings },
-  { label: 'Logout', to: '/login', icon: LogOut },
+  { label: 'Logout', to: '/candidate/login', icon: LogOut },
 ];
 
 export const dashboardPageMeta = {

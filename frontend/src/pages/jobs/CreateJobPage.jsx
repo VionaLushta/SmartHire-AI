@@ -1,25 +1,35 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { useNotifications } from '../../context/NotificationContext';
 import JobForm from '../../components/jobs/JobForm';
 import { createJob } from '../../redux/slices/jobSlice';
 import { departmentService } from '../../services/departmentService';
 import { jobCategoryService } from '../../services/jobCategoryService';
-import { unwrapItems, unwrapResponse } from '../../utils/dashboard';
+import { unwrapItems } from '../../utils/dashboard';
 
 export default function CreateJobPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { success } = useNotifications();
+  const { user } = useSelector((state) => state.auth);
   const [departments, setDepartments] = useState([]);
   const [categories, setCategories] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const companyId =
+    user?.company_id ??
+    user?.companyId ??
+    user?.company?.company_id ??
+    user?.company?.id ??
+    1;
 
   useEffect(() => {
     async function loadMetadata() {
       try {
         const [departmentResponse, categoryResponse] = await Promise.all([
-          departmentService.list(),
-          jobCategoryService.list(),
+          departmentService.list({ page_size: 100 }),
+          jobCategoryService.list({ page_size: 100 }),
         ]);
 
         setDepartments(unwrapItems(departmentResponse));
@@ -39,6 +49,7 @@ export default function CreateJobPage() {
     setSubmitting(false);
 
     if (createJob.fulfilled.match(resultAction)) {
+      success('Job created', 'The new role was saved successfully.');
       navigate('/jobs');
     }
   }
@@ -55,7 +66,7 @@ export default function CreateJobPage() {
           initialValues={null}
           departments={departments}
           categories={categories}
-          companyId={1}
+          companyId={companyId}
           onSubmit={handleSubmit}
           onCancel={() => navigate('/jobs')}
           submitting={submitting}

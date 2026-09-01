@@ -17,20 +17,13 @@ import { resumeService } from '../../services/resumeService';
 import { unwrapItems, unwrapResponse, clampPercent } from '../../utils/dashboard';
 
 const defaultRecommendation = {
-  overall_score: 84,
-  summary: 'Your resume is strong and aligned for mid-level product and operations roles, but a few role-specific improvements can elevate it further.',
-  strengths: ['Strong project leadership and execution', 'Clear communication and collaboration signal', 'Good alignment with operations and product contexts'],
-  weaknesses: ['Limited explicit keyword coverage', 'Weak certification signal', 'Experience bullets can be more measurable'],
-  missing_skills: ['Data storytelling', 'Executive communication', 'Advanced analytics'],
-  recommendations: [
-    { priority: 'High', title: 'Align to job keywords', learning_type: 'Optimization', reason: 'Add explicit keywords from the target role to improve ATS compatibility and recruiter scanning.', estimated_score_gain: 9, estimated_time_months: 2 },
-    { priority: 'Medium', title: 'Strengthen measurable outcomes', learning_type: 'Communication', reason: 'Use achievement-led bullet points with business impact metrics to improve clarity.', estimated_score_gain: 6, estimated_time_months: 1 },
-  ],
-  career_insights: {
-    career_readiness_level: 'Mid-Level',
-    hiring_probability: 'High',
-    explanation: 'Your profile is competitive for mid-level roles with a few focused enhancements.',
-  },
+  overall_score: 0,
+  summary: 'Analysis will appear after a resume is uploaded and processed.',
+  strengths: [],
+  weaknesses: [],
+  missing_skills: [],
+  recommendations: [],
+  career_insights: {},
 };
 
 export default function ResumePage() {
@@ -45,7 +38,7 @@ export default function ResumePage() {
 
   const previewUrl = useMemo(() => {
     if (!selectedResume?.file_path) return '';
-    return `https://example.com/${selectedResume.file_path.split(/[\\/]/).pop()}`;
+    return '';
   }, [selectedResume]);
 
   useEffect(() => {
@@ -105,8 +98,8 @@ export default function ResumePage() {
     }
   }
 
-  const matchedSkills = ['Product strategy', 'Stakeholder communication', 'SQL', 'Agile delivery', 'Leadership'];
-  const missingSkills = ['Advanced analytics', 'Executive storytelling', 'Go-to-market strategy'];
+  const matchedSkills = Array.isArray(selectedResume?.skills) ? selectedResume.skills : [];
+  const missingSkills = Array.isArray(selectedResume?.missing_skills) ? selectedResume.missing_skills : [];
 
   if (loading) {
     return <LoadingState title="Loading resume workspace..." description="Preparing resume preview, history, and AI analysis." />;
@@ -218,7 +211,24 @@ export default function ResumePage() {
 
         <div className="space-y-6">
           {selectedResume ? (
-            <ResumePreview resume={selectedResume} previewUrl={previewUrl} onReplace={() => {}} onDownload={() => {}} />
+            <ResumePreview
+              resume={selectedResume}
+              previewUrl={previewUrl}
+              onReplace={() => {}}
+              onDownload={async () => {
+                try {
+                  const response = await resumeService.download(selectedResume.resume_id);
+                  const url = URL.createObjectURL(response.data);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = selectedResume.file_path?.split(/[\\/]/).pop() || 'resume';
+                  link.click();
+                  URL.revokeObjectURL(url);
+                } catch (err) {
+                  setError(err?.response?.data?.detail || 'Unable to download the resume.');
+                }
+              }}
+            />
           ) : (
               <EmptyState title="No resume uploaded" description="Upload a resume to generate analysis and a preview." />
           )}

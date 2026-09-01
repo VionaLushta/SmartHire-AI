@@ -357,4 +357,3 @@ def test_reject_workflow(test_db, tmp_path):
         )
     )
     assert status_value == "rejected"
-

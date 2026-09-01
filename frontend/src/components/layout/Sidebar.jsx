@@ -56,7 +56,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
 
   const handleLogout = async () => {
     await dispatch(logoutUser());
-    navigate('/login', { replace: true });
+    navigate('/candidate/login', { replace: true });
   };
 
   return (

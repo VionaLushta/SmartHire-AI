@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user
+from app.core.dependencies import require_candidate
 from app.core.pagination import CollectionQuery, Page, paginate
 from app.database.database import get_db
 from app.schemas.auth import CurrentUserResponse
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/education", tags=["education"])
 @router.post("", response_model=EducationRead, status_code=status.HTTP_201_CREATED)
 def create_education(
     payload: EducationCreate,
-    current_user: CurrentUserResponse = Depends(get_current_user),
+    current_user: CurrentUserResponse = Depends(require_candidate),
     db: Session = Depends(get_db),
 ) -> EducationRead:
     service = EducationService(db)
@@ -27,7 +27,7 @@ def create_education(
 def list_educations(
     resume_id: int | None = Query(default=None),
     query: CollectionQuery = Depends(),
-    current_user: CurrentUserResponse = Depends(get_current_user),
+    current_user: CurrentUserResponse = Depends(require_candidate),
     db: Session = Depends(get_db),
 ) -> Page[EducationRead]:
     service = EducationService(db)
@@ -37,7 +37,7 @@ def list_educations(
 @router.get("/{education_id}", response_model=EducationRead)
 def get_education(
     education_id: int,
-    current_user: CurrentUserResponse = Depends(get_current_user),
+    current_user: CurrentUserResponse = Depends(require_candidate),
     db: Session = Depends(get_db),
 ) -> EducationRead:
     service = EducationService(db)
@@ -48,7 +48,7 @@ def get_education(
 def update_education(
     education_id: int,
     payload: EducationUpdate,
-    current_user: CurrentUserResponse = Depends(get_current_user),
+    current_user: CurrentUserResponse = Depends(require_candidate),
     db: Session = Depends(get_db),
 ) -> EducationRead:
     service = EducationService(db)
@@ -58,7 +58,7 @@ def update_education(
 @router.delete("/{education_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_education(
     education_id: int,
-    current_user: CurrentUserResponse = Depends(get_current_user),
+    current_user: CurrentUserResponse = Depends(require_candidate),
     db: Session = Depends(get_db),
 ) -> None:
     service = EducationService(db)

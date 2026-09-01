@@ -18,7 +18,7 @@ export default function SessionExpiredPage() {
         </p>
 
         <div className="mt-8">
-          <Button as={Link} to="/login" variant="primary" size="lg" className="w-full">
+          <Button as={Link} to="/candidate/login" variant="primary" size="lg" className="w-full">
             Sign in
           </Button>
         </div>

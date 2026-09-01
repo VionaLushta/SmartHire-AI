@@ -14,9 +14,65 @@ class RenderedEmailTemplate:
 
 DEFAULT_COMPANY_NAME = "SmartHire AI"
 DEFAULT_COMPANY_ADDRESS = "1200 Market Street, Suite 400, San Francisco, CA 94103"
-DEFAULT_COMPANY_EMAIL = "hr@smarthire.ai"
+DEFAULT_COMPANY_EMAIL = "smarthireaii@proton.me"
 DEFAULT_COMPANY_PHONE = "+1 (555) 013-2048"
 DEFAULT_COMPANY_WEBSITE = "www.smarthire.ai"
+
+
+def render_welcome_email(
+    *,
+    display_name: str,
+    login_url: str,
+    company_name: str = DEFAULT_COMPANY_NAME,
+    company_email: str = DEFAULT_COMPANY_EMAIL,
+    company_website: str = DEFAULT_COMPANY_WEBSITE,
+) -> RenderedEmailTemplate:
+    """Render the post-verification welcome email sent to new accounts."""
+    safe_name = escape(display_name or "there")
+    safe_company_name = escape(company_name)
+    safe_company_email = escape(company_email)
+    safe_company_website = escape(company_website)
+    safe_login_url = escape(login_url, quote=True)
+
+    return RenderedEmailTemplate(
+        subject="Welcome to SmartHire AI",
+        plain_text=(
+            f"Hello {display_name or 'there'},\n\n"
+            f"Welcome to {company_name}. Your account is ready.\n\n"
+            f"Sign in here: {login_url}\n\n"
+            "You can now build your profile, discover relevant opportunities, and manage your applications.\n\n"
+            f"If you did not create this account, please contact us at {company_email}.\n\n"
+            f"{company_name}\n{company_website}"
+        ),
+        html_body=f"""
+        <html>
+          <body style="margin:0;padding:0;background:#eef4f8;color:#102a43;font-family:Arial,Helvetica,sans-serif;">
+            <div style="max-width:680px;margin:0 auto;padding:36px 18px;">
+              <div style="overflow:hidden;background:#ffffff;border:1px solid #d9e2ec;border-radius:20px;box-shadow:0 12px 30px rgba(16,42,67,.08);">
+                <div style="padding:30px 34px;background:#102a43;color:#ffffff;">
+                  <div style="font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:#9fb3c8;">{safe_company_name}</div>
+                  <h1 style="margin:12px 0 0;font-size:32px;line-height:1.15;font-weight:700;">Your next opportunity starts here.</h1>
+                </div>
+                <div style="padding:34px;line-height:1.65;">
+                  <p style="margin:0 0 16px;font-size:18px;">Hello {safe_name},</p>
+                  <p style="margin:0 0 16px;">Welcome to SmartHire AI. Your account has been verified and is ready to help you move forward with confidence.</p>
+                  <div style="margin:24px 0;padding:20px;border:1px solid #d9e2ec;border-radius:14px;background:#f7fafc;">
+                    <div style="font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#627d98;">You are ready to</div>
+                    <div style="margin-top:10px;color:#243b53;">Build your profile, discover relevant opportunities, and manage your applications in one place.</div>
+                  </div>
+                  <p style="margin:26px 0;text-align:center;">
+                    <a href="{safe_login_url}" style="display:inline-block;padding:14px 24px;border-radius:10px;background:#d64545;color:#ffffff;text-decoration:none;font-weight:700;">Sign in to SmartHire AI</a>
+                  </p>
+                  <p style="margin:0 0 16px;font-size:13px;color:#627d98;word-break:break-all;">Button not working? Open this link:<br>{safe_login_url}</p>
+                  <p style="margin:0 0 22px;font-size:13px;color:#627d98;">If you did not create this account, please contact us at {safe_company_email}.</p>
+                  <div style="padding-top:18px;border-top:1px solid #e6edf3;font-size:12px;color:#829ab1;">{safe_company_name} | {safe_company_website}</div>
+                </div>
+              </div>
+            </div>
+          </body>
+        </html>
+        """.strip(),
+    )
 
 
 def render_offer_email(

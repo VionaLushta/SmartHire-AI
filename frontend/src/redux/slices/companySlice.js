@@ -2,7 +2,8 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { analyticsService } from '../../services/analyticsService';
 import { companyDashboardService } from '../../services/companyDashboardService';
 import { jobDashboardService } from '../../services/jobDashboardService';
-import { unwrapResponse, clampPercent } from '../../utils/dashboard';
+import { jobService } from '../../services/jobService';
+import { unwrapItems, unwrapResponse, clampPercent } from '../../utils/dashboard';
 
 const initialState = {
   dashboard: null,
@@ -163,12 +164,11 @@ export const loadCompanyDashboard = createAsyncThunk(
         analyticsResult.status === 'fulfilled' ? analyticsResult.value : null,
       );
 
-      const recentJobIds = Array.from(
-        new Set((dashboard?.recent_applications || []).map((item) => item.job_id)),
-      ).slice(0, 4);
+      const jobsResponse = await jobService.list().catch(() => null);
+      const companyJobs = unwrapItems(jobsResponse);
 
       const jobSnapshots = await Promise.all(
-        recentJobIds.map(async (jobId) => safeDetail(jobDashboardService.dashboard, jobId)),
+        companyJobs.map(async (job) => safeDetail(jobDashboardService.dashboard, job.job_id)),
       );
 
       const activeJobs = jobSnapshots.filter(Boolean).map(buildJobSnapshot);

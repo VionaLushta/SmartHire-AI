@@ -41,6 +41,7 @@ from app.schemas.interview import (
     InterviewType,
     InterviewUpdateRequest,
 )
+from app.services.audit_log_service import record_audit_event
 from app.services.email_service import EmailService
 from app.services.interview_ai_service import InterviewAIService
 from app.services.pdf_generator import GeneratedDocumentResult, PdfGenerator
@@ -910,7 +911,7 @@ class InterviewSchedulerService:
             recruiter_name=interviewer_name or "Recruitment Team",
             company_name=self.settings.app_name if hasattr(self.settings, "app_name") else "SmartHire AI",
             company_address="1200 Market Street, Suite 400, San Francisco, CA 94103",
-            company_email="hr@smarthire.ai",
+            company_email="smarthireaii@proton.me",
             company_phone="+1 (555) 013-2048",
             company_website="www.smarthire.ai",
             body_lines=body_lines,
@@ -1107,6 +1108,17 @@ class InterviewSchedulerService:
             with self.audit_path.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps(payload, default=str, ensure_ascii=False))
                 handle.write("\n")
+            record_audit_event(
+                self.db,
+                user_id=None,
+                user_role=str(payload.get("role") or "Recruiter"),
+                action=str(payload.get("event") or payload.get("action") or "Interview Event"),
+                entity_type="Interview",
+                entity_id=str(payload.get("interview_id") or payload.get("application_id") or ""),
+                description=str(payload.get("message") or payload.get("notes") or "Interview activity recorded."),
+                status=str(payload.get("status") or "Success"),
+                metadata=dict(payload),
+            )
         except OSError as exc:
             raise InterviewSchedulerPersistenceError(
                 f"Unable to write interview audit file: {self.audit_path}"

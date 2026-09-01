@@ -12,16 +12,20 @@ import UnauthorizedPage from '../pages/errors/UnauthorizedPage';
 import SessionExpiredPage from '../pages/errors/SessionExpiredPage';
 import LoadingScreenPage from '../pages/errors/LoadingScreenPage';
 import NotFoundPage from '../pages/errors/NotFoundPage';
+import RegisterPage from '../pages/auth/RegisterPage';
 
 const LandingPage = lazy(() => import('../pages/landing/LandingPage'));
+const AboutPage = lazy(() => import('../pages/about/AboutUsPage'));
+const ContactPage = lazy(() => import('../pages/contact/ContactPage'));
 const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
-const RegisterPage = lazy(() => import('../pages/auth/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('../pages/auth/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('../pages/auth/ResetPasswordPage'));
+const CandidateApplyAuthPage = lazy(() => import('../pages/auth/CandidateApplyAuthPage'));
 const VerifyEmailPage = lazy(() => import('../pages/auth/VerifyEmailPage'));
 const EmailVerificationSuccessPage = lazy(() => import('../pages/auth/EmailVerificationSuccessPage'));
 const JobsPage = lazy(() => import('../pages/jobs/JobsPage'));
 const JobDetailsPage = lazy(() => import('../pages/jobs/JobDetailsPage'));
+const JobApplyPage = lazy(() => import('../pages/jobs/JobApplyPage'));
 const CreateJobPage = lazy(() => import('../pages/jobs/CreateJobPage'));
 const EditJobPage = lazy(() => import('../pages/jobs/EditJobPage'));
 const SavedJobsPage = lazy(() => import('../pages/jobs/SavedJobsPage'));
@@ -30,6 +34,9 @@ const CandidateDashboard = lazy(() => import('../pages/candidate/CandidateDashbo
 const CompanyDashboard = lazy(() => import('../pages/company/CompanyDashboard'));
 const ProfilePage = lazy(() => import('../pages/candidate/ProfilePage'));
 const ResumePage = lazy(() => import('../pages/candidate/ResumePage'));
+const CertificatesPage = lazy(() => import('../pages/candidate/CertificatesPage'));
+const NotificationsPage = lazy(() => import('../pages/candidate/NotificationsPage'));
+const SettingsPage = lazy(() => import('../pages/candidate/SettingsPage'));
 const AdminDashboardPage = lazy(() => import('../pages/admin/AdminDashboardPage'));
 const AdminUsersPage = lazy(() => import('../pages/admin/AdminUsersPage'));
 const AdminCandidatesPage = lazy(() => import('../pages/admin/AdminCandidatesPage'));
@@ -71,11 +78,26 @@ export default function AppRouter() {
           <Routes>
             <Route element={<AppLayout />}>
               <Route index element={<LandingPage />} />
+              <Route path={ROUTES.about.slice(1)} element={<AboutPage />} />
+              <Route path={ROUTES.whyJoinUs.slice(1)} element={<AboutPage />} />
+              <Route path={ROUTES.platform.slice(1)} element={<AboutPage />} />
+              <Route path={ROUTES.careers.slice(1)} element={<JobsPage />} />
+              <Route path={ROUTES.contact.slice(1)} element={<ContactPage />} />
               <Route path={ROUTES.jobs.slice(1)} element={<JobsPage />} />
               <Route path="jobs/new" element={<CreateJobPage />} />
-              <Route path="saved-jobs" element={<SavedJobsPage />} />
-              <Route path="applied-jobs" element={<AppliedJobsPage />} />
+              <Route path="saved-jobs" element={<ProtectedRoute allowedRoles={['candidate']}><SavedJobsPage /></ProtectedRoute>} />
+              <Route path="applied-jobs" element={<ProtectedRoute allowedRoles={['candidate']}><AppliedJobsPage /></ProtectedRoute>} />
+              <Route path="certificates" element={<ProtectedRoute allowedRoles={['candidate']}><CertificatesPage /></ProtectedRoute>} />
+              <Route path="notifications" element={<ProtectedRoute allowedRoles={['candidate']}><NotificationsPage /></ProtectedRoute>} />
               <Route path={ROUTES.jobDetails.slice(1)} element={<JobDetailsPage />} />
+              <Route
+                path={ROUTES.jobApply.slice(1)}
+                element={
+                  <ProtectedRoute allowedRoles={['candidate']}>
+                    <JobApplyPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="jobs/:id/edit" element={<EditJobPage />} />
               <Route path={ROUTES.notFound} element={<NotFoundPage />} />
             </Route>
@@ -88,9 +110,13 @@ export default function AppRouter() {
               }
             >
               <Route path={ROUTES.login.slice(1)} element={<LoginPage />} />
+              <Route path="admin/login" element={<LoginPage authMode="admin" />} />
               <Route path={ROUTES.register.slice(1)} element={<RegisterPage />} />
+              {/* Keep the original public URL working for bookmarks and older links. */}
+              <Route path="register" element={<RegisterPage />} />
               <Route path={ROUTES.forgotPassword.slice(1)} element={<ForgotPasswordPage />} />
               <Route path={ROUTES.resetPassword.slice(1)} element={<ResetPasswordPage />} />
+              <Route path="candidate/apply-auth" element={<CandidateApplyAuthPage />} />
               <Route path={ROUTES.verifyEmail.slice(1)} element={<VerifyEmailPage />} />
             </Route>
 
@@ -228,6 +254,14 @@ export default function AppRouter() {
                 element={
                   <ProtectedRoute allowedRoles={['candidate']}>
                     <ResumePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="candidate/settings"
+                element={
+                  <ProtectedRoute allowedRoles={['candidate']}>
+                    <SettingsPage />
                   </ProtectedRoute>
                 }
               />

@@ -31,7 +31,7 @@ class Application(Base):
         ForeignKey("resumes.resume_id"), nullable=True
     )
     status: Mapped[str | None] = mapped_column(
-        String(50), nullable=True, default="submitted", index=True
+        String(50), nullable=True, default="pending", index=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, nullable=False
@@ -203,10 +203,14 @@ class AIAnalysis(Base):
         ForeignKey("applications.application_id"), nullable=False, unique=True
     )
     overall_score: Mapped[float | None] = mapped_column(nullable=True)
+    resume_score: Mapped[float | None] = mapped_column(nullable=True)
     skills_score: Mapped[float | None] = mapped_column(nullable=True)
     education_score: Mapped[float | None] = mapped_column(nullable=True)
     experience_score: Mapped[float | None] = mapped_column(nullable=True)
+    language_score: Mapped[float | None] = mapped_column(nullable=True)
     certificate_score: Mapped[float | None] = mapped_column(nullable=True)
+    missing_skills: Mapped[str | None] = mapped_column(Text, nullable=True)
+    strengths: Mapped[str | None] = mapped_column(Text, nullable=True)
     recommendations: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     application: Mapped["Application"] = relationship(back_populates="analysis")

@@ -5,6 +5,7 @@ export const jobSkillService = {
   create: (jobId, payload) => api.post(`/jobs/${jobId}/skills`, payload),
   update: (jobId, skillId, payload) => api.put(`/jobs/${jobId}/skills/${skillId}`, payload),
   remove: (jobId, skillId) => api.delete(`/jobs/${jobId}/skills/${skillId}`),
+  library: () => api.get('/skills/library'),
   candidate: (candidateId, params = {}) => api.get(`/candidates/${candidateId}/skills`, { params }),
   analytics: () => api.get('/analytics/skills'),
 };

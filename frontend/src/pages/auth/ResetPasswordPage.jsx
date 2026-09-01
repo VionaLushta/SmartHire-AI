@@ -59,7 +59,7 @@ export default function ResetPasswordPage() {
         confirm_password: values.confirmPassword,
       });
       setSuccessMessage('Your password has been updated. You can sign in with the new password now.');
-      window.setTimeout(() => navigate('/login', { replace: true }), 1500);
+      window.setTimeout(() => navigate('/candidate/login', { replace: true }), 1500);
     } catch (requestError) {
       setErrorMessage(requestError?.response?.data?.detail || requestError.message || 'Unable to reset the password.');
     } finally {
@@ -114,7 +114,7 @@ export default function ResetPasswordPage() {
               <Button type="submit" variant="primary" size="lg" className="flex-1" loading={busy}>
                 Reset Password
               </Button>
-              <Button as={Link} to="/login" variant="secondary" size="lg" className="flex-1">
+              <Button as={Link} to="/candidate/login" variant="secondary" size="lg" className="flex-1">
                 Back to Login
               </Button>
             </div>

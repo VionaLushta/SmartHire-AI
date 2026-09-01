@@ -21,6 +21,7 @@ from app.templates.email_templates import (
     render_interview_email,
     render_offer_email,
     render_rejection_email,
+    render_welcome_email,
 )
 
 logger = logging.getLogger(__name__)
@@ -266,22 +267,80 @@ class EmailService:
         subject = "Verify your SmartHire AI account"
         plain_text = (
             f"Hello {name},\n\n"
-            f"Please verify your SmartHire AI account by opening this link:\n{verification_url}\n\n"
+            "Thank you for creating your SmartHire AI account.\n\n"
+            f"Please verify your email address by clicking the button below:\n{verification_url}\n\n"
             "If you did not create this account, you can ignore this email."
         )
         html_body = f"""
         <html>
           <body style="font-family:Arial,Helvetica,sans-serif;background:#f8fafc;color:#0f172a;padding:32px;">
             <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;padding:28px;">
-              <h1 style="margin:0 0 16px 0;font-size:24px;">Verify your account</h1>
+              <h1 style="margin:0 0 16px 0;font-size:24px;">Welcome to SmartHire AI</h1>
               <p style="margin:0 0 16px 0;">Hello {display_name or 'there'},</p>
-              <p style="margin:0 0 16px 0;">Click the link below to verify your SmartHire AI account.</p>
+              <p style="margin:0 0 16px 0;">Thank you for creating your SmartHire AI account.</p>
+              <p style="margin:0 0 16px 0;">Please verify your email address by clicking the button below.</p>
               <p style="margin:24px 0;"><a href="{verification_url}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:12px 18px;border-radius:12px;">Verify account</a></p>
               <p style="margin:0;word-break:break-all;color:#475569;">{verification_url}</p>
             </div>
           </body>
         </html>
         """.strip()
+        return self._deliver_simple_email(recipient, subject, plain_text, html_body)
+
+    def send_application_received_email(self, recipient: str, *, first_name: str, job_title: str, company_name: str) -> dict[str, str | None]:
+        subject = "Application Received"
+        plain_text = (
+            f"Hello {first_name},\n\nYour application has been successfully submitted.\n\n"
+            f"Job:\n{job_title}\n\nCompany:\n{company_name}\n\n"
+            "Current Status:\nPending Review\n\nThank you for using SmartHire AI."
+        )
+        html_body = f"<html><body><p>Hello {first_name},</p><p>Your application has been successfully submitted.</p><p><strong>Job:</strong><br>{job_title}</p><p><strong>Company:</strong><br>{company_name}</p><p><strong>Current Status:</strong><br>Pending Review</p><p>Thank you for using SmartHire AI.</p></body></html>"
+        return self._deliver_simple_email(recipient, subject, plain_text, html_body)
+
+    def send_application_status_email(self, recipient: str, *, first_name: str, job_title: str, status_name: str) -> dict[str, str | None]:
+        templates = {
+            "interview": ("Interview Invitation", "Your application has moved to the interview stage."),
+            "accepted": ("Congratulations! Your application has been accepted.", "Congratulations! Your application has been accepted."),
+            "rejected": ("Application Update", "Thank you for your interest. We will not be moving forward with your application at this time."),
+        }
+        subject, message = templates[status_name]
+        plain_text = f"Hello {first_name},\n\n{message}\n\nJob:\n{job_title}\n\nThank you for using SmartHire AI."
+        html_body = f"<html><body><p>Hello {first_name},</p><p>{message}</p><p><strong>Job:</strong><br>{job_title}</p><p>Thank you for using SmartHire AI.</p></body></html>"
+        return self._deliver_simple_email(recipient, subject, plain_text, html_body)
+
+    def send_login_notification_email(
+        self,
+        recipient: str,
+        *,
+        first_name: str,
+        login_date: str,
+        login_time: str,
+        device: str,
+        login_method: str = "Email",
+        ip_address: str | None = None,
+    ) -> dict[str, str | None]:
+        self._validate_recipient(recipient)
+        subject = "New Login Detected"
+        ip = ip_address or "Not available"
+        plain_text = (
+            f"Hello {first_name},\n\n"
+            "A successful login to your SmartHire AI account was detected.\n\n"
+            f"Login details:\n- Date: {login_date}\n- Time: {login_time}\n"
+            f"- Login method: {login_method}\n"
+            f"- Device: {device}\n- IP Address: {ip}\n\n"
+            "If this was you, no further action is required.\n\n"
+            "If you do not recognize this login, please change your password immediately."
+        )
+        html_body = (
+            f"<html><body><p>Hello {first_name},</p>"
+            "<p>A successful login to your SmartHire AI account was detected.</p>"
+            f"<p><strong>Login details:</strong><br>Date: {login_date}<br>Time: {login_time}"
+            f"<br>Login method: {login_method}"
+            f"<br>Device: {device}<br>IP Address: {ip}</p>"
+            "<p>If this was you, no further action is required.</p>"
+            "<p>If you do not recognize this login, please change your password immediately.</p>"
+            "</body></html>"
+        )
         return self._deliver_simple_email(recipient, subject, plain_text, html_body)
 
     def send_password_reset_email(
@@ -348,23 +407,18 @@ class EmailService:
         display_name: str | None = None,
     ) -> dict[str, str | None]:
         self._validate_recipient(recipient)
-        name = display_name or "there"
-        subject = "Welcome to SmartHire AI"
-        plain_text = (
-            f"Hello {name},\n\n"
-            "Welcome to SmartHire AI. Your account is ready."
+        # Candidate accounts use the canonical candidate login route.
+        login_url = f"{str(getattr(self.settings, 'frontend_url', 'http://localhost:5173')).rstrip('/')}/candidate/login"
+        template = render_welcome_email(
+            display_name=display_name or "there",
+            login_url=login_url,
         )
-        html_body = f"""
-        <html>
-          <body style="font-family:Arial,Helvetica,sans-serif;background:#f8fafc;color:#0f172a;padding:32px;">
-            <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;padding:28px;">
-              <h1 style="margin:0 0 16px 0;font-size:24px;">Welcome to SmartHire AI</h1>
-              <p style="margin:0;">Hello {display_name or 'there'}, your account is ready.</p>
-            </div>
-          </body>
-        </html>
-        """.strip()
-        return self._deliver_simple_email(recipient, subject, plain_text, html_body)
+        return self._deliver_simple_email(
+            recipient,
+            template.subject,
+            template.plain_text,
+            template.html_body,
+        )
 
     def _deliver(
         self,

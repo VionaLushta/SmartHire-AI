@@ -1,9 +1,9 @@
 import Card from '../ui/Card';
 import { classNames } from '../../utils/classNames';
 
-export default function AdminCard({ title, description, action, className = '', children }) {
+export default function AdminCard({ title, description, action, className = '', children, ...props }) {
   return (
-    <Card className={classNames('p-5 sm:p-6', className)}>
+    <Card {...props} className={classNames('p-5 sm:p-6', className)}>
       {(title || description || action) && (
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>

@@ -22,6 +22,7 @@ from app.models.user import User
 from app.repositories.job_dashboard_repository import JobDashboardRepository
 from app.repositories.job_repository import JobRepository
 from app.services.analytics_service import AnalyticsService
+from app.services.audit_log_service import record_audit_event
 from app.services.email_service import EmailDeliveryError, EmailService
 from app.services.nlp_matcher import (
     build_candidate_gaps,
@@ -623,6 +624,17 @@ class RecruitmentWorkflowService:
 
     def _append_audit(self, entry: WorkflowAuditEntry) -> None:
         self._write_jsonl(self.audit_path, asdict(entry))
+        record_audit_event(
+            self.db,
+            user_id=None,
+            user_role="Recruiter",
+            action=entry.action,
+            entity_type="Workflow",
+            entity_id=str(entry.application_id if hasattr(entry, "application_id") else entry.job_id),
+            description=entry.decision,
+            status="Failed" if entry.error else "Success",
+            metadata=asdict(entry),
+        )
 
     def _append_email(self, entry: WorkflowEmailEntry) -> None:
         self._write_jsonl(self.email_log_path, asdict(entry))
@@ -1067,6 +1079,17 @@ class RecruitmentWorkflowService:
 
     def _append_audit(self, entry: WorkflowAuditEntry) -> None:
         self._write_jsonl(self.audit_path, asdict(entry))
+        record_audit_event(
+            self.db,
+            user_id=None,
+            user_role="Recruiter",
+            action=entry.action,
+            entity_type="Workflow",
+            entity_id=str(entry.application_id if hasattr(entry, "application_id") else entry.job_id),
+            description=entry.decision,
+            status="Failed" if entry.error else "Success",
+            metadata=asdict(entry),
+        )
 
     def _append_email(self, entry: WorkflowEmailEntry) -> None:
         self._write_jsonl(self.email_log_path, asdict(entry))

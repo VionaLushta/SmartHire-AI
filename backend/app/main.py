@@ -3,6 +3,7 @@ import logging
 import time
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -21,6 +22,7 @@ from app.api.candidate import router as candidate_router
 from app.api.candidates import router as candidates_router
 from app.api.certificate import router as certificate_router
 from app.api.candidate_dashboard import router as candidate_dashboard_router
+from app.api.application import router as application_router
 from app.api.interviews import router as interviews_router
 from app.api.notifications import router as notifications_router
 from app.api.recruiter_notes import router as recruiter_notes_router
@@ -32,9 +34,12 @@ from app.api.department import router as department_router
 from app.api.job import router as job_router
 from app.api.job_dashboard import router as job_dashboard_router
 from app.api.job_category import router as job_category_router
+from app.api.skill_library import router as skill_library_router
+from app.api.reports import router as reports_router
 from app.api.resume import router as resume_router
 from app.api.saved_job import router as saved_job_router
 from app.services.auth_service import AuthenticationService
+from app.services.job_skill_service import JobSkillService
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("smarthire.api")
@@ -46,6 +51,7 @@ OPENAPI_TAGS = [
     {"name": "resume", "description": "Candidate-owned resume and certificate uploads with signature validation."},
     {"name": "ai", "description": "Local resume parsing, skill extraction, matching, ranking, and recommendations."},
     {"name": "ai analytics", "description": "Role-scoped recruitment analytics and report exports."},
+    {"name": "reports", "description": "Admin report snapshots, exports, and analytics generated from live recruiting data."},
     {"name": "candidate ranking", "description": "AI candidate ranking, smart shortlisting, comparisons, and export."},
     {"name": "interviews", "description": "Interview scheduling, calendar management, reminders, and export."},
     {"name": "resume advisor", "description": "Candidate-only AI resume improvement, scoring, roadmap, and export."},
@@ -65,6 +71,7 @@ async def lifespan(app: FastAPI):
 
         db = SessionLocal()
         db.execute(text("SELECT 1"))
+        JobSkillService(db).seed_skill_library()
         AuthenticationService(db)
         db.close()
         logger.info("database connection verified")
@@ -115,7 +122,7 @@ async def request_validation_exception_handler(
     logger.warning("security_event status=422 detail=request validation failed")
     return JSONResponse(
         status_code=422,
-        content={"detail": "Validation failed.", "errors": exc.errors()},
+        content={"detail": "Validation failed.", "errors": jsonable_encoder(exc.errors())},
     )
 
 
@@ -129,12 +136,15 @@ async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONRespons
 
 settings = get_settings()
 cors_origins = [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]
+if not cors_origins:
+    cors_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
+    allow_private_network=True,
 )
 
 app.include_router(company_router)
@@ -144,6 +154,7 @@ app.include_router(ai_dashboard_router)
 app.include_router(analytics_router)
 app.include_router(company_dashboard_router)
 app.include_router(candidate_dashboard_router)
+app.include_router(application_router)
 app.include_router(candidate_router)
 app.include_router(candidates_router)
 app.include_router(audit_logs_router)
@@ -159,6 +170,8 @@ app.include_router(department_router)
 app.include_router(job_router)
 app.include_router(job_dashboard_router)
 app.include_router(job_category_router)
+app.include_router(skill_library_router)
+app.include_router(reports_router)
 app.include_router(resume_router)
 app.include_router(saved_job_router)
 

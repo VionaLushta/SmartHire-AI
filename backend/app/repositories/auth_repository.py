@@ -77,6 +77,19 @@ class AuthRepository:
         )
         return self._decorate_user_row(row)
 
+    def get_oauth_account(self, provider: str, provider_subject: str):
+        row = (
+            self.db.execute(
+                select(OAuthAccount.__table__).where(
+                    OAuthAccount.__table__.c.provider == provider,
+                    OAuthAccount.__table__.c.provider_subject == provider_subject,
+                )
+            )
+            .mappings()
+            .first()
+        )
+        return dict(row) if row else None
+
     def get_role_by_name(self, role_name: str):
         row = (
             self.db.execute(
@@ -114,11 +127,14 @@ class AuthRepository:
         last_name: str,
         email: str,
         phone: str | None,
+        city: str | None = None,
         password_hash: str,
         role_id: int,
         email_verified_at: datetime | None = None,
+        last_login_at: datetime | None = None,
         auth_provider: str | None = None,
         auth_provider_subject: str | None = None,
+        profile_picture_url: str | None = None,
     ):
         row = (
             self.db.execute(
@@ -128,11 +144,14 @@ class AuthRepository:
                     last_name=last_name,
                     email=email,
                     phone=phone,
+                    city=city,
                     password_hash=password_hash,
                     role_id=role_id,
                     email_verified_at=email_verified_at,
+                    last_login_at=last_login_at,
                     auth_provider=auth_provider,
                     auth_provider_subject=auth_provider_subject,
+                    profile_picture_url=profile_picture_url,
                 )
                 .returning(*User.__table__.c)
             )

@@ -19,49 +19,7 @@ import { certificateService } from '../../services/certificateService';
 import { loadCandidateDashboard, updateCandidateProfile } from '../../redux/slices/candidateSlice';
 import { unwrapItems } from '../../utils/dashboard';
 
-const starterCareerGoals = {
-  preferred_role: 'Product Manager',
-  preferred_salary: '$120k - $150k',
-  preferred_location: 'Remote / Berlin',
-  remote_preference: 'Hybrid-friendly',
-  industries: ['Technology', 'SaaS'],
-  career_interests: ['Leadership', 'Growth strategy'],
-};
-
-const starterSkills = [
-  { id: 1, name: 'Product strategy', category: 'Strategy', level: 'Expert' },
-  { id: 2, name: 'Stakeholder communication', category: 'Communication', level: 'Advanced' },
-  { id: 3, name: 'SQL', category: 'Analytics', level: 'Advanced' },
-  { id: 4, name: 'Agile delivery', category: 'Delivery', level: 'Advanced' },
-  { id: 5, name: 'Leadership', category: 'Leadership', level: 'Intermediate' },
-];
-
-const starterEducation = [
-  {
-    education_id: 1,
-    institution: 'University of Technology',
-    degree: 'BSc in Computer Science',
-    field_of_study: 'Software Engineering',
-    start_date: '2014-09-01',
-    end_date: '2018-06-30',
-    description: 'Focus on software engineering, distributed systems, and product strategy.',
-  },
-];
-
-const starterCertificates = [
-  { cert_id: 1, title: 'Certified Product Leader', issuer: 'Product School', issue_date: '2024-01-15', expiry_date: null, credential_id: 'PS-3189' },
-  { cert_id: 2, title: 'Google Analytics Certification', issuer: 'Google', issue_date: '2023-07-01', expiry_date: '2026-07-01', credential_id: 'GA-28421' },
-];
-
-const starterTrainings = [
-  { training_id: 1, training: 'Executive Leadership Program', provider: 'Harvard Business School', completed_date: '2024-08-01', status: 'Completed', certificate: 'Leadership Certificate' },
-  { training_id: 2, training: 'Data Storytelling for PMs', provider: 'Coursera', completed_date: '2025-02-15', status: 'In progress', certificate: 'In progress' },
-];
-
-const starterExperience = [
-  { work_experience_id: 1, company_name: 'Northstar Labs', title: 'Senior Product Manager', start_date: '2022-01-01', end_date: null, current: true, description: 'Led roadmap prioritization, stakeholder alignment, and cross-functional delivery across a product portfolio.' },
-  { work_experience_id: 2, company_name: 'BrightPilot', title: 'Product Analyst', start_date: '2019-03-01', end_date: '2021-12-31', current: false, description: 'Built analytics dashboards, created KPI frameworks, and partnered with engineering on feature delivery.' },
-];
+const emptyCollection = [];
 
 export default function ProfilePage() {
   const dispatch = useDispatch();
@@ -78,11 +36,12 @@ export default function ProfilePage() {
     linkedin_url: '',
     github_url: '',
     portfolio_url: '',
+    about_me: '',
   });
-  const [educationItems, setEducationItems] = useState(starterEducation);
-  const [certificateItems, setCertificateItems] = useState(starterCertificates);
-  const [trainingItems] = useState(starterTrainings);
-  const [experienceItems] = useState(starterExperience);
+  const [educationItems, setEducationItems] = useState(emptyCollection);
+  const [certificateItems, setCertificateItems] = useState(emptyCollection);
+  const [trainingItems] = useState(emptyCollection);
+  const [experienceItems] = useState(emptyCollection);
   const [error, setError] = useState(null);
 
   const profileCompletion = useMemo(() => {
@@ -124,6 +83,7 @@ export default function ProfilePage() {
       linkedin_url: nextProfile.linkedin_url || '',
       github_url: nextProfile.github_url || '',
       portfolio_url: nextProfile.portfolio_url || '',
+      about_me: nextProfile.about_me || '',
     });
   }, [profile, user]);
 
@@ -136,8 +96,8 @@ export default function ProfilePage() {
         ]);
         const education = unwrapItems(educationResponse);
         const certificates = unwrapItems(certificateResponse);
-        setEducationItems(education.length ? education : starterEducation);
-        setCertificateItems(certificates.length ? certificates : starterCertificates);
+        setEducationItems(education);
+        setCertificateItems(certificates);
       } catch (err) {
         setError(err?.response?.data?.detail || 'Unable to load profile details.');
       }
@@ -167,7 +127,7 @@ export default function ProfilePage() {
   }
 
   const skills = useMemo(() => {
-    const skillData = profile?.skills || dashboard?.skill_gap_analysis?.most_common_skills || starterSkills;
+    const skillData = profile?.skills || dashboard?.skill_gap_analysis?.most_common_skills || [];
     return Array.isArray(skillData)
       ? skillData.map((skill, index) => ({
           id: skill.id ?? index + 1,
@@ -175,7 +135,7 @@ export default function ProfilePage() {
           category: typeof skill === 'string' ? 'General' : skill.category || 'General',
           level: typeof skill === 'string' ? 'Intermediate' : skill.level || 'Intermediate',
         }))
-      : starterSkills;
+      : [];
   }, [profile, dashboard]);
 
   if (status === 'loading' && !profile) {
@@ -222,6 +182,10 @@ export default function ProfilePage() {
                 <div className="md:col-span-2">
                   <Input label="Portfolio" value={profileForm.portfolio_url} onChange={(event) => setProfileForm((current) => ({ ...current, portfolio_url: event.target.value }))} />
                 </div>
+                <div className="md:col-span-2">
+                  <label className="text-sm font-medium text-slate-700" htmlFor="about-me">About me</label>
+                  <textarea id="about-me" value={profileForm.about_me} onChange={(event) => setProfileForm((current) => ({ ...current, about_me: event.target.value }))} className="mt-2 min-h-28 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500" />
+                </div>
               </div>
 
               <div className="mt-6 flex justify-end gap-3">
@@ -255,7 +219,7 @@ export default function ProfilePage() {
             ]}
           />
 
-          <CareerGoalsCard goals={starterCareerGoals} />
+          <CareerGoalsCard goals={profile?.career_goals || {}} />
 
           <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Status</p>

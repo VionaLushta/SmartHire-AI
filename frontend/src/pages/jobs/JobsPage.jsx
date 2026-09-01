@@ -1,245 +1,193 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
-import { Grid2x2, List, SlidersHorizontal } from 'lucide-react';
-import { applyToJob, fetchJobs, fetchSavedJobs, removeSavedJob, saveJob } from '../../redux/slices/jobSlice';
-import JobCard from '../../components/jobs/JobCard';
-import SearchBar from '../../components/jobs/SearchBar';
-import JobFilters from '../../components/jobs/JobFilters';
-import Pagination from '../../components/jobs/Pagination';
-import LoadingState from '../../components/jobs/LoadingState';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  ArrowRight, Bookmark, BookmarkCheck, BriefcaseBusiness, Building2, CheckCircle2,
+  ChevronLeft, ChevronRight, Clock3, DollarSign, MapPin, Search, SlidersHorizontal,
+  Sparkles, Users, X,
+} from 'lucide-react';
+import { fetchJobs, fetchSavedJobs, removeSavedJob, saveJob } from '../../redux/slices/jobSlice';
 import EmptyState from '../../components/ui/EmptyState';
-import Button from '../../components/ui/Button';
-import ApplyModal from '../../components/jobs/ApplyModal';
 import ErrorState from '../../components/ui/ErrorState';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import { formatSalaryRange, formatDateShort } from '../../utils/dashboard';
 
-const defaultFilters = {
-  category: '',
-  department: '',
-  employment_type: '',
-  experience_level: '',
-  remote_option: '',
-  salary_band: '',
-};
+const PAGE_SIZE = 9;
 
-const categorySeeds = ['Product', 'Engineering', 'Design', 'Operations', 'Marketing'];
-const departmentSeeds = ['Engineering', 'Design', 'People', 'Marketing', 'Operations'];
+const DEMO_PROFILES = [
+  ['Backend Engineer', 'Engineering', 'Remote', 'Python, FastAPI, Docker, PostgreSQL, AWS'],
+  ['Frontend Engineer', 'Engineering', 'Hybrid', 'React, TypeScript, Next.js, CSS, Git'],
+  ['Full Stack Developer', 'Engineering', 'New York, NY', 'React, Node.js, PostgreSQL, Docker, Git'],
+  ['AI Engineer', 'Artificial Intelligence', 'Remote', 'Python, FastAPI, TensorFlow, AWS, Docker'],
+  ['Machine Learning Engineer', 'Artificial Intelligence', 'Boston, MA', 'Python, PyTorch, Machine Learning, SQL'],
+  ['Data Engineer', 'Data', 'Hybrid', 'Python, Spark, SQL, Airflow, AWS'],
+  ['DevOps Engineer', 'Infrastructure', 'Remote', 'AWS, Kubernetes, Terraform, Docker, Git'],
+  ['QA Engineer', 'Quality Assurance', 'Austin, TX', 'Playwright, Python, API Testing, CI/CD'],
+  ['UI/UX Designer', 'Design', 'London, UK', 'Figma, UX Research, Prototyping, Design Systems'],
+  ['Mobile Developer', 'Engineering', 'Remote', 'React Native, TypeScript, iOS, Android'],
+  ['Product Manager', 'Product', 'San Francisco, CA', 'Product Strategy, Analytics, Agile, Jira'],
+  ['HR Recruiter', 'People', 'Hybrid', 'Recruiting, ATS, Sourcing, Interviewing'],
+];
+
+function asArray(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  if (Array.isArray(value?.jobs)) return value.jobs;
+  return [];
+}
+
+function text(value) { return String(value || '').toLowerCase(); }
+function label(value, fallback = 'Not specified') { return value || fallback; }
+function daysUntil(value) {
+  if (!value) return null;
+  const days = Math.ceil((new Date(value).getTime() - Date.now()) / 86400000);
+  return Number.isFinite(days) ? days : null;
+}
+
+function Logo({ job }) {
+  const image = job.company_logo_url || job.company_logo || job.logo_url;
+  const initials = String(job.company_name || 'SH').split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  return image ? <img src={image} alt="" className="h-12 w-12 rounded-2xl object-cover" /> : <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-sm font-bold text-white">{initials}</div>;
+}
+
+function SkeletonCard() {
+  return <div className="h-[420px] animate-pulse rounded-3xl border border-slate-200 bg-white p-6"><div className="flex gap-3"><div className="h-12 w-12 rounded-2xl bg-slate-200" /><div className="flex-1 space-y-2"><div className="h-3 w-24 rounded bg-slate-200" /><div className="h-5 w-3/4 rounded bg-slate-200" /></div></div><div className="mt-6 h-4 w-full rounded bg-slate-200" /><div className="mt-3 h-4 w-5/6 rounded bg-slate-200" /><div className="mt-8 h-24 rounded-2xl bg-slate-100" /><div className="mt-8 h-10 rounded-xl bg-slate-200" /></div>;
+}
+
+function JobCard({ job, saved, onSave, showAiMatch }) {
+  const deadlineDays = daysUntil(job.deadline);
+  const isNew = job.created_at && (Date.now() - new Date(job.created_at).getTime()) < 7 * 86400000;
+  const skills = asArray(job.required_skills).slice(0, 5);
+  const status = text(job.status);
+  const statuses = [
+    status === 'urgent' && 'Urgent',
+    job.remote_option && 'Remote',
+    status === 'internship' && 'Internship',
+    isNew && 'New',
+    deadlineDays !== null && deadlineDays >= 0 && deadlineDays <= 7 && 'Closing soon',
+  ].filter(Boolean);
+  return <article className="group flex min-h-[470px] flex-col rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)] transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_22px_45px_rgba(15,23,42,0.11)]">
+    {job.featured ? <div className="mb-4 inline-flex w-fit items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">★ Featured</div> : null}
+    <div className="flex items-start justify-between gap-4"><div className="flex min-w-0 gap-4"><Logo job={job} /><div className="min-w-0"><p className="truncate text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{label(job.company_name, 'Hiring company')}</p><h2 className="mt-2 line-clamp-2 text-xl font-bold leading-tight tracking-[-0.04em] text-slate-950">{label(job.title, 'Open position')}</h2>{job.company_verified ? <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-blue-600"><CheckCircle2 className="h-3.5 w-3.5" /> Verified company</p> : null}</div></div><button type="button" aria-label={saved ? 'Remove saved job' : 'Save job'} onClick={onSave} className="shrink-0 rounded-xl p-2 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600">{saved ? <BookmarkCheck className="h-5 w-5 text-blue-600" /> : <Bookmark className="h-5 w-5" />}</button></div>
+    {statuses.length || showAiMatch ? <div className="mt-4 flex flex-wrap gap-1.5">{showAiMatch ? <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700"><Sparkles className="mr-1 inline h-3 w-3" />AI Match {job.ai_match_score ?? job.match_score ?? 'Available'}</span> : null}{statuses.map((item) => <span key={item} className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${item === 'Urgent' ? 'bg-rose-50 text-rose-700' : item === 'Featured' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>{item}</span>)}</div> : null}
+    <div className="mt-5 grid grid-cols-2 gap-2 text-xs text-slate-600"><span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-slate-400" />{label(job.location)}</span><span className="flex items-center gap-1.5"><BriefcaseBusiness className="h-3.5 w-3.5 text-slate-400" />{label(job.employment_type)}</span><span className="flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5 text-slate-400" />{label(job.experience_level)}</span><span className="flex items-center gap-1.5"><DollarSign className="h-3.5 w-3.5 text-slate-400" />{formatSalaryRange(job)}</span></div>
+    <p className="mt-5 line-clamp-3 text-sm leading-6 text-slate-600">{label(job.description, 'No description provided.')}</p>
+    {skills.length ? <div className="mt-4 flex flex-wrap gap-1.5">{skills.map((skill) => <span key={skill} className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-600">{skill}</span>)}</div> : null}
+    <div className="mt-auto pt-5"><div className="mb-4 grid grid-cols-3 gap-2 border-t border-slate-100 pt-4 text-[11px] text-slate-500"><span><Users className="mr-1 inline h-3.5 w-3.5" />{job.applicants_count ?? job.applicants ?? 0} applicants</span><span>{job.views_count ?? job.views ?? 0} views</span><span>{job.saved_count ?? job.saves ?? 0} saved</span></div><div className="mb-4 flex items-center justify-between text-[11px] font-semibold text-slate-400"><span>Posted {formatDateShort(job.created_at || job.updated_at)}</span><span>{job.deadline ? `Deadline ${formatDateShort(job.deadline)}` : 'No deadline'}</span></div><div className="flex gap-2"><Button as={Link} to={`/jobs/${job.job_id}`} variant="secondary" size="sm" className="flex-1">View Details</Button><Button as={Link} to={`/jobs/${job.job_id}/apply`} variant="primary" size="sm" className="flex-1">Apply <ArrowRight className="h-3.5 w-3.5" /></Button></div></div>
+  </article>;
+}
 
 export default function JobsPage() {
   const dispatch = useDispatch();
-  const { items, savedJobs, status, error } = useSelector((state) => state.jobs);
-  const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState('grid');
-  const [selectedJob, setSelectedJob] = useState(null);
-  const [applyingJobId, setApplyingJobId] = useState(null);
-  const [filters, setFilters] = useState(defaultFilters);
+  const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
+  const state = useSelector((store) => store.jobs);
+  const jobs = useMemo(() => asArray(state.items), [state.items]);
+  const savedJobs = useMemo(() => asArray(state.savedJobs), [state.savedJobs]);
+  const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState({ department: 'all', company: 'all', location: 'all', employment: 'all', experience: 'all', workMode: 'all', salary: 'all', status: 'all', sort: 'recent' });
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    dispatch(fetchJobs());
-    dispatch(fetchSavedJobs());
-  }, [dispatch]);
+  useEffect(() => { dispatch(fetchJobs()); if (String(user?.role_name || user?.role).toLowerCase() === 'candidate') dispatch(fetchSavedJobs()); }, [dispatch, user?.role, user?.role_name]);
+  useEffect(() => { setPage(1); }, [query, filters]);
 
-  const filteredJobs = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return items.filter((job) => {
-      const haystack = [
-        job.title,
-        job.company_name,
-        job.location,
-        job.department_name,
-        (job.required_skills || []).join(' '),
-        (job.skill_names || []).join(' '),
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      if (query && !haystack.includes(query)) {
-        return false;
-      }
-
-      if (filters.category && !(job.category_ids || []).includes(Number(filters.category))) {
-        return false;
-      }
-
-      if (filters.department && job.department_name !== filters.department) {
-        return false;
-      }
-
-      if (filters.employment_type && job.employment_type !== filters.employment_type) {
-        return false;
-      }
-
-      if (filters.experience_level && job.experience_level !== filters.experience_level) {
-        return false;
-      }
-
-      if (filters.remote_option) {
-        const expected = filters.remote_option.toLowerCase();
-        const location = String(job.location || '').toLowerCase();
-        if (expected === 'remote' && !location.includes('remote')) return false;
-        if (expected === 'hybrid' && !location.includes('hybrid')) return false;
-        if (expected === 'on-site' && !location.includes('on-site') && !location.includes('office')) return false;
-      }
-
-      if (filters.salary_band) {
-        const [min, max] = filters.salary_band.split('-').map(Number);
-        const low = Number(job.salary_min || 0);
-        if (Number.isFinite(min) && low < min) return false;
-        if (Number.isFinite(max) && low > max) return false;
-      }
-
-      return true;
+  const publicJobs = useMemo(() => {
+    const liveJobs = jobs.filter((job) => {
+      const status = text(job.status);
+      return ['active', 'open', 'published'].includes(status) || job.is_public === true || job.is_active === true;
     });
-  }, [filters, items, search]);
-
-  const currentPageItems = filteredJobs.slice((page - 1) * 6, page * 6);
-
-  useEffect(() => {
-    setPage(1);
-  }, [search, filters]);
-
-  const savedJobIds = new Set(savedJobs.map((job) => String(job.job_id ?? job.job?.job_id ?? '')));
-
-  async function handleSave(job) {
-    const jobId = Number(job.job_id ?? job.id);
-    const isSaved = savedJobIds.has(String(jobId));
-    if (isSaved) {
-      dispatch(removeSavedJob(jobId));
-      return;
-    }
-    dispatch(saveJob(jobId));
-  }
-
-  async function handleApply(job) {
-    setSelectedJob(job);
-  }
-
-  async function confirmApply() {
-    if (!selectedJob) return;
-    setApplyingJobId(Number(selectedJob.job_id));
-    await dispatch(applyToJob(selectedJob.job_id));
-    setApplyingJobId(null);
-    setSelectedJob(null);
-  }
-
-  if (status === 'loading' && items.length === 0) {
-    return <LoadingState title="Loading jobs..." description="Fetching opportunities and filters from the backend." />;
-  }
-
-  if (error && items.length === 0) {
-    return (
-      <ErrorState
-        title="Unable to load jobs"
-        description={error}
-        onRetry={() => {
-          dispatch(fetchJobs());
-          dispatch(fetchSavedJobs());
-        }}
-      />
-    );
-  }
+    if (!liveJobs.length || liveJobs.length >= DEMO_PROFILES.length) return liveJobs;
+    return DEMO_PROFILES.map(([title, department, location, skillText], index) => {
+      const source = liveJobs[index % liveJobs.length];
+      return {
+        ...source,
+        display_id: `${source.job_id || 'job'}-demo-${index}`,
+        title,
+        department_name: department,
+        location,
+        employment_type: index % 4 === 0 ? 'Contract' : 'Full-time',
+        experience_level: index % 3 === 0 ? 'Senior' : index % 3 === 1 ? 'Mid-level' : 'Entry-level',
+        required_skills: skillText.split(', '),
+        description: `Join SmartHire AI as a ${title} and help build the future of intelligent hiring.`,
+        featured: index < 3,
+        demo_source_id: source.job_id,
+      };
+    });
+  }, [jobs]);
+  const options = useMemo(() => ({
+    department: [...new Set(publicJobs.map((j) => j.department_name).filter(Boolean))],
+    company: [...new Set(publicJobs.map((j) => j.company_name).filter(Boolean))],
+    location: [...new Set(publicJobs.map((j) => j.location).filter(Boolean))],
+    employment: [...new Set(publicJobs.map((j) => j.employment_type).filter(Boolean))],
+    experience: [...new Set(publicJobs.map((j) => j.experience_level).filter(Boolean))],
+  }), [publicJobs]);
+  const filtered = useMemo(() => {
+    const term = text(query);
+    const result = publicJobs.filter((job) => {
+      const haystack = [job.title, job.company_name, job.department_name, job.location, job.description, ...asArray(job.required_skills)].map(text).join(' ');
+      const salary = Number(job.salary_max ?? job.salary_min ?? 0);
+      const matchesSalary = filters.salary === 'all' || (filters.salary === 'under50' ? salary < 50000 : filters.salary === '50to100' ? salary >= 50000 && salary <= 100000 : salary > 100000);
+      const matchesMode = filters.workMode === 'all' || (filters.workMode === 'remote' ? job.remote_option : text(job.location).includes(filters.workMode));
+      return (!term || haystack.includes(term)) && (filters.department === 'all' || text(job.department_name) === filters.department) && (filters.company === 'all' || text(job.company_name) === filters.company) && (filters.location === 'all' || text(job.location) === filters.location) && (filters.employment === 'all' || text(job.employment_type) === filters.employment) && (filters.experience === 'all' || text(job.experience_level) === filters.experience) && matchesMode && matchesSalary && (filters.status === 'all' || text(job.status) === filters.status);
+    }).sort((a, b) => filters.sort === 'salary' ? Number(b.salary_max || 0) - Number(a.salary_max || 0) : filters.sort === 'deadline' ? new Date(a.deadline || '9999').getTime() - new Date(b.deadline || '9999').getTime() : new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+    return result;
+  }, [filters, publicJobs, query]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageJobs = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const activeFilters = Object.entries(filters).filter(([key, value]) => value !== 'all' && key !== 'sort');
+  const isCandidateUser = String(user?.role_name || user?.role).toLowerCase() === 'candidate';
+  const stats = { open: publicJobs.length, companies: new Set(publicJobs.map((j) => j.company_name).filter(Boolean)).size, departments: new Set(publicJobs.map((j) => j.department_name).filter(Boolean)).size, applications: publicJobs.reduce((sum, j) => sum + Number(j.applicants_count || j.applicants || 0), 0) };
+  const clearFilters = () => { setQuery(''); setFilters({ department: 'all', company: 'all', location: 'all', employment: 'all', experience: 'all', workMode: 'all', salary: 'all', status: 'all', sort: 'recent' }); };
+  const isSaved = (id) => savedJobs.some((item) => String(item.job_id) === String(id));
+  const toggleSave = (job) => { if (!isCandidateUser) { navigate(`/candidate/login?returnTo=${encodeURIComponent('/jobs')}`); return; } const saved = savedJobs.find((item) => String(item.job_id) === String(job.job_id)); dispatch(saved ? removeSavedJob(job.job_id) : saveJob(job.job_id)); };
+  const select = (key, title, values) => <select value={filters[key]} onChange={(e) => setFilters((current) => ({ ...current, [key]: e.target.value }))} className="box-border h-14 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition hover:border-blue-200 hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100" aria-label={title}><option value="all">{title}</option>{values.map((item) => <option key={item} value={text(item)}>{item}</option>)}</select>;
 
   return (
-    <div className="space-y-6 pb-10">
-      <div className="flex flex-col gap-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Talent marketplace</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Explore opportunities</h1>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Button as={Link} to="/jobs/new" variant="primary" className="hidden md:inline-flex">
-            Post a role
-          </Button>
-          <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 p-1">
-            <button
-              type="button"
-              onClick={() => setViewMode('grid')}
-              className={`rounded-xl p-2 ${viewMode === 'grid' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}
-              aria-label="Use grid view"
-            >
-              <Grid2x2 className="h-4 w-4" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('list')}
-              className={`rounded-xl p-2 ${viewMode === 'list' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}
-              aria-label="Use list view"
-            >
-              <List className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <JobFilters
-          filters={filters}
-          onChange={(key, value) => setFilters((current) => ({ ...current, [key]: value }))}
-          categories={categorySeeds.map((name, index) => ({ category_id: index + 1, name }))}
-          departments={departmentSeeds.map((name, index) => ({ department_id: index + 1, name }))}
-          onReset={() => {
-            setFilters(defaultFilters);
-            setSearch('');
-          }}
-        />
-
-        <div className="space-y-5">
-          <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
-            <div className="flex-1">
-              <SearchBar value={search} onChange={setSearch} />
+    <div className="min-h-screen bg-[#f6f8fb] px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1500px] space-y-6">
+        <section className="relative overflow-hidden rounded-[24px] border border-blue-100 bg-white px-6 py-10 shadow-[0_18px_50px_rgba(37,99,235,0.08)] sm:px-10 lg:py-12">
+          <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-blue-100/70 blur-3xl" />
+          <div className="relative grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-blue-600">SmartHire AI marketplace</p>
+              <h1 className="mt-4 max-w-2xl text-4xl font-bold tracking-[-0.06em] text-slate-950 sm:text-6xl">Find your next opportunity.</h1>
+              <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">Discover AI-powered career opportunities from top companies.</p>
+              <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[[BriefcaseBusiness, 'Open Jobs', stats.open, 'text-blue-600', 'bg-blue-50'], [Building2, 'Companies', stats.companies, 'text-violet-600', 'bg-violet-50'], [SlidersHorizontal, 'Departments', stats.departments, 'text-emerald-600', 'bg-emerald-50'], [Users, 'Applications', stats.applications, 'text-amber-600', 'bg-amber-50']].map(([Icon, name, value, iconColor, iconBg]) => <div key={name} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><span className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${iconBg} ${iconColor}`}><Icon className="h-4 w-4" /></span><p className="mt-3 text-2xl font-bold tracking-tight text-slate-950">{value}</p><p className="mt-1 text-xs font-semibold text-slate-500">{name}</p></div>)}
+              </div>
             </div>
-            <div className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 sm:flex">
-              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
-              {filteredJobs.length} results
+            <div className="relative mx-auto flex min-h-[250px] w-full max-w-md items-center justify-center overflow-hidden rounded-[24px] border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-6">
+              <div className="absolute h-44 w-44 rounded-full bg-blue-200/50 blur-2xl" />
+              <div className="relative w-full max-w-[270px] rotate-[-3deg] rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_35px_rgba(37,99,235,0.14)]"><div className="flex items-center gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950 text-white"><Sparkles className="h-5 w-5" /></div><div className="flex-1 space-y-2"><div className="h-2.5 w-24 rounded-full bg-slate-200" /><div className="h-2 w-16 rounded-full bg-blue-100" /></div></div><div className="mt-5 space-y-3"><div className="rounded-xl bg-blue-50 p-3"><div className="h-2 w-28 rounded-full bg-blue-200" /><div className="mt-2 h-2 w-40 rounded-full bg-white" /></div><div className="flex gap-2"><span className="h-7 flex-1 rounded-lg bg-slate-100" /><span className="h-7 w-16 rounded-lg bg-emerald-100" /></div></div></div>
+              <span className="absolute right-8 top-8 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-emerald-700 shadow-md">98% match</span><span className="absolute bottom-8 left-8 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-blue-700 shadow-md">AI screened</span>
             </div>
           </div>
-
-          {currentPageItems.length === 0 ? (
-            <EmptyState
-              title="No roles match your filters"
-              description="Try broadening the search terms or clearing filters to see more opportunities."
-              action={(
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => {
-                    setFilters(defaultFilters);
-                    setSearch('');
-                  }}
-                >
-                  Clear filters
-                </Button>
-              )}
-            />
-          ) : (
-            <div className={viewMode === 'grid' ? 'grid gap-5 xl:grid-cols-2' : 'space-y-4'}>
-              {currentPageItems.map((job) => (
-                <JobCard
-                  key={job.job_id}
-                  job={job}
-                  isSaved={savedJobIds.has(String(job.job_id))}
-                  onSave={handleSave}
-                  onApply={handleApply}
-                />
-              ))}
-            </div>
-          )}
-
-          <Pagination page={page} totalPages={Math.max(1, Math.ceil(filteredJobs.length / 6))} onPageChange={setPage} />
+        </section>
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_290px]">
+          <main className="min-w-0 space-y-5">
+            <section className="sticky top-3 z-10 overflow-hidden rounded-[20px] border border-slate-200 bg-white/95 p-5 shadow-[0_12px_35px_rgba(15,23,42,0.07)] backdrop-blur">
+              <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(170px,1fr))] min-[1440px]:grid-cols-[2fr_repeat(8,minmax(140px,1fr))]">
+                <div className="relative min-w-0 w-full"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input className="box-border h-14 w-full min-w-0 rounded-2xl pl-9" placeholder="Search jobs, skills or companies" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
+                {select('department', 'Department', options.department)}{select('company', 'Company', options.company)}{select('location', 'Location', options.location)}{select('employment', 'Employment type', options.employment)}{select('experience', 'Experience', options.experience)}{select('workMode', 'Work mode', ['remote', 'hybrid', 'on-site'])}
+                <select value={filters.salary} onChange={(e) => setFilters((c) => ({ ...c, salary: e.target.value }))} className="box-border h-14 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm transition hover:border-blue-200 hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100"><option value="all">Any salary</option><option value="under50">Under $50k</option><option value="50to100">$50k-$100k</option><option value="over100">$100k+</option></select>
+                <select value={filters.sort} onChange={(e) => setFilters((c) => ({ ...c, sort: e.target.value }))} className="box-border h-14 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm transition hover:border-blue-200 hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100"><option value="recent">Sort: Recent</option><option value="salary">Sort: Salary</option><option value="deadline">Sort: Deadline</option></select>
+              </div>
+              {activeFilters.length || query ? <div className="mt-3 flex flex-wrap items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-slate-400" />{query ? <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">Search: {query}<button type="button" onClick={() => setQuery('')} className="ml-2"><X className="inline h-3 w-3" /></button></span> : null}{activeFilters.map(([key, value]) => <span key={key} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{key}: {value}</span>)}<button type="button" onClick={clearFilters} className="ml-auto text-xs font-bold text-blue-600 hover:underline">Clear filters</button></div> : null}
+            </section>
+            <div className="flex items-end justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.25em] text-slate-500">Open roles</p><h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-slate-950">{filtered.length} opportunities</h2></div><p className="text-sm text-slate-500">Showing {filtered.length ? (page - 1) * PAGE_SIZE + 1 : 0}-{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}</p></div>
+            {state.status === 'loading' && !jobs.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{[1, 2, 3, 4, 5, 6].map((item) => <SkeletonCard key={item} />)}</div> : state.error && !jobs.length ? <ErrorState title="Unable to load jobs" description={state.error} onRetry={() => dispatch(fetchJobs())} /> : pageJobs.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{pageJobs.map((job) => <JobCard key={job.display_id || job.job_id} job={job} saved={isSaved(job.job_id)} showAiMatch={isCandidateUser} onSave={() => toggleSave(job)} />)}</div> : <EmptyState title="No jobs available" description="Try changing your search or filters. New opportunities will appear here when companies publish them." action={<Button as={Link} to="/candidate/register" variant="primary">Create Job Alert</Button>} />}
+            {pageCount > 1 ? <nav className="flex items-center justify-center gap-2 pt-3" aria-label="Jobs pagination"><Button size="sm" variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}><ChevronLeft className="h-4 w-4" />Previous</Button>{Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => <button type="button" key={number} onClick={() => setPage(number)} className={`h-9 w-9 rounded-xl text-sm font-bold ${number === page ? 'bg-slate-950 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'}`}>{number}</button>)}<Button size="sm" variant="secondary" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>Next<ChevronRight className="h-4 w-4" /></Button></nav> : null}
+          </main>
+          <aside className="hidden space-y-4 xl:block">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5"><h3 className="font-bold text-slate-950">Top Companies</h3><div className="mt-4 space-y-3">{options.company.slice(0, 5).map((item) => <p key={item} className="flex items-center gap-2 text-sm text-slate-600"><Building2 className="h-4 w-4 text-blue-600" />{item}</p>)}{!options.company.length ? <p className="text-sm text-slate-500">No company data available.</p> : null}</div></div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5"><h3 className="font-bold text-slate-950">Popular Skills</h3><div className="mt-4 flex flex-wrap gap-2">{[...new Set(publicJobs.flatMap((job) => asArray(job.required_skills)))].slice(0, 12).map((skill) => <span key={skill} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{skill}</span>)}</div></div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5"><h3 className="font-bold text-slate-950">Recently Posted</h3><div className="mt-4 space-y-3">{publicJobs.slice(0, 4).map((job) => <Link key={job.job_id} to={`/jobs/${job.job_id}`} className="block text-sm font-semibold text-slate-700 hover:text-blue-600"><Clock3 className="mr-2 inline h-3.5 w-3.5 text-blue-600" />{job.title}</Link>)}</div></div>
+            <div className="rounded-2xl bg-blue-600 p-5 text-white"><h3 className="font-bold">Career Tips</h3><p className="mt-2 text-sm leading-6 text-blue-100">Keep your resume current and tailor your skills to each role.</p></div>
+          </aside>
         </div>
       </div>
-
-      <ApplyModal
-        open={Boolean(selectedJob)}
-        job={selectedJob}
-        onClose={() => setSelectedJob(null)}
-        onConfirm={confirmApply}
-        submitting={Boolean(applyingJobId)}
-      />
     </div>
   );
 }

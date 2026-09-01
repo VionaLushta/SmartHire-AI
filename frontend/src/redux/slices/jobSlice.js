@@ -7,10 +7,13 @@ import { jobService } from '../../services/jobService';
 import { jobSkillService } from '../../services/jobSkillService';
 import { savedJobService } from '../../services/savedJobService';
 import { unwrapItems, unwrapResponse } from '../../utils/dashboard';
+import { PLATFORM_ORGANIZATION_NAME } from '../../constants/app';
 
 const initialState = {
   items: [],
   selectedJob: null,
+  selectedJobStatus: 'idle',
+  selectedJobError: null,
   savedJobs: [],
   totalItems: 0,
   totalPages: 0,
@@ -22,11 +25,23 @@ const initialState = {
   error: null,
 };
 
+function asArray(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.results)) return value.results;
+  if (Array.isArray(value?.jobs)) return value.jobs;
+  if (Array.isArray(value?.data)) return value.data;
+  return [];
+}
+
 function normalizeJob(job = {}) {
   return {
     ...job,
     job_id: job.job_id ?? job.id ?? null,
     title: job.title ?? 'Position',
+    description: job.description ?? '',
+    responsibilities: job.responsibilities ?? '',
+    requirements: job.requirements ?? '',
     company_name: job.company_name ?? job.company?.name ?? PLATFORM_ORGANIZATION_NAME,
     department_name: job.department_name ?? job.department?.name ?? 'General',
     location: job.location ?? 'Remote',
@@ -34,7 +49,7 @@ function normalizeJob(job = {}) {
     experience_level: job.experience_level ?? 'Mid',
     salary_min: job.salary_min ?? null,
     salary_max: job.salary_max ?? null,
-    category_ids: Array.isArray(job.category_ids) ? job.category_ids : [],
+    category_ids: asArray(job.category_ids),
     required_skills: Array.isArray(job.required_skills) ? job.required_skills : [],
     optional_skills: Array.isArray(job.optional_skills) ? job.optional_skills : [],
     skills: Array.isArray(job.skills) ? job.skills : [],
@@ -42,21 +57,25 @@ function normalizeJob(job = {}) {
 }
 
 async function enrichJob(job) {
+  const categoryIds = asArray(job.category_ids);
   const [companyResult, departmentResult, categoryResults] = await Promise.allSettled([
     job.company_id ? companyService.detail(job.company_id) : Promise.resolve(null),
     job.department_id ? departmentService.detail(job.department_id) : Promise.resolve(null),
-    job.category_ids?.length
-      ? Promise.all(job.category_ids.map((id) => jobCategoryService.detail(id)))
+    categoryIds.length
+      ? Promise.all(categoryIds.map((id) => jobCategoryService.detail(id)))
       : Promise.resolve([]),
   ]);
   const skillResult = job.job_id ? await jobSkillService.list(job.job_id).catch(() => null) : null;
 
   const company = unwrapResponse(companyResult.status === 'fulfilled' ? companyResult.value : null);
   const department = unwrapResponse(departmentResult.status === 'fulfilled' ? departmentResult.value : null);
-  const categories = (categoryResults || []).map((item) => unwrapResponse(item.status === 'fulfilled' ? item.value : null)).filter(Boolean);
-  const skillPayload = unwrapResponse(skillResult);
-  const requiredSkills = skillPayload?.required_skills || [];
-  const optionalSkills = skillPayload?.optional_skills || [];
+  const categoryResponses = categoryResults?.status === 'fulfilled' ? categoryResults.value : [];
+  const categories = asArray(categoryResponses)
+    .map((item) => unwrapResponse(item))
+    .filter(Boolean);
+  const skillPayload = unwrapResponse(skillResult) || {};
+  const requiredSkills = asArray(skillPayload.required_skills);
+  const optionalSkills = asArray(skillPayload.optional_skills);
 
   return normalizeJob({
     ...job,
@@ -77,10 +96,10 @@ export const fetchJobs = createAsyncThunk(
   'jobs/fetchJobs',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await jobService.list();
+      const response = await jobService.list({ page_size: 100 });
       const payload = unwrapResponse(response) || {};
-      const items = unwrapItems(response);
-      const enriched = await Promise.all(items.map((job) => enrichJob(job)));
+      const items = asArray(unwrapItems(response));
+      const enriched = await Promise.all(asArray(items).map((job) => enrichJob(job)));
       return {
         items: enriched,
         totalItems: payload.total_items ?? enriched.length,
@@ -109,10 +128,15 @@ export const fetchJobById = createAsyncThunk(
 
 export const createJob = createAsyncThunk(
   'jobs/createJob',
-  async (payload, { rejectWithValue }) => {
+  async (payload, { rejectWithValue, dispatch }) => {
     try {
       const response = await jobService.create(payload);
-      return normalizeJob(await enrichJob(unwrapResponse(response)));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('jobs:changed'));
+      }
+      const createdJob = normalizeJob(await enrichJob(unwrapResponse(response)));
+      dispatch(fetchJobs());
+      return createdJob;
     } catch (error) {
       return rejectWithValue(error?.response?.data?.detail || error?.message || 'Unable to create the job.');
     }
@@ -121,10 +145,15 @@ export const createJob = createAsyncThunk(
 
 export const updateJob = createAsyncThunk(
   'jobs/updateJob',
-  async ({ jobId, payload }, { rejectWithValue }) => {
+  async ({ jobId, payload }, { rejectWithValue, dispatch }) => {
     try {
       const response = await jobService.update(jobId, payload);
-      return normalizeJob(await enrichJob(unwrapResponse(response)));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('jobs:changed'));
+      }
+      const updatedJob = normalizeJob(await enrichJob(unwrapResponse(response)));
+      dispatch(fetchJobs());
+      return updatedJob;
     } catch (error) {
       return rejectWithValue(error?.response?.data?.detail || error?.message || 'Unable to update the job.');
     }
@@ -133,9 +162,13 @@ export const updateJob = createAsyncThunk(
 
 export const deleteJob = createAsyncThunk(
   'jobs/deleteJob',
-  async (jobId, { rejectWithValue }) => {
+  async (jobId, { rejectWithValue, dispatch }) => {
     try {
       await jobService.remove(jobId);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('jobs:changed'));
+      }
+      dispatch(fetchJobs());
       return jobId;
     } catch (error) {
       return rejectWithValue(error?.response?.data?.detail || error?.message || 'Unable to delete the job.');
@@ -150,7 +183,7 @@ export const fetchSavedJobs = createAsyncThunk(
       const response = await savedJobService.list();
       const items = unwrapItems(response);
       const enriched = await Promise.all(
-        items.map(async (savedJob) => {
+        asArray(items).map(async (savedJob) => {
           if (!savedJob.job_id) return savedJob;
           const job = await jobService.detail(savedJob.job_id).catch(() => null);
           const detail = unwrapResponse(job);
@@ -218,6 +251,8 @@ const jobSlice = createSlice({
     },
     clearSelectedJob(state) {
       state.selectedJob = null;
+      state.selectedJobStatus = 'idle';
+      state.selectedJobError = null;
     },
   },
   extraReducers: (builder) => {
@@ -238,8 +273,19 @@ const jobSlice = createSlice({
         state.status = 'failed';
         state.error = action.payload || 'Unable to load jobs.';
       })
+      .addCase(fetchJobById.pending, (state) => {
+        state.selectedJobStatus = 'loading';
+        state.selectedJobError = null;
+      })
       .addCase(fetchJobById.fulfilled, (state, action) => {
         state.selectedJob = action.payload;
+        state.selectedJobStatus = 'succeeded';
+        state.selectedJobError = null;
+      })
+      .addCase(fetchJobById.rejected, (state, action) => {
+        state.selectedJob = null;
+        state.selectedJobStatus = 'failed';
+        state.selectedJobError = action.payload || 'Unable to load job details.';
       })
       .addCase(fetchSavedJobs.fulfilled, (state, action) => {
         state.savedJobs = action.payload;
@@ -277,4 +323,3 @@ const jobSlice = createSlice({
 export const { clearJobError, setJobPage, clearSelectedJob } = jobSlice.actions;
 
 export default jobSlice.reducer;
-import { PLATFORM_ORGANIZATION_NAME } from '../../constants/app';

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import AuthCard from '../../components/auth/AuthCard';
 import AuthHeader from '../../components/auth/AuthHeader';
@@ -12,32 +12,39 @@ export default function VerifyEmailPage() {
   const token = searchParams.get('token') || '';
   const [status, setStatus] = useState('loading');
   const [errorMessage, setErrorMessage] = useState('');
+  const verificationRequest = useRef(null);
 
   useEffect(() => {
     let active = true;
 
-    async function verify() {
-      if (!token) {
-        if (active) {
-          setStatus('failed');
-          setErrorMessage('The verification link is missing its token.');
-        }
-        return;
-      }
+    if (!token) {
+      setStatus('failed');
+      setErrorMessage('The verification link is missing its token.');
+      return () => {
+        active = false;
+      };
+    }
 
-      try {
-        await authService.verifyEmail(token);
+    // StrictMode runs this effect twice in development. Share one request so
+    // the single-use token is consumed once while the active effect gets the result.
+    if (!verificationRequest.current || verificationRequest.current.token !== token) {
+      verificationRequest.current = {
+        token,
+        promise: authService.verifyEmail(token),
+      };
+    }
+
+    verificationRequest.current.promise
+      .then(() => {
         if (!active) return;
         setStatus('succeeded');
-        window.setTimeout(() => navigate('/email-verification-success', { replace: true }), 1200);
-      } catch (requestError) {
+        window.setTimeout(() => navigate('/candidate/email-verification-success', { replace: true }), 1200);
+      })
+      .catch((requestError) => {
         if (!active) return;
         setStatus('failed');
         setErrorMessage(requestError?.response?.data?.detail || requestError.message || 'Verification failed.');
-      }
-    }
-
-    verify();
+      });
 
     return () => {
       active = false;
@@ -69,7 +76,7 @@ export default function VerifyEmailPage() {
           <FormError>{errorMessage}</FormError>
 
           {status === 'failed' ? (
-            <Button as={Link} to="/login" variant="primary" size="lg" className="w-full">
+            <Button as={Link} to="/candidate/login" variant="primary" size="lg" className="w-full">
               Return to Login
             </Button>
           ) : null}

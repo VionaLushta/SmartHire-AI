@@ -81,6 +81,24 @@ export default function CandidateDashboard() {
     }
   }, [candidateId, dispatch, status]);
 
+  useEffect(() => {
+    if (!candidateId) return undefined;
+    const refresh = () => dispatch(loadCandidateDashboard({ candidateId }));
+    const timer = window.setInterval(refresh, 15000);
+    return () => window.clearInterval(timer);
+  }, [candidateId, dispatch]);
+
+  useEffect(() => {
+    const handleJobsChanged = () => {
+      if (candidateId) {
+        dispatch(loadCandidateDashboard({ candidateId }));
+      }
+    };
+
+    window.addEventListener('jobs:changed', handleJobsChanged);
+    return () => window.removeEventListener('jobs:changed', handleJobsChanged);
+  }, [candidateId, dispatch]);
+
   const identity = profile || user || {};
   const displayName = getDisplayName(identity);
 

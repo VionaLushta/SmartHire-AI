@@ -22,6 +22,9 @@ from app.schemas.skills import (
     JobSkillCoverageStat,
     JobSkillUpdateRequest,
     JobSkillUpsertRequest,
+    SkillLibraryGroup,
+    SkillLibraryItem,
+    SkillLibraryResponse,
     SkillAnalyticsResponse,
     SkillEvaluationItem,
     SkillStatPoint,
@@ -43,7 +46,7 @@ class JobSkillService:
         self.dashboard_repo = JobDashboardRepository(db)
 
     def get_job_skills(
-        self, job_id: int, current_user: CurrentUserResponse
+        self, job_id: int, current_user: CurrentUserResponse | None
     ) -> JobSkillGroupResponse:
         job = self._get_job_or_404(job_id)
         self._assert_job_access(job, current_user)
@@ -54,6 +57,39 @@ class JobSkillService:
             optional_skills=[JobSkillRead.model_validate(row) for row in groups["optional_skills"]],
         )
 
+    def get_skill_library(self) -> SkillLibraryResponse:
+        rows = self.repo.list_skills()
+        grouped: dict[str, list[SkillLibraryItem]] = defaultdict(list)
+        for row in rows:
+            category = str(row.get("category") or "Uncategorized")
+            grouped[category].append(SkillLibraryItem.model_validate(row))
+
+        ordered_categories: list[SkillLibraryGroup] = []
+        for category in self._skill_category_order():
+            if category not in grouped:
+                continue
+            ordered_categories.append(
+                SkillLibraryGroup(
+                    category=category,
+                    skills=sorted(
+                        grouped.pop(category), key=lambda skill: skill.name.casefold()
+                    ),
+                )
+            )
+
+        for category in sorted(grouped, key=str.casefold):
+            ordered_categories.append(
+                SkillLibraryGroup(
+                    category=category,
+                    skills=sorted(
+                        grouped[category], key=lambda skill: skill.name.casefold()
+                    ),
+                )
+            )
+
+        total_skills = sum(len(group.skills) for group in ordered_categories)
+        return SkillLibraryResponse(total_skills=total_skills, categories=ordered_categories)
+
     def add_job_skill(
         self,
         job_id: int,
@@ -62,6 +98,11 @@ class JobSkillService:
     ) -> JobSkillRead:
         job = self._get_job_or_404(job_id)
         self._assert_job_access(job, current_user)
+        if not payload.category:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Skill category is required.",
+            )
         result = self.repo.create_or_update_job_skill(
             job_id,
             name=payload.name,
@@ -253,6 +294,9 @@ class JobSkillService:
             optional_skills_coverage=self._coverage_points(optional_coverage),
         )
 
+    def seed_skill_library(self) -> int:
+        return self.repo.seed_skill_library()
+
     def _application_rows(self) -> list[dict]:
         statement = (
             select(
@@ -331,7 +375,25 @@ class JobSkillService:
             )
         return job
 
-    def _assert_job_access(self, job: dict, current_user: CurrentUserResponse) -> None:
+    @staticmethod
+    def _skill_category_order() -> list[str]:
+        return [
+            "Backend",
+            "Frontend",
+            "Database",
+            "DevOps",
+            "Cloud",
+            "AI",
+            "Soft Skills",
+        ]
+
+    def _assert_job_access(
+        self, job: dict, current_user: CurrentUserResponse | None
+    ) -> None:
+        if current_user is None:
+            if job.get("status") in JobRepository.PUBLISHED_STATUSES or job.get("status") is None:
+                return
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")
         if current_user.role_name == "Admin":
             return
         if (
@@ -340,9 +402,9 @@ class JobSkillService:
             )
             is None
         ):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden."
-            )
+            if job.get("status") in JobRepository.PUBLISHED_STATUSES or job.get("status") is None:
+                return
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")
 
     @staticmethod
     def _average(values: list[float]) -> float:

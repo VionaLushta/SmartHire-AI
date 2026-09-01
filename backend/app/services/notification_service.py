@@ -27,6 +27,7 @@ from app.schemas.notification import (
     NotificationQuery,
     NotificationType,
 )
+from app.services.audit_log_service import record_audit_event
 
 logger = logging.getLogger("smarthire.performance")
 
@@ -69,6 +70,17 @@ class NotificationService:
             "is_system": is_system,
         }
         self._persist(self._load() + [payload])
+        record_audit_event(
+            self.db,
+            user_id=recipient_user_id,
+            user_role=recipient_role,
+            action="Notification Sent",
+            entity_type="Notification",
+            entity_id=payload["notification_id"],
+            description=title,
+            status="Success",
+            metadata=payload,
+        )
         return self._build_item(payload)
 
     def list_notifications(
@@ -124,6 +136,16 @@ class NotificationService:
         payload["read_status"] = True
         notifications[index] = payload
         self._persist(notifications)
+        record_audit_event(
+            self.db,
+            user_id=current_user.user_id,
+            user_role=str(current_user.role_name or "Unknown"),
+            action="Notification Read",
+            entity_type="Notification",
+            entity_id=str(notification_id),
+            description="Notification marked as read.",
+            status="Success",
+        )
         return self._build_item(payload)
 
     def mark_all_as_read(self, current_user: CurrentUserResponse) -> NotificationActionResponse:
@@ -134,6 +156,17 @@ class NotificationService:
                 payload["read_status"] = True
                 updated += 1
         self._persist(notifications)
+        record_audit_event(
+            self.db,
+            user_id=current_user.user_id,
+            user_role=str(current_user.role_name or "Unknown"),
+            action="Mark All Notifications Read",
+            entity_type="Notification",
+            entity_id=str(current_user.user_id),
+            description="All accessible notifications marked as read.",
+            status="Success",
+            metadata={"updated": updated},
+        )
         return NotificationActionResponse(updated=updated)
 
     def delete_notification(self, current_user: CurrentUserResponse, notification_id: UUID) -> None:
@@ -142,6 +175,16 @@ class NotificationService:
         self._assert_can_access_record(current_user, payload)
         notifications.pop(index)
         self._persist(notifications)
+        record_audit_event(
+            self.db,
+            user_id=current_user.user_id,
+            user_role=str(current_user.role_name or "Unknown"),
+            action="Notification Deleted",
+            entity_type="Notification",
+            entity_id=str(notification_id),
+            description="Notification deleted.",
+            status="Success",
+        )
 
     def latest_notifications(
         self,
@@ -349,4 +392,3 @@ class NotificationService:
                 return Path(str(configured)).expanduser().resolve()
             return Path("reports").resolve()
         return Path(report_root).expanduser().resolve()
-

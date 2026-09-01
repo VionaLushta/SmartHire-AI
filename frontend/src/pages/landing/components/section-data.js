@@ -32,7 +32,7 @@ export const features = [
     icon: Sparkles,
     title: 'AI Resume Matching',
     description: 'Turn resumes into clear fit signals at a glance.',
-    to: '/register',
+    to: '/candidate/register',
   },
   {
     icon: BarChart3,
@@ -316,9 +316,9 @@ export const employeeTestimonials = [
 ];
 
 export const trustedTechLogos = [
-  { name: 'Gjirafa', src: '/brand-logos/gjirafa.svg', className: 'h-7' },
-  { name: 'TEB Kosovo', src: '/brand-logos/teb.svg', className: 'h-7' },
-  { name: 'ONE FOR', src: '/brand-logos/onefor.svg', className: 'h-7' },
-  { name: 'IPKO', src: '/brand-logos/ipko.png', className: 'h-8' },
-  { name: 'Fourteen', src: '/brand-logos/fourteen.png', className: 'h-7' },
+  { name: 'Gjirafa', src: '/brand-logos/gjirafa.svg' },
+  { name: 'TEB', src: '/brand-logos/teb.svg' },
+  { name: 'One For', src: '/brand-logos/onefor.svg' },
+  { name: 'IPKO', src: '/brand-logos/ipko.png' },
+  { name: 'Tectigon Academy', src: '/brand-logos/tectigon-apple-icon.png' },
 ];

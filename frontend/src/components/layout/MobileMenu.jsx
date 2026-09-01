@@ -15,7 +15,7 @@ export default function MobileMenu({ open, onClose, items = [], title = 'Menu' }
     event.preventDefault();
     await dispatch(logoutUser());
     onClose?.();
-    window.location.assign('/login');
+    window.location.assign('/candidate/login');
   };
 
   return (

@@ -20,12 +20,33 @@ export const bootstrapAuth = createAsyncThunk(
   'auth/bootstrap',
   async (_, { rejectWithValue }) => {
     try {
+      const storedAuth = readStoredAuth();
       const response = await authService.me();
       const normalized = normalizeAuthResponse(response);
+      let token = normalized.token ?? storedAuth?.token ?? null;
+      let refreshToken = normalized.refreshToken ?? storedAuth?.refreshToken ?? null;
+      let user = normalized.user ?? null;
+
+      if (!token) {
+        try {
+          const refreshResponse = await authService.refresh({
+            remember_me: storedAuth?.rememberMe ?? true,
+          });
+          const refreshed = normalizeAuthResponse(refreshResponse);
+          token = refreshed.token ?? token;
+          refreshToken = refreshed.refreshToken ?? refreshToken;
+          user = refreshed.user ?? user;
+        } catch {
+          // Cookie-based sessions may still be valid even if refresh is unavailable.
+        }
+      }
+
       return {
         ...normalized,
-        token: normalized.token ?? persistedAuth?.token ?? null,
-        rememberMe: persistedAuth?.rememberMe ?? true,
+        user,
+        token,
+        refreshToken,
+        rememberMe: storedAuth?.rememberMe ?? true,
       };
     } catch (error) {
       clearStoredAuth();
@@ -38,7 +59,9 @@ export const loginUser = createAsyncThunk(
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
-      const response = await authService.login(credentials);
+      const response = await (credentials.authMode === 'admin'
+        ? authService.adminLogin(credentials)
+        : authService.login(credentials));
       return {
         ...normalizeAuthResponse(response),
         rememberMe: Boolean(credentials.rememberMe ?? credentials.remember_me),
