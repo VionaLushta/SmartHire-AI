@@ -372,6 +372,22 @@ class AuthenticationService:
                 detail="Invalid or expired verification token.",
             )
         user_uuid = uuid.UUID(str(record["user_id"]))
+        user = self.repo.get_user_by_id(user_uuid)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found."
+            )
+
+        # A browser retry or page refresh must not turn a successful verification
+        # into an error after the one-time token has already been consumed.
+        if record.get("used_at") is not None:
+            if user.get("email_verified_at") is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid or expired verification token.",
+                )
+            return CurrentUserResponse.model_validate(user)
+
         updated = self.repo.update_user(user_uuid, email_verified_at=datetime.now(timezone.utc))
         self.repo.mark_email_verification_token_used(token_hash)
         if updated is None:

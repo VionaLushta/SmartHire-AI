@@ -461,3 +461,24 @@ MIT
 ## Author
 
 SmartHire AI Contributors
+
+## Manual Startup Script
+
+Make sure PostgreSQL is running, then open two PowerShell terminals from the project root (`SmartHire-AI`).
+
+### Terminal 1: Backend
+
+```powershell
+Set-Location .\backend
+.\.venv\Scripts\Activate.ps1
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+### Terminal 2: Frontend
+
+```powershell
+Set-Location .\frontend
+npm run dev -- --host 127.0.0.1 --port 5173
+```
+
+Open the app at `http://127.0.0.1:5173`.

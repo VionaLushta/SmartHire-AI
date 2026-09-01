@@ -5,7 +5,11 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import sessionmaker
 
+from app.database.database import get_db
+from app.main import app
 from app.core.security import hash_password
 from app.models.role import Role
 from app.schemas.auth import (
@@ -108,6 +112,10 @@ def test_register_login_verify_and_refresh_flow(test_db):
     assert verified.is_verified is True
     assert any(call[0] == "welcome" for call in mailer.calls)
 
+    verified_again = service.verify_email(verification_token)
+    assert verified_again.email == "ava.stone@example.com"
+    assert len([call for call in mailer.calls if call[0] == "welcome"]) == 1
+
     login = service.login(
         LoginRequest(
             email="ava.stone@example.com",
@@ -126,6 +134,52 @@ def test_register_login_verify_and_refresh_flow(test_db):
     assert rotated.access_token
     assert rotated.refresh_token
     assert rotated.redirect_to == "/candidate/dashboard"
+
+
+def test_verify_email_endpoint_returns_json_without_redirect(test_db, monkeypatch):
+    service, mailer = build_service(test_db)
+    service.register(
+        RegisterRequest(
+            first_name="API",
+            last_name="User",
+            phone="+1 555 013 2048",
+            email="api.verify@example.com",
+            password="Password1",
+            role_name="Candidate",
+            accept_terms=True,
+        )
+    )
+    verification_url = mailer.calls[0][2]
+    verification_token = parse_qs(urlparse(verification_url).query)["token"][0]
+    request_session = sessionmaker(bind=test_db.get_bind())()
+    monkeypatch.setattr(
+        "app.services.auth_service.AuthenticationService._deliver_welcome_email",
+        lambda *_args, **_kwargs: None,
+    )
+    app.dependency_overrides[get_db] = lambda: request_session
+
+    try:
+        with TestClient(app) as client:
+            response = client.get(
+                "/auth/verify-email",
+                params={"token": verification_token},
+                follow_redirects=False,
+            )
+            assert response.status_code == 200
+            assert "location" not in response.headers
+            assert response.json()["email"] == "api.verify@example.com"
+            assert response.json()["email_verified_at"] is not None
+
+            retry_response = client.get(
+                "/auth/verify-email",
+                params={"token": verification_token},
+                follow_redirects=False,
+            )
+            assert retry_response.status_code == 200
+            assert retry_response.json()["email"] == "api.verify@example.com"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        request_session.close()
 
 
 def test_admin_registration_is_rejected(test_db):

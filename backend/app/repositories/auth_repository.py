@@ -330,7 +330,6 @@ class AuthRepository:
             self.db.execute(
                 select(EmailVerificationToken.__table__).where(
                     EmailVerificationToken.__table__.c.token_hash == token_hash,
-                    EmailVerificationToken.__table__.c.used_at.is_(None),
                     EmailVerificationToken.__table__.c.expires_at > datetime.now(timezone.utc),
                 )
             )

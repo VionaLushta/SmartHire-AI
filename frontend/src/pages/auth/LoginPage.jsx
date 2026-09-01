@@ -36,6 +36,15 @@ export default function LoginPage({ authMode = 'candidate' }) {
           </div>
 
           <LoginForm authMode={authMode} />
+          <div className="text-center text-sm text-slate-500">
+            {isAdmin ? 'Signing in as a candidate?' : 'Signing in as an administrator?'}{' '}
+            <Link
+              to={isAdmin ? '/candidate/login' : '/admin/login'}
+              className="font-semibold text-[#1d4ed8] underline-offset-4 hover:underline"
+            >
+              {isAdmin ? 'Go to Candidate Login' : 'Go to Admin Login'}
+            </Link>
+          </div>
           {!isAdmin ? <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-center">
             <p className="text-sm text-slate-600">Don't have an account?</p>
             <Link

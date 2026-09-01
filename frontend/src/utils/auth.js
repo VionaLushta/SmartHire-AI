@@ -37,6 +37,7 @@ export function normalizeAuthResponse(payload) {
     token: data?.access_token ?? data?.accessToken ?? data?.token ?? null,
     refreshToken: data?.refresh_token ?? data?.refreshToken ?? null,
     rememberMe: data?.remember_me ?? data?.rememberMe ?? null,
+    requires_verification: Boolean(data?.requires_verification ?? data?.requiresVerification),
     raw: data,
   };
 }

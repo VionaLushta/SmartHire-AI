@@ -277,19 +277,16 @@ def change_candidate_password(
 
 @router.get(
     "/verify-email",
+    response_model=CurrentUserResponse,
     summary="Verify a user email address",
 )
 def verify_email(
     token: str,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-) -> RedirectResponse:
+) -> CurrentUserResponse:
     service = AuthenticationService(db, background_tasks=background_tasks)
-    user = service.verify_email(token)
-    redirect_url = get_settings().frontend_url.rstrip("/") + "/candidate/email-verification-success"
-    if user.role_name == "Company":
-        redirect_url += "?role=company"
-    return RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
+    return service.verify_email(token)
 
 
 @router.get(
