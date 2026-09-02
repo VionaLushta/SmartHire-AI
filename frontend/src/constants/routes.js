@@ -27,6 +27,7 @@ export const ROUTES = {
   adminCompanies: '/admin/companies',
   adminJobs: '/admin/jobs',
   adminApplications: '/admin/applications',
+  adminMessages: '/admin/messages',
   adminCatalog: '/admin/catalog',
   adminAnalytics: '/admin/analytics',
   adminReports: '/admin/reports',

@@ -4,7 +4,7 @@ from sqlalchemy import delete, insert, select, update
 from sqlalchemy.orm import Session
 
 from app.models.company_user import CompanyUser
-from app.models.job import Department
+from app.models.job import Department, Job
 from app.schemas.department import DepartmentCreate, DepartmentUpdate
 
 
@@ -72,6 +72,13 @@ class DepartmentRepository:
         return dict(row) if row is not None else None
 
     def delete(self, department_id: int) -> bool:
+        # Keep published jobs when their department is removed; an unassigned job
+        # remains visible and can be assigned to another department later.
+        self.db.execute(
+            update(Job.__table__)
+            .where(Job.__table__.c.department_id == department_id)
+            .values(department_id=None)
+        )
         statement = delete(self._table()).where(
             self._table().c.department_id == department_id
         )

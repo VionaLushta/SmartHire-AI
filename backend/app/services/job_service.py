@@ -163,7 +163,7 @@ class JobService:
         self, job: dict, current_user: CurrentUserResponse | None
     ) -> None:
         if current_user is None:
-            if job.get("status") in self.repo.PUBLISHED_STATUSES or job.get("status") is None:
+            if self.repo.is_published(job.get("status")):
                 return
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")
 
@@ -173,6 +173,6 @@ class JobService:
         if role_name in {"company", "recruiter"}:
             if self.repo.get_company_for_user(job["company_id"], current_user.user_id) is not None:
                 return
-        if job.get("status") in self.repo.PUBLISHED_STATUSES or job.get("status") is None:
+        if self.repo.is_published(job.get("status")):
             return
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
@@ -8,6 +8,9 @@ import {
   NotebookPen,
   Sparkles,
   Target,
+  Download,
+  Trash2,
+  UploadCloud,
 } from 'lucide-react';
 import {
   Bar,
@@ -25,6 +28,7 @@ import {
   YAxis,
 } from 'recharts';
 import { loadCandidateDashboard, markAllNotificationsRead, markNotificationRead } from '../../redux/slices/candidateSlice';
+import { applyToJob, removeSavedJob, saveJob } from '../../redux/slices/jobSlice';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
 import LoadingState from '../../components/jobs/LoadingState';
@@ -38,7 +42,11 @@ import RecommendationCard from '../../components/dashboard/RecommendationCard';
 import ApplicationTable from '../../components/dashboard/ApplicationTable';
 import NotificationList from '../../components/dashboard/NotificationList';
 import InsightsPanel from '../../components/dashboard/InsightsPanel';
-import { clampPercent, formatDateShort, formatMetricPercent, getDisplayName } from '../../utils/dashboard';
+import { clampPercent, formatDateShort, formatMetricPercent, getDisplayName, unwrapItems } from '../../utils/dashboard';
+import { certificateService } from '../../services/certificateService';
+import { resumeService } from '../../services/resumeService';
+import { resumeAdvisorService } from '../../services/resumeAdvisorService';
+import { notificationService } from '../../services/notificationService';
 
 function MiniStat({ label, value, hint }) {
   return (
@@ -56,6 +64,16 @@ function formatResumeLabel(resume) {
   return fileName || `Resume #${resume.resume_id}`;
 }
 
+function formatUploadError(error, fallback) {
+  const detail = error?.response?.data?.detail;
+  if (detail) return detail;
+  const validationErrors = error?.response?.data?.errors;
+  if (Array.isArray(validationErrors) && validationErrors.length) {
+    return validationErrors.map((item) => `${item.loc?.join('.') || 'file'}: ${item.msg}`).join(', ');
+  }
+  return error?.message || fallback;
+}
+
 export default function CandidateDashboard() {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
@@ -67,6 +85,7 @@ export default function CandidateDashboard() {
     savedJobs,
     applications,
     resume,
+    resumeAnalysis,
     notifications,
     notificationReadIds,
     status,
@@ -74,6 +93,11 @@ export default function CandidateDashboard() {
   } = useSelector((state) => state.candidate);
 
   const candidateId = user?.user_id;
+  const [certificates, setCertificates] = useState([]);
+  const [documentError, setDocumentError] = useState('');
+  const [documentBusy, setDocumentBusy] = useState(false);
+  const [matchBusy, setMatchBusy] = useState(false);
+  const [matchError, setMatchError] = useState('');
 
   useEffect(() => {
     if (candidateId && status === 'idle') {
@@ -87,6 +111,131 @@ export default function CandidateDashboard() {
     const timer = window.setInterval(refresh, 15000);
     return () => window.clearInterval(timer);
   }, [candidateId, dispatch]);
+
+  useEffect(() => {
+    let active = true;
+    certificateService.list()
+      .then((response) => { if (active) setCertificates(unwrapItems(response)); })
+      .catch(() => { if (active) setDocumentError('Unable to load certificates.'); });
+    return () => { active = false; };
+  }, []);
+
+  async function refreshDashboard() {
+    if (candidateId) await dispatch(loadCandidateDashboard({ candidateId }));
+  }
+
+  async function handleSaveJob(jobId) {
+    const isSaved = savedJobs.some((job) => Number(job.job_id) === Number(jobId));
+    await dispatch(isSaved ? removeSavedJob(jobId) : saveJob(jobId));
+    await refreshDashboard();
+  }
+
+  async function handleQuickApply(jobId) {
+    await dispatch(applyToJob(jobId));
+    window.dispatchEvent(new CustomEvent('applications:changed'));
+    await refreshDashboard();
+  }
+
+  async function handleShowMatch() {
+    try {
+      setMatchBusy(true);
+      setMatchError('');
+      await resumeAdvisorService.regenerate();
+      await refreshDashboard();
+    } catch (matchRequestError) {
+      setMatchError(formatUploadError(matchRequestError, 'Unable to analyze this CV yet.'));
+    } finally {
+      setMatchBusy(false);
+    }
+  }
+
+  async function handleMarkNotificationRead(id) {
+    dispatch(markNotificationRead(id));
+    if (typeof id === 'number' || /^\d+$/.test(String(id))) {
+      await notificationService.markRead(id).catch(() => {});
+    }
+  }
+
+  async function handleMarkAllNotificationsRead() {
+    dispatch(markAllNotificationsRead());
+    await notificationService.markAllRead().catch(() => {});
+  }
+
+  async function handleResumeUpload(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      setDocumentBusy(true);
+      const form = new FormData();
+      form.append('file', file);
+      await resumeService.upload(form);
+      await refreshDashboard();
+      setDocumentError('');
+    } catch (uploadError) {
+      setDocumentError(formatUploadError(uploadError, 'Unable to upload the resume.'));
+    } finally {
+      setDocumentBusy(false);
+    }
+  }
+
+  async function handleCertificateUpload(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      setDocumentBusy(true);
+      const form = new FormData();
+      form.append('title', file.name.replace(/\.[^.]+$/, ''));
+      form.append('file', file);
+      await certificateService.create(form);
+      setCertificates(unwrapItems(await certificateService.list()));
+      await refreshDashboard();
+      setDocumentError('');
+    } catch (uploadError) {
+      setDocumentError(formatUploadError(uploadError, 'Unable to upload the certificate.'));
+    } finally {
+      setDocumentBusy(false);
+    }
+  }
+
+  async function handleResumeDelete() {
+    if (!resume?.resume_id) return;
+    try {
+      setDocumentBusy(true);
+      await resumeService.remove(resume.resume_id);
+      await refreshDashboard();
+      setDocumentError('');
+    } catch (deleteError) {
+      setDocumentError(deleteError?.response?.data?.detail || 'Unable to delete the resume.');
+    } finally {
+      setDocumentBusy(false);
+    }
+  }
+
+  async function downloadDocument(service, item, idKey, fallbackName) {
+    try {
+      const response = await service.download(item[idKey]);
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = item.file_path?.split(/[\\/]/).pop() || fallbackName;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (downloadError) {
+      setDocumentError(downloadError?.response?.data?.detail || 'Unable to download the file.');
+    }
+  }
+
+  async function handleCertificateDelete(certificateId) {
+    try {
+      await certificateService.remove(certificateId);
+      setCertificates((items) => items.filter((item) => item.cert_id !== certificateId));
+      await refreshDashboard();
+    } catch (deleteError) {
+      setDocumentError(deleteError?.response?.data?.detail || 'Unable to delete the certificate.');
+    }
+  }
 
   useEffect(() => {
     const handleJobsChanged = () => {
@@ -176,8 +325,14 @@ export default function CandidateDashboard() {
   }, [dashboard, resume]);
 
   const profileCompletion = clampPercent(dashboard?.profile_completion_percent);
-  const resumeScore = clampPercent(analytics?.metrics?.average_resume_quality);
+  const resumeScore = clampPercent(resumeAnalysis?.resume_score);
   const aiMatchScore = clampPercent(analytics?.metrics?.average_ai_match_score);
+  const matchingSkills = resumeAnalysis?.detected_skills || analytics?.skill_gap_analysis?.matching_skills || analytics?.skill_gap_analysis?.common_skills || [];
+  const missingSkills = resumeAnalysis?.missing_skills || analytics?.skill_gap_analysis?.missing_skills || analytics?.skill_gap_analysis?.skill_gaps || [];
+  const aiSummary = resumeAnalysis?.cv_summary ||
+    (resume
+      ? (analytics?.summary || analytics?.ai_summary || analytics?.insights?.[0] || 'Your uploaded CV is ready for matching.')
+      : 'No CV has been uploaded yet. Upload your CV to calculate your score and find matching jobs.');
 
   if (status === 'loading' && !dashboard) {
     return (
@@ -228,7 +383,7 @@ export default function CandidateDashboard() {
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               <MiniStat label="Profile" value={formatMetricPercent(profileCompletion)} hint="Completion score" />
-              <MiniStat label="Resume" value={formatMetricPercent(resumeScore)} hint="AI quality score" />
+              <MiniStat label="Resume" value={formatMetricPercent(resumeScore)} hint="CV-only score" />
               <MiniStat label="AI Match" value={formatMetricPercent(aiMatchScore)} hint="Average pipeline fit" />
             </div>
           </div>
@@ -279,7 +434,7 @@ export default function CandidateDashboard() {
           icon={NotebookPen}
           label="Resume Score"
           value={formatMetricPercent(resumeScore)}
-          hint="AI resume quality"
+          hint="Calculated only from your CV"
           tone="amber"
         />
         <StatCard
@@ -291,12 +446,64 @@ export default function CandidateDashboard() {
         />
       </section>
 
-      <section>
+      <section id="ai-match" className="scroll-mt-24">
         <SectionTitle
-          eyebrow="Analytics"
-          title="Performance charts"
-          description="Applications over time, AI match trend, and skill distribution rendered from the backend analytics payload."
+          eyebrow="AI Career Match"
+          title="Understand your next best move"
+          description="Your profile, resume, certificates, skills, and experience are compared with published jobs through the existing AI analytics payload."
         />
+
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <MiniStat label="CV score" value={formatMetricPercent(resumeScore)} hint="Based only on your uploaded CV" />
+          <MiniStat label="Matching skills" value={matchingSkills.length || '-'} hint="Skills aligned to target roles" />
+          <MiniStat label="Missing skills" value={missingSkills.length || '-'} hint="Useful areas to strengthen" />
+        </div>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <DashboardCard title="AI summary" description="A concise explanation of your current profile signal.">
+            <p className="leading-7 text-slate-600">{aiSummary}</p>
+            {resume ? (
+              <Button type="button" variant="primary" className="mt-5" onClick={handleShowMatch} loading={matchBusy}>
+                {resumeAnalysis ? 'Refresh Match %' : 'Show Match %'}
+              </Button>
+            ) : (
+              <Button as={Link} to="/candidate/dashboard#resume" variant="primary" className="mt-5">
+                Upload CV to see your match
+              </Button>
+            )}
+            {matchError ? <p className="mt-3 text-sm text-rose-600">{matchError}</p> : null}
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Matching skills</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {matchingSkills.slice(0, 8).map((skill) => <span key={skill.label || skill} className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">{skill.label || skill}</span>)}
+                  {!matchingSkills.length ? <span className="text-sm text-slate-500">Upload documents to analyze your skills.</span> : null}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">Missing skills</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {missingSkills.slice(0, 8).map((skill) => <span key={skill.label || skill} className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">{skill.label || skill}</span>)}
+                  {!missingSkills.length ? <span className="text-sm text-slate-500">No skill gaps reported yet.</span> : null}
+                </div>
+              </div>
+            </div>
+          </DashboardCard>
+          <ChartCard title="Match trend" description="Job-level scores returned by the backend analytics service.">
+            {chartSeries.aiTrend.length ? (
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={chartSeries.aiTrend}>
+                    <PolarGrid stroke="#e2e8f0" />
+                    <PolarAngleAxis dataKey="label" tick={{ fontSize: 12, fill: '#64748b' }} />
+                    <Tooltip />
+                    <Radar dataKey="score" stroke="#2563eb" fill="#2563eb" fillOpacity={0.18} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : <EmptyState title="No match history yet" description="Your match trend will appear after the backend processes your profile documents." />}
+          </ChartCard>
+        </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-3">
           <ChartCard
@@ -331,37 +538,6 @@ export default function CandidateDashboard() {
               <EmptyState
                 title="No application chart data yet"
                 description="The backend will populate this as candidate activity grows."
-              />
-            )}
-          </ChartCard>
-
-          <ChartCard title="AI Match trend" description="Score distribution across the active job set.">
-            {chartSeries.aiTrend.length ? (
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={chartSeries.aiTrend}>
-                    <PolarGrid stroke="#e2e8f0" />
-                    <PolarAngleAxis dataKey="label" tick={{ fontSize: 12, fill: '#64748b' }} />
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: '1rem',
-                        border: '1px solid #e2e8f0',
-                        boxShadow: '0 20px 45px rgba(15, 23, 42, 0.08)',
-                      }}
-                    />
-                    <Radar
-                      dataKey="score"
-                      stroke="#0f172a"
-                      fill="#0f172a"
-                      fillOpacity={0.18}
-                    />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <EmptyState
-                title="No AI trend data yet"
-                description="The analytics endpoint will populate this when job-level data is available."
               />
             )}
           </ChartCard>
@@ -431,9 +607,12 @@ export default function CandidateDashboard() {
                           Saved {formatDateShort(job.saved_at)}
                         </p>
                       </div>
-                      <Button as={Link} to={`/jobs/${job.job_id}`} variant="secondary" size="sm">
-                        View
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button type="button" variant="ghost" size="sm" onClick={() => handleSaveJob(job.job_id)}>
+                          Remove
+                        </Button>
+                        <Button as={Link} to={`/jobs/${job.job_id}`} variant="secondary" size="sm">View</Button>
+                      </div>
                     </div>
                   </article>
                 ))}
@@ -453,7 +632,10 @@ export default function CandidateDashboard() {
                   <RecommendationCard
                     key={job.job_id}
                     job={job}
-                    matchPercent={chartSeries.matchByJob.get(String(job.title || '').toLowerCase())}
+                    matchPercent={chartSeries.matchByJob.get(String(job.title || '').toLowerCase()) ?? job.ai_score}
+                    saved={savedJobs.some((savedJob) => Number(savedJob.job_id) === Number(job.job_id))}
+                    onSave={handleSaveJob}
+                    onApply={handleQuickApply}
                   />
                 ))}
               </div>
@@ -497,28 +679,69 @@ export default function CandidateDashboard() {
                     Parsed text: {resume.parsed_text ? 'Available' : 'Not parsed yet'}
                   </p>
                 </div>
-                <Button as={Link} to="/resume" variant="primary">
-                  Open Resume
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                    <UploadCloud className="h-4 w-4" aria-hidden="true" />
+                    Replace resume
+                    <input className="hidden" type="file" accept=".pdf,.docx" onChange={handleResumeUpload} disabled={documentBusy} />
+                  </label>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => downloadDocument(resumeService, resume, 'resume_id', 'resume.pdf')}
+                  >
+                    <Download className="mr-2 h-4 w-4" aria-hidden="true" /> Download
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={handleResumeDelete} disabled={documentBusy}>
+                    <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> Delete
+                  </Button>
+                </div>
               </div>
             ) : (
-              <EmptyState
-                title="No resume uploaded"
-                description="Upload a resume to improve analysis and match quality."
-              />
+              <div className="space-y-4">
+                <EmptyState title="No resume uploaded" description="Upload a resume to improve analysis and match quality." />
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                  <UploadCloud className="h-4 w-4" aria-hidden="true" /> Upload resume
+                  <input className="hidden" type="file" accept=".pdf,.docx" onChange={handleResumeUpload} disabled={documentBusy} />
+                </label>
+              </div>
             )}
           </DashboardCard>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <DashboardCard id="certificates" title="Certificates" description="Credential count from the backend.">
-              <div className="space-y-3">
-                <div className="text-4xl font-semibold text-slate-950">{dashboard?.certificates_count ?? 0}</div>
-                <p className="text-sm text-slate-600">
-                  Keep certifications visible to improve matching and credibility.
-                </p>
+          <div id="certificates" className="scroll-mt-24 rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Credentials</p>
+                <h3 className="mt-2 text-xl font-semibold text-slate-950">Certificates</h3>
+                <p className="mt-1 text-sm text-slate-600">Keep certificates attached to your candidate profile.</p>
               </div>
-            </DashboardCard>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white">
+                <UploadCloud className="h-4 w-4" aria-hidden="true" /> Upload
+                <input className="hidden" type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={handleCertificateUpload} disabled={documentBusy} />
+              </label>
+            </div>
+            {certificates.length ? (
+              <div className="mt-4 grid gap-3">
+                {certificates.map((certificate) => (
+                  <div key={certificate.cert_id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-950">{certificate.title || 'Certificate'}</p>
+                      <p className="mt-1 text-xs text-slate-500">Uploaded {formatDateShort(certificate.created_at || certificate.uploaded_at)}</p>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Button type="button" variant="ghost" size="sm" onClick={() => downloadDocument(certificateService, certificate, 'cert_id', 'certificate')}>Download</Button>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => handleCertificateDelete(certificate.cert_id)}>
+                        <Trash2 className="h-4 w-4" aria-label="Delete certificate" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="mt-5 text-sm text-slate-500">No certificates uploaded yet.</p>}
+            {documentError ? <p className="mt-4 text-sm text-rose-600">{documentError}</p> : null}
+          </div>
 
+          <div className="grid gap-6 sm:grid-cols-2">
             <DashboardCard id="education" title="Education" description="Education details can be added in a later ticket.">
               <EmptyState
                 title="Education details not exposed yet"
@@ -588,7 +811,7 @@ export default function CandidateDashboard() {
           title="Notifications"
           description="Unread state stays local while the content is backed by dashboard data."
           action={
-            <Button type="button" variant="ghost" size="sm" onClick={() => dispatch(markAllNotificationsRead())}>
+            <Button type="button" variant="ghost" size="sm" onClick={handleMarkAllNotificationsRead}>
               Mark all read
             </Button>
           }
@@ -596,8 +819,8 @@ export default function CandidateDashboard() {
           <NotificationList
             items={notifications}
             readIds={notificationReadIds}
-            onMarkRead={(id) => dispatch(markNotificationRead(id))}
-            onMarkAllRead={() => dispatch(markAllNotificationsRead())}
+            onMarkRead={handleMarkNotificationRead}
+            onMarkAllRead={handleMarkAllNotificationsRead}
           />
         </DashboardCard>
       </section>

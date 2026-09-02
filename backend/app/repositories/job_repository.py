@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import delete, insert, or_, select, update
+from sqlalchemy import delete, func, insert, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.models.company_user import CompanyUser
@@ -9,7 +9,7 @@ from app.schemas.job import JobCreate, JobUpdate
 
 
 class JobRepository:
-    PUBLISHED_STATUSES = {"active", "open"}
+    PUBLISHED_STATUSES = {"active", "open", "published"}
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -95,12 +95,16 @@ class JobRepository:
             .where(
                 or_(
                     self._table().c.status.is_(None),
-                    self._table().c.status.in_(self.PUBLISHED_STATUSES),
+                    func.lower(self._table().c.status).in_(self.PUBLISHED_STATUSES),
                 )
             )
             .order_by(self._table().c.job_id)
         )
         return [dict(row) for row in self.db.execute(statement).mappings().all()]
+
+    @classmethod
+    def is_published(cls, value: str | None) -> bool:
+        return value is None or str(value).casefold() in cls.PUBLISHED_STATUSES
 
     def get_by_id(self, job_id: int) -> dict | None:
         statement = select(self._table()).where(self._table().c.job_id == job_id)

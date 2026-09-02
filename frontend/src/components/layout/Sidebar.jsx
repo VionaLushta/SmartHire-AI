@@ -63,11 +63,11 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
     <>
       <aside
         className={[
-          'sticky top-0 hidden h-screen shrink-0 flex-col border-r border-[rgba(15,23,42,0.08)] bg-white lg:flex',
+          'sticky top-0 hidden h-screen shrink-0 flex-col border-r border-[rgba(15,23,42,0.08)] bg-white dark:border-slate-800 dark:bg-slate-950 lg:flex',
           collapsed ? 'w-20' : 'w-72',
         ].join(' ')}
       >
-        <div className="flex items-center justify-between border-b border-[rgba(15,23,42,0.08)] px-4 py-4">
+        <div className="flex items-center justify-between border-b border-[rgba(15,23,42,0.08)] px-4 py-4 dark:border-slate-800">
           <div className="flex items-center gap-3 overflow-hidden">
             <BrandLockup
               linkTo="/"
@@ -96,7 +96,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
 
         {!collapsed ? (
           <div className="px-4 py-4">
-            <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-slate-50 p-4">
+            <div className="rounded-[16px] border border-[rgba(15,23,42,0.08)] bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
                 Workspace
               </p>
@@ -116,6 +116,9 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
             {navigation.map((item) => {
               const Icon = item.icon;
               const active = isItemActive(item);
+              const itemHref = navigation === candidateNavigation
+                ? `/candidate/dashboard${item.to}`
+                : item.to;
               if (item.label === 'Logout') {
                 return (
                   <button
@@ -124,7 +127,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
                     onClick={handleLogout}
                     className={[
                       'group flex w-full items-center gap-3 rounded-[14px] border-l-2 px-3 py-3 text-[15px] font-medium transition duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-white',
-                      'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900',
+                      'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900 dark:hover:border-slate-700 dark:hover:bg-slate-900 dark:hover:text-white',
                       collapsed ? 'justify-center' : '',
                     ].join(' ')}
                     aria-label={item.label}
@@ -138,12 +141,12 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
                 isHashItem(item) ? (
                   <a
                     key={item.label}
-                    href={item.to}
+                    href={itemHref}
                     className={[
                       'group flex items-center gap-3 rounded-[14px] border-l-2 px-3 py-3 text-[15px] font-medium transition duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-white',
                       active
-                        ? 'border-blue-600 bg-blue-50 text-slate-950 shadow-[0_1px_2px_rgba(15,23,42,0.03)]'
-                        : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900',
+                        ? 'border-blue-600 bg-blue-50 text-slate-950 shadow-[0_1px_2px_rgba(15,23,42,0.03)] dark:bg-blue-500/20 dark:text-blue-100 dark:shadow-none'
+                        : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900 dark:hover:border-slate-700 dark:hover:bg-slate-900 dark:hover:text-white',
                       collapsed ? 'justify-center' : '',
                     ].join(' ')}
                     aria-label={item.label}
@@ -160,8 +163,8 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
                       [
                         'group flex items-center gap-3 rounded-[14px] border-l-2 px-3 py-3 text-[15px] font-medium transition duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-white',
                         isActive
-                          ? 'border-blue-600 bg-blue-50 text-slate-950 shadow-[0_1px_2px_rgba(15,23,42,0.03)]'
-                          : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900',
+                          ? 'border-blue-600 bg-blue-50 text-slate-950 shadow-[0_1px_2px_rgba(15,23,42,0.03)] dark:bg-blue-500/20 dark:text-blue-100 dark:shadow-none'
+                          : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900 dark:hover:border-slate-700 dark:hover:bg-slate-900 dark:hover:text-white',
                         collapsed ? 'justify-center' : '',
                       ].join(' ')
                     }
@@ -176,8 +179,8 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
           </div>
         </nav>
 
-        <div className="border-t border-[rgba(15,23,42,0.08)] p-4">
-          <div className={collapsed ? 'flex justify-center' : 'flex items-center gap-3 rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-3 py-3'}>
+        <div className="border-t border-[rgba(15,23,42,0.08)] p-4 dark:border-slate-800">
+          <div className={collapsed ? 'flex justify-center' : 'flex items-center gap-3 rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-3 py-3 dark:border-slate-800 dark:bg-slate-900'}>
             <Avatar initials="U" size="md" />
             {!collapsed ? (
               <div className="min-w-0">

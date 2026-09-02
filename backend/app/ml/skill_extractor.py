@@ -125,22 +125,16 @@ class SkillExtractor:
 
     @staticmethod
     def _tokenize(text: str) -> str:
-        return f" {text.lower()} "
+        return re.sub(r"\s+", " ", text.casefold()).strip()
 
     def _contains(self, text: str, term: str) -> bool:
         normalized = self._tokenize(text)
-        pattern = re.escape(f" {term.lower()} ")
-        if term.lower() in {
-            "c#",
-            "c++",
-            "ci/cd",
-            "node.js",
-            "next.js",
-            "sql server",
-            "power bi",
-            "google cloud",
-        }:
-            return term.lower() in text.lower()
+        normalized_term = self._tokenize(term)
+        if not normalized_term:
+            return False
+        # Match skills next to punctuation and across PDF line wrapping,
+        # without matching a skill as part of a larger word.
+        pattern = rf"(?<!\w){re.escape(normalized_term)}(?!\w)"
         return re.search(pattern, normalized) is not None
 
     def extract(self, text: str) -> dict[str, object]:

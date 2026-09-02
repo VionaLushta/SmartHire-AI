@@ -136,7 +136,18 @@ export default function JobsPage() {
   const [filters, setFilters] = useState({ department: 'all', company: 'all', location: 'all', employment: 'all', experience: 'all', workMode: 'all', salary: 'all', status: 'all', sort: 'recent' });
   const [page, setPage] = useState(1);
 
-  useEffect(() => { dispatch(fetchJobs()); if (String(user?.role_name || user?.role).toLowerCase() === 'candidate') dispatch(fetchSavedJobs()); }, [dispatch, user?.role, user?.role_name]);
+  useEffect(() => {
+    dispatch(fetchJobs());
+    if (String(user?.role_name || user?.role).toLowerCase() === 'candidate') dispatch(fetchSavedJobs());
+
+    const refreshJobs = () => dispatch(fetchJobs());
+    window.addEventListener('departments:changed', refreshJobs);
+    window.addEventListener('jobs:changed', refreshJobs);
+    return () => {
+      window.removeEventListener('departments:changed', refreshJobs);
+      window.removeEventListener('jobs:changed', refreshJobs);
+    };
+  }, [dispatch, user?.role, user?.role_name]);
   useEffect(() => { setPage(1); }, [query, filters]);
 
   const publicJobs = useMemo(() => {

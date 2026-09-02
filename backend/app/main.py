@@ -18,6 +18,7 @@ from app.api.analytics import router as analytics_router
 from app.api.audit_logs import router as audit_logs_router
 from app.api.company import router as company_router
 from app.api.company_dashboard import router as company_dashboard_router
+from app.api.contact_messages import router as contact_messages_router
 from app.api.candidate import router as candidate_router
 from app.api.candidates import router as candidates_router
 from app.api.certificate import router as certificate_router
@@ -148,6 +149,7 @@ app.add_middleware(
 )
 
 app.include_router(company_router)
+app.include_router(contact_messages_router)
 app.include_router(auth_router)
 app.include_router(ai_resume_router)
 app.include_router(ai_dashboard_router)

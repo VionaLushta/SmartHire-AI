@@ -5,6 +5,7 @@ import Button from '../../components/ui/Button';
 
 export default function EmailVerificationSuccessPage() {
   const [searchParams] = useSearchParams();
+  const verificationPending = searchParams.get('pending') === '1';
   const returnTo = searchParams.get('returnTo') || (typeof window !== 'undefined' ? window.sessionStorage.getItem('smarthire-candidate-return-to') : '') || '';
   const loginPath = `/candidate/login${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`;
   return (
@@ -14,10 +15,12 @@ export default function EmailVerificationSuccessPage() {
           <CheckCircle2 className="h-8 w-8" aria-hidden="true" />
         </div>
         <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
-          Email verified successfully
+          {verificationPending ? 'Check your email' : 'Email verified successfully'}
         </h1>
         <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
-          Your account is ready. You can return to the login screen and continue into SmartHire AI.
+          {verificationPending
+            ? 'We sent a verification link to your email address. Open it before signing in to SmartHire AI.'
+            : 'Your account is ready. You can return to the login screen and continue into SmartHire AI.'}
         </p>
 
         <div className="mt-8">

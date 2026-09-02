@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   BriefcaseBusiness,
   FileText,
+  Mail,
   NotebookPen,
   UserRound,
   Building2,
@@ -30,6 +31,7 @@ export const publicNavigation = [
 export const adminNavigation = [
   { label: 'Dashboard', to: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Applications', to: '/admin/applications', icon: FileText },
+  { label: 'Messages', to: '/admin/messages', icon: Mail },
   { label: 'Candidates', to: '/admin/candidates', icon: Users },
   { label: 'Jobs', to: '/admin/jobs', icon: BriefcaseBusiness },
   { label: 'Departments', to: '/admin/companies', icon: Building2 },
@@ -51,14 +53,13 @@ export const dashboardNavigation = [
 ];
 
 export const candidateNavigation = [
-  { label: 'Dashboard', to: '/candidate/dashboard', icon: LayoutDashboard },
-  { label: 'My Profile', to: '/profile', icon: UserRound },
-  { label: 'My Resume', to: '/resume', icon: NotebookPen },
-  { label: 'Certificates', to: '/certificates', icon: Award },
-  { label: 'Applications', to: '/applied-jobs', icon: FileText },
-  { label: 'Saved Jobs', to: '/saved-jobs', icon: Bookmark },
-  { label: 'Notifications', to: '/notifications', icon: Sparkles },
-  { label: 'Account Settings', to: '/candidate/settings', icon: Settings },
+  { label: 'Dashboard', to: '#dashboard', icon: LayoutDashboard },
+  { label: 'My Profile', to: '#profile', icon: UserRound },
+  { label: 'Resume & CV', to: '/resume', icon: NotebookPen },
+  { label: 'Applications', to: '#applications', icon: FileText },
+  { label: 'Saved Jobs', to: '#saved-jobs', icon: Bookmark },
+  { label: 'Notifications', to: '#notifications', icon: Sparkles },
+  { label: 'Account Settings', to: '#settings', icon: Settings },
   { label: 'Logout', to: '/candidate/login', icon: LogOut },
 ];
 
@@ -108,6 +109,10 @@ export const dashboardPageMeta = {
   '/admin/applications': {
     title: 'Applications Management',
     breadcrumbs: ['Dashboard', 'Admin', 'Applications'],
+  },
+  '/admin/messages': {
+    title: 'Contact Messages',
+    breadcrumbs: ['Dashboard', 'Admin', 'Messages'],
   },
   '/admin/catalog': {
     title: 'Catalog Management',

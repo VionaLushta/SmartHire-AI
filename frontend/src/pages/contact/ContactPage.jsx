@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../../constants/routes';
+import { contactMessageService } from '../../services/contactMessageService';
 
 const contactCards = [
   {
@@ -65,6 +66,30 @@ const faqs = [
 
 export default function ContactPage() {
   const [activeFaq, setActiveFaq] = useState(0);
+  const [form, setForm] = useState({ full_name: '', email: '', company: '', subject: '', message: '' });
+  const [submitState, setSubmitState] = useState({ status: 'idle', message: '' });
+
+  const updateField = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+    setSubmitState({ status: 'idle', message: '' });
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSubmitState({ status: 'loading', message: '' });
+    try {
+      await contactMessageService.create(form);
+      setForm({ full_name: '', email: '', company: '', subject: '', message: '' });
+      setSubmitState({ status: 'success', message: 'Your message was sent. Our team will get back to you soon.' });
+    } catch (error) {
+      const detail = error?.response?.data?.detail;
+      setSubmitState({
+        status: 'error',
+        message: typeof detail === 'string' ? detail : 'We could not send your message. Please try again.',
+      });
+    }
+  };
 
   return (
     <div className="space-y-24 pb-12 pt-4">
@@ -131,12 +156,16 @@ export default function ContactPage() {
             </div>
           </div>
 
-          <form className="mt-8 space-y-5" onSubmit={(event) => event.preventDefault()}>
+          <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
             <div className="grid gap-5 md:grid-cols-2">
               <label className="space-y-2">
                 <span className="text-sm font-medium text-slate-700">Full Name</span>
                 <input
                   type="text"
+                  name="full_name"
+                  value={form.full_name}
+                  onChange={updateField}
+                  required
                   className="h-12 w-full rounded-[16px] border border-slate-200 bg-slate-50 px-4 text-[15px] text-slate-950 outline-none transition focus:border-[#2563eb] focus:bg-white focus:ring-4 focus:ring-blue-100"
                   placeholder="Your full name"
                 />
@@ -145,6 +174,10 @@ export default function ContactPage() {
                 <span className="text-sm font-medium text-slate-700">Email Address</span>
                 <input
                   type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={updateField}
+                  required
                   className="h-12 w-full rounded-[16px] border border-slate-200 bg-slate-50 px-4 text-[15px] text-slate-950 outline-none transition focus:border-[#2563eb] focus:bg-white focus:ring-4 focus:ring-blue-100"
                   placeholder="you@example.com"
                 />
@@ -156,6 +189,9 @@ export default function ContactPage() {
                 <span className="text-sm font-medium text-slate-700">Company (optional)</span>
                 <input
                   type="text"
+                  name="company"
+                  value={form.company}
+                  onChange={updateField}
                   className="h-12 w-full rounded-[16px] border border-slate-200 bg-slate-50 px-4 text-[15px] text-slate-950 outline-none transition focus:border-[#2563eb] focus:bg-white focus:ring-4 focus:ring-blue-100"
                   placeholder="Company name"
                 />
@@ -164,6 +200,10 @@ export default function ContactPage() {
                 <span className="text-sm font-medium text-slate-700">Subject</span>
                 <input
                   type="text"
+                  name="subject"
+                  value={form.subject}
+                  onChange={updateField}
+                  required
                   className="h-12 w-full rounded-[16px] border border-slate-200 bg-slate-50 px-4 text-[15px] text-slate-950 outline-none transition focus:border-[#2563eb] focus:bg-white focus:ring-4 focus:ring-blue-100"
                   placeholder="How can we help?"
                 />
@@ -174,6 +214,10 @@ export default function ContactPage() {
               <span className="text-sm font-medium text-slate-700">Message</span>
               <textarea
                 rows="6"
+                name="message"
+                value={form.message}
+                onChange={updateField}
+                required
                 className="w-full rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-950 outline-none transition focus:border-[#2563eb] focus:bg-white focus:ring-4 focus:ring-blue-100"
                 placeholder="Tell us a little more about your request."
               />
@@ -181,11 +225,17 @@ export default function ContactPage() {
 
             <button
               type="submit"
+              disabled={submitState.status === 'loading'}
               className="inline-flex h-12 items-center justify-center rounded-[14px] bg-[#2563eb] px-6 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(37,99,235,0.18)] transition duration-150 ease-out hover:bg-[#1d4ed8]"
             >
-              Send Message
+              {submitState.status === 'loading' ? 'Sending...' : 'Send Message'}
               <Send className="ml-2 h-4 w-4" aria-hidden="true" />
             </button>
+            {submitState.message ? (
+              <p className={submitState.status === 'success' ? 'text-sm font-medium text-emerald-600' : 'text-sm font-medium text-rose-600'} role="status">
+                {submitState.message}
+              </p>
+            ) : null}
           </form>
         </div>
 

@@ -3,6 +3,7 @@ from app.models.certificate import Certificate
 from app.models.certificate import CertificateSkill
 from app.models.company import Company
 from app.models.company_user import CompanyUser
+from app.models.contact_message import ContactMessage
 from app.models.email_verification_token import EmailVerificationToken
 from app.models.job import Category, Department, Job, JobCategory, JobSkill, SavedJob
 from app.models.interview import Interview, InterviewFeedback
@@ -25,6 +26,7 @@ __all__ = [
     "CertificateSkill",
     "Company",
     "CompanyUser",
+    "ContactMessage",
     "EmailVerificationToken",
     "CompanyAnalytics",
     "Category",

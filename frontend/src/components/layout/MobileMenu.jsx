@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import Button from '../ui/Button';
 import BrandLockup from '../brand/BrandLockup';
 import { logoutUser } from '../../redux/slices/authSlice';
+import { candidateNavigation } from '../../constants/navigation';
 
 export default function MobileMenu({ open, onClose, items = [], title = 'Menu' }) {
   const dispatch = useDispatch();
@@ -30,9 +31,9 @@ export default function MobileMenu({ open, onClose, items = [], title = 'Menu' }
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="absolute left-0 top-0 flex h-full w-[88%] max-w-sm flex-col border-r border-[rgba(15,23,42,0.08)] bg-white text-slate-900 shadow-[0_24px_60px_rgba(15,23,42,0.14)]"
+        className="absolute left-0 top-0 flex h-full w-[88%] max-w-sm flex-col border-r border-[rgba(15,23,42,0.08)] bg-white text-slate-900 shadow-[0_24px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
       >
-        <div className="flex items-center justify-between border-b border-[rgba(15,23,42,0.08)] px-5 py-4">
+        <div className="flex items-center justify-between border-b border-[rgba(15,23,42,0.08)] px-5 py-4 dark:border-slate-800">
           <div>
             <BrandLockup linkTo="/" compact subtitle={title} />
           </div>
@@ -46,9 +47,12 @@ export default function MobileMenu({ open, onClose, items = [], title = 'Menu' }
             {items.map((item) => {
               const Icon = item.icon;
               const isHashLink = typeof item.to === 'string' && item.to.includes('#');
+              const itemHref = items === candidateNavigation
+                ? `/candidate/dashboard${item.to}`
+                : item.to;
               const sharedClasses = [
                 'flex items-center gap-3 rounded-[14px] px-3 py-3 text-[15px] font-medium transition duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:ring-offset-2 focus:ring-offset-white',
-                'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white',
               ].join(' ');
 
               return (
@@ -63,7 +67,7 @@ export default function MobileMenu({ open, onClose, items = [], title = 'Menu' }
                       <span>{item.label}</span>
                     </button>
                   ) : isHashLink ? (
-                    <a href={item.to} onClick={onClose} className={sharedClasses}>
+                    <a href={itemHref} onClick={onClose} className={sharedClasses}>
                       <Icon className="h-4 w-4" aria-hidden="true" />
                       <span>{item.label}</span>
                     </a>

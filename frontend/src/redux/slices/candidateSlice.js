@@ -6,6 +6,8 @@ import { companyService } from '../../services/companyService';
 import { jobService } from '../../services/jobService';
 import { resumeService } from '../../services/resumeService';
 import { savedJobService } from '../../services/savedJobService';
+import { notificationService } from '../../services/notificationService';
+import { resumeAdvisorService } from '../../services/resumeAdvisorService';
 import { unwrapItems, unwrapResponse, clampPercent } from '../../utils/dashboard';
 import { PLATFORM_ORGANIZATION_NAME } from '../../constants/app';
 
@@ -17,6 +19,7 @@ const initialState = {
   savedJobs: [],
   applications: [],
   resume: null,
+  resumeAnalysis: null,
   notifications: [],
   notificationReadIds: [],
   status: 'idle',
@@ -59,6 +62,10 @@ async function enrichJobCard(baseJob) {
     deadline: baseJob.deadline ?? source.deadline ?? null,
     status: baseJob.status ?? source.status ?? null,
     department_name: baseJob.department_name ?? source.department?.name ?? null,
+    required_skills: baseJob.required_skills ?? source.required_skills ?? [],
+    optional_skills: baseJob.optional_skills ?? source.optional_skills ?? [],
+    skills: baseJob.skills ?? source.skills ?? [],
+    ai_score: baseJob.ai_score ?? source.ai_score ?? baseJob.match_score ?? null,
   };
 }
 
@@ -99,8 +106,17 @@ function buildNotifications({
   resume,
   applications,
   savedJobs,
+  notificationItems = [],
 }) {
-  const items = [];
+  const items = notificationItems.map((item) => ({
+    id: item.notification_id ?? item.id,
+    notification_id: item.notification_id ?? item.id,
+    title: item.title || item.subject || 'Account update',
+    message: item.message || item.body || '',
+    tone: item.type === 'rejected' ? 'danger' : item.type === 'accepted' ? 'success' : 'neutral',
+    time: item.created_at || item.sent_at || 'Recently',
+    read: Boolean(item.is_read ?? item.read),
+  }));
   const profileCompletion = clampPercent(dashboard?.profile_completion_percent);
 
   items.push({
@@ -143,6 +159,16 @@ function buildNotifications({
       tone: 'neutral',
       time: 'Today',
     });
+    applications.slice(0, 4).forEach((application) => {
+      const status = String(application.status || 'submitted').replace(/_/g, ' ');
+      items.push({
+        id: `application-${application.id}`,
+        title: `${application.job_title} application updated`,
+        message: `Current status: ${status}.`,
+        tone: ['accepted', 'shortlisted', 'interviewed'].includes(String(application.status).toLowerCase()) ? 'success' : 'neutral',
+        time: formatNotificationTime(application.applied_at),
+      });
+    });
   }
 
   if (dashboard?.interviews_count) {
@@ -179,6 +205,15 @@ function buildNotifications({
   return items.slice(0, 6);
 }
 
+function formatNotificationTime(value) {
+  if (!value) return 'Recently';
+  try {
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(value));
+  } catch {
+    return 'Recently';
+  }
+}
+
 export const loadCandidateDashboard = createAsyncThunk(
   'candidate/loadDashboard',
   async ({ candidateId }, { rejectWithValue }) => {
@@ -190,6 +225,8 @@ export const loadCandidateDashboard = createAsyncThunk(
         savedJobsResult,
         resumesResult,
         applicationsResult,
+        notificationsResult,
+        resumeAnalysisResult,
       ] = await Promise.allSettled([
         candidateService.dashboard(),
         candidateService.profile(),
@@ -197,6 +234,8 @@ export const loadCandidateDashboard = createAsyncThunk(
         savedJobService.list(),
         resumeService.list(),
         applicationService.list(),
+        notificationService.list(),
+        resumeAdvisorService.report(),
       ]);
 
       const dashboard = unwrapResponse(
@@ -217,6 +256,12 @@ export const loadCandidateDashboard = createAsyncThunk(
       const applicationItems = unwrapItems(
         applicationsResult.status === 'fulfilled' ? applicationsResult.value : null,
       );
+      const notificationItems = unwrapItems(
+        notificationsResult.status === 'fulfilled' ? notificationsResult.value : null,
+      );
+      const resumeAnalysis = unwrapResponse(
+        resumeAnalysisResult.status === 'fulfilled' ? resumeAnalysisResult.value : null,
+      );
 
       const [recommendedJobs, savedJobs, applications] = await Promise.all([
         Promise.all((dashboard?.recommended_jobs ?? []).map((job) => enrichJobCard(job))),
@@ -230,8 +275,10 @@ export const loadCandidateDashboard = createAsyncThunk(
         profile,
         analytics,
         resume,
+        resumeAnalysis,
         applications,
         savedJobs,
+        notificationItems,
       });
 
       return {
@@ -243,6 +290,7 @@ export const loadCandidateDashboard = createAsyncThunk(
         applications,
         resume,
         notifications,
+        notificationReadIds: notifications.filter((item) => item.read).map((item) => item.id),
       };
     } catch (error) {
       return rejectWithValue(
@@ -293,6 +341,7 @@ const candidateSlice = createSlice({
       state.savedJobs = [];
       state.applications = [];
       state.resume = null;
+      state.resumeAnalysis = null;
       state.notifications = [];
       state.notificationReadIds = [];
       state.status = 'idle';
@@ -314,7 +363,9 @@ const candidateSlice = createSlice({
         state.savedJobs = action.payload.savedJobs;
         state.applications = action.payload.applications;
         state.resume = action.payload.resume;
+        state.resumeAnalysis = action.payload.resumeAnalysis;
         state.notifications = action.payload.notifications;
+        state.notificationReadIds = action.payload.notificationReadIds || [];
         state.error = null;
       })
       .addCase(loadCandidateDashboard.rejected, (state, action) => {

@@ -43,6 +43,7 @@ const AdminCandidatesPage = lazy(() => import('../pages/admin/AdminCandidatesPag
 const AdminCompaniesPage = lazy(() => import('../pages/admin/AdminCompaniesPage'));
 const AdminJobsPage = lazy(() => import('../pages/admin/AdminJobsPage'));
 const AdminApplicationsPage = lazy(() => import('../pages/admin/AdminApplicationsPage'));
+const AdminMessagesPage = lazy(() => import('../pages/admin/AdminMessagesPage'));
 const AdminCatalogPage = lazy(() => import('../pages/admin/AdminCatalogPage'));
 const AdminAnalyticsPage = lazy(() => import('../pages/admin/AdminAnalyticsPage'));
 const AdminReportsPage = lazy(() => import('../pages/admin/AdminReportsPage'));
@@ -206,6 +207,14 @@ export default function AppRouter() {
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
                     <AdminApplicationsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROUTES.adminMessages.slice(1)}
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminMessagesPage />
                   </ProtectedRoute>
                 }
               />

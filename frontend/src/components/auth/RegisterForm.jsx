@@ -114,7 +114,9 @@ export default function RegisterForm({ returnTo = '' }) {
       if (returnTo) {
         window.sessionStorage.setItem('smarthire-candidate-return-to', returnTo);
       }
-      navigate(`/candidate/email-verification-success${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`, { replace: true });
+      const query = new URLSearchParams({ pending: '1' });
+      if (returnTo) query.set('returnTo', returnTo);
+      navigate(`/candidate/email-verification-success?${query.toString()}`, { replace: true });
     }
   }, [navigate, returnTo, status, submitted, success, values.email]);
 

@@ -65,7 +65,7 @@ export default function DashboardLayout() {
   }, [location.pathname, user?.role, user?.role_name]);
 
   return (
-    <div className="flex min-h-screen text-slate-900">
+    <div className="flex min-h-screen bg-transparent text-slate-900 dark:text-slate-100">
       <Sidebar mobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col">

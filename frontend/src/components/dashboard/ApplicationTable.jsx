@@ -13,6 +13,18 @@ function statusTone(status) {
   return 'neutral';
 }
 
+const pipeline = ['submitted', 'reviewing', 'interview', 'technical test', 'accepted'];
+
+function statusIndex(status) {
+  const value = String(status || 'submitted').toLowerCase().replace(/_/g, ' ');
+  if (value.includes('reject')) return -1;
+  if (value.includes('technical')) return 3;
+  if (value.includes('interview')) return 2;
+  if (['reviewing', 'shortlisted'].includes(value)) return 1;
+  if (value.includes('accept')) return 4;
+  return 0;
+}
+
 export default function ApplicationTable({ applications = [] }) {
   if (!applications.length) {
     return (
@@ -47,8 +59,20 @@ export default function ApplicationTable({ applications = [] }) {
                   {application.company_name}
                 </td>
                 <td className="px-5 py-4 text-sm text-slate-600">{application.job_title}</td>
-                <td className="px-5 py-4">
+                <td className="min-w-[220px] px-5 py-4">
                   <Badge tone={statusTone(application.status)}>{application.status || 'submitted'}</Badge>
+                  <div className="mt-3 flex items-center gap-1" aria-label="Application status pipeline">
+                    {pipeline.map((stage, index) => (
+                      <span
+                        key={stage}
+                        title={stage}
+                        className={[
+                          'h-1.5 flex-1 rounded-full',
+                          statusIndex(application.status) >= index ? 'bg-blue-600' : 'bg-slate-200',
+                        ].join(' ')}
+                      />
+                    ))}
+                  </div>
                 </td>
                 <td className="px-5 py-4 text-sm text-slate-500">
                   {formatDateShort(application.applied_at)}

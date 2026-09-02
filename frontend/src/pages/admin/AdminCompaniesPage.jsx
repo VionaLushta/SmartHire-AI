@@ -160,6 +160,8 @@ export default function AdminCompaniesPage() {
         await departmentService.create(payload);
       }
 
+      window.dispatchEvent(new CustomEvent('departments:changed'));
+
       await reloadDepartments();
       setDepartmentModalOpen(false);
       setActiveDepartment(null);
@@ -179,6 +181,7 @@ export default function AdminCompaniesPage() {
       if (activeDepartment.department_id != null) {
         await departmentService.remove(activeDepartment.department_id);
       }
+      window.dispatchEvent(new CustomEvent('departments:changed'));
       await reloadDepartments();
       setDepartmentDeleteOpen(false);
       setActiveDepartment(null);

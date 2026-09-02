@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+from zipfile import BadZipFile, ZipFile
 from pathlib import Path
 from typing import Iterable
 from time import perf_counter
@@ -28,8 +29,9 @@ class OCRProcessingError(DocumentProcessingError):
 
 
 SUPPORTED_PDF_EXTENSIONS = {".pdf"}
+SUPPORTED_WORD_EXTENSIONS = {".docx"}
 SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
-SUPPORTED_EXTENSIONS = SUPPORTED_PDF_EXTENSIONS | SUPPORTED_IMAGE_EXTENSIONS
+SUPPORTED_EXTENSIONS = SUPPORTED_PDF_EXTENSIONS | SUPPORTED_WORD_EXTENSIONS | SUPPORTED_IMAGE_EXTENSIONS
 
 _CONTROL_CHARS_RE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
 _MULTI_SPACES_RE = re.compile(r"[ \t\f\v]+")
@@ -42,6 +44,8 @@ def clean_extracted_text(text: str | None) -> str:
         return ""
 
     normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    # Join words split at a line-ending hyphen while keeping normal paragraphs.
+    normalized = re.sub(r"(?<=\w)-\s*\n\s*(?=\w)", "", normalized)
     normalized = _CONTROL_CHARS_RE.sub("", normalized)
 
     lines: list[str] = []
@@ -58,6 +62,36 @@ def clean_extracted_text(text: str | None) -> str:
 
     cleaned = "\n".join(lines).strip()
     return re.sub(r"\n{3,}", "\n\n", cleaned)
+
+
+def extract_text_from_docx(file_path: str | Path) -> str:
+    """Extract paragraphs and table text from a DOCX without extra dependencies."""
+    started = perf_counter()
+    path = _ensure_path(file_path)
+    _ensure_file_exists(path)
+    _ensure_supported_extension(path, SUPPORTED_WORD_EXTENSIONS)
+
+    try:
+        from xml.etree import ElementTree
+
+        with ZipFile(path) as archive:
+            document_xml = archive.read("word/document.xml")
+        root = ElementTree.fromstring(document_xml)
+    except (BadZipFile, KeyError, ElementTree.ParseError) as exc:
+        raise CorruptedDocumentError("The DOCX file appears to be corrupted.") from exc
+    except Exception as exc:
+        raise CorruptedDocumentError("Failed to read the DOCX file.") from exc
+
+    namespace = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    paragraphs: list[str] = []
+    for paragraph in root.iter(f"{namespace}p"):
+        value = "".join(node.text or "" for node in paragraph.iter(f"{namespace}t"))
+        if value.strip():
+            paragraphs.append(value)
+
+    result = clean_extracted_text("\n".join(paragraphs))
+    logger.info("docx text extracted filename=%s duration_ms=%.1f", path.name, (perf_counter() - started) * 1000)
+    return result
 
 
 def extract_text_from_pdf(file_path: str | Path) -> str:
@@ -130,7 +164,7 @@ def extract_text_from_image(file_path: str | Path) -> str:
 
 
 def extract_document_text(file_path: str | Path) -> str:
-    """Extract text from a supported PDF or image document."""
+    """Extract text from a supported PDF, DOCX, or image document."""
     started = perf_counter()
     path = _ensure_path(file_path)
     _ensure_file_exists(path)
@@ -139,6 +173,10 @@ def extract_document_text(file_path: str | Path) -> str:
     if extension in SUPPORTED_PDF_EXTENSIONS:
         result = extract_text_from_pdf(path)
         logger.info("document text extracted type=pdf filename=%s duration_ms=%.1f", path.name, (perf_counter() - started) * 1000)
+        return result
+    if extension in SUPPORTED_WORD_EXTENSIONS:
+        result = extract_text_from_docx(path)
+        logger.info("document text extracted type=docx filename=%s duration_ms=%.1f", path.name, (perf_counter() - started) * 1000)
         return result
     if extension in SUPPORTED_IMAGE_EXTENSIONS:
         result = extract_text_from_image(path)
