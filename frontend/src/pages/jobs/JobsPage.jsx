@@ -142,6 +142,14 @@ export default function JobsPage() {
   const clearFilters = () => { setQuery(''); setFilters({ department: 'all', company: 'all', location: 'all', employment: 'all', experience: 'all', workMode: 'all', salary: 'all', status: 'all', sort: 'recent' }); };
   const isSaved = (id) => savedJobs.some((item) => String(item.job_id) === String(id));
   const toggleSave = (job) => { if (!isCandidateUser) { navigate(`/candidate/login?returnTo=${encodeURIComponent('/jobs')}`); return; } const saved = savedJobs.find((item) => String(item.job_id) === String(job.job_id)); dispatch(saved ? removeSavedJob(job.job_id) : saveJob(job.job_id)); };
+  const applyToJob = (job) => {
+    const applyPath = `/jobs/${job.job_id}/apply`;
+    if (!isCandidateUser) {
+      navigate(`/candidate/apply-auth?returnTo=${encodeURIComponent(applyPath)}`);
+      return;
+    }
+    navigate(applyPath);
+  };
   const select = (key, title, values) => <select value={filters[key]} onChange={(e) => setFilters((current) => ({ ...current, [key]: e.target.value }))} className="box-border h-14 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition hover:border-blue-200 hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100" aria-label={title}><option value="all">{title}</option>{values.map((item) => <option key={item} value={text(item)}>{item}</option>)}</select>;
 
   return (
@@ -167,7 +175,7 @@ export default function JobsPage() {
         </section>
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_290px]">
           <main className="min-w-0 space-y-5">
-            <section className="sticky top-3 z-10 overflow-hidden rounded-[20px] border border-slate-200 bg-white/95 p-5 shadow-[0_12px_35px_rgba(15,23,42,0.07)] backdrop-blur">
+            <section className="overflow-hidden rounded-[20px] border border-slate-200 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.07)]">
               <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(170px,1fr))] min-[1440px]:grid-cols-[2fr_repeat(8,minmax(140px,1fr))]">
                 <div className="relative min-w-0 w-full"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input className="box-border h-14 w-full min-w-0 rounded-2xl pl-9" placeholder="Search jobs, skills or companies" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
                 {select('department', 'Department', options.department)}{select('company', 'Company', options.company)}{select('location', 'Location', options.location)}{select('employment', 'Employment type', options.employment)}{select('experience', 'Experience', options.experience)}{select('workMode', 'Work mode', ['remote', 'hybrid', 'on-site'])}
@@ -177,7 +185,7 @@ export default function JobsPage() {
               {activeFilters.length || query ? <div className="mt-3 flex flex-wrap items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-slate-400" />{query ? <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">Search: {query}<button type="button" onClick={() => setQuery('')} className="ml-2"><X className="inline h-3 w-3" /></button></span> : null}{activeFilters.map(([key, value]) => <span key={key} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{key}: {value}</span>)}<button type="button" onClick={clearFilters} className="ml-auto text-xs font-bold text-blue-600 hover:underline">Clear filters</button></div> : null}
             </section>
             <div className="flex items-end justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.25em] text-slate-500">Open roles</p><h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-slate-950">{filtered.length} opportunities</h2></div><p className="text-sm text-slate-500">Showing {filtered.length ? (page - 1) * PAGE_SIZE + 1 : 0}-{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}</p></div>
-            {state.status === 'loading' && !jobs.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{[1, 2, 3, 4, 5, 6].map((item) => <SkeletonCard key={item} />)}</div> : state.error && !jobs.length ? <ErrorState title="Unable to load jobs" description={state.error} onRetry={() => dispatch(fetchJobs())} /> : pageJobs.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{pageJobs.map((job) => <JobCard key={job.display_id || job.job_id} job={job} saved={isSaved(job.job_id)} showAiMatch={isCandidateUser} onSave={() => toggleSave(job)} />)}</div> : <EmptyState title="No jobs available" description="Try changing your search or filters. New opportunities will appear here when companies publish them." action={<Button as={Link} to="/candidate/register" variant="primary">Create Job Alert</Button>} />}
+            {state.status === 'loading' && !jobs.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{[1, 2, 3, 4, 5, 6].map((item) => <SkeletonCard key={item} />)}</div> : state.error && !jobs.length ? <ErrorState title="Unable to load jobs" description={state.error} onRetry={() => dispatch(fetchJobs())} /> : pageJobs.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{pageJobs.map((job) => <JobCard key={job.display_id || job.job_id} job={job} isSaved={isSaved(job.job_id)} onSave={() => toggleSave(job)} onApply={applyToJob} />)}</div> : <EmptyState title="No jobs available" description="Try changing your search or filters. New opportunities will appear here when companies publish them." action={<Button as={Link} to="/candidate/register" variant="primary">Create Job Alert</Button>} />}
             {pageCount > 1 ? <nav className="flex items-center justify-center gap-2 pt-3" aria-label="Jobs pagination"><Button size="sm" variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}><ChevronLeft className="h-4 w-4" />Previous</Button>{Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => <button type="button" key={number} onClick={() => setPage(number)} className={`h-9 w-9 rounded-xl text-sm font-bold ${number === page ? 'bg-slate-950 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'}`}>{number}</button>)}<Button size="sm" variant="secondary" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>Next<ChevronRight className="h-4 w-4" /></Button></nav> : null}
           </main>
           <aside className="hidden space-y-4 xl:block">
