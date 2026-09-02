@@ -51,7 +51,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-[rgba(15,23,42,0.08)] bg-[rgba(245,247,250,0.94)]">
+      <header className="relative z-40 border-b border-[rgba(15,23,42,0.08)] bg-white shadow-[0_4px_18px_rgba(15,23,42,0.04)]">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
           <BrandLockup
             linkTo="/"

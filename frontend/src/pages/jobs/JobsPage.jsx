@@ -56,7 +56,53 @@ function SkeletonCard() {
   return <div className="h-[420px] animate-pulse rounded-3xl border border-slate-200 bg-white p-6"><div className="flex gap-3"><div className="h-12 w-12 rounded-2xl bg-slate-200" /><div className="flex-1 space-y-2"><div className="h-3 w-24 rounded bg-slate-200" /><div className="h-5 w-3/4 rounded bg-slate-200" /></div></div><div className="mt-6 h-4 w-full rounded bg-slate-200" /><div className="mt-3 h-4 w-5/6 rounded bg-slate-200" /><div className="mt-8 h-24 rounded-2xl bg-slate-100" /><div className="mt-8 h-10 rounded-xl bg-slate-200" /></div>;
 }
 
-function JobCard({ job, saved, onSave, showAiMatch }) {
+function CompactJobCard({ job, saved, onSave }) {
+  const skills = asArray(job.required_skills);
+  const visibleSkills = skills.slice(0, 3);
+  const additionalSkillCount = Math.max(0, skills.length - visibleSkills.length);
+  const workMode = job.work_mode || (job.remote_option ? 'Remote' : 'On-site');
+
+  return (
+    <article className="jobs-card group flex min-h-0 flex-col rounded-[20px] border border-slate-200 bg-white p-7 shadow-[0_10px_28px_rgba(15,23,42,0.05)] transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_20px_42px_rgba(37,99,235,0.14)]">
+      <div className="flex items-start justify-between gap-5">
+        <div className="flex min-w-0 items-center gap-4">
+          <Logo job={job} />
+          <div className="min-w-0">
+            <p className="truncate text-[15px] font-semibold text-slate-500">{label(job.company_name, 'Hiring company')}</p>
+            <h2 className="mt-1 line-clamp-2 text-[28px] font-bold leading-[1.05] tracking-[-0.055em] text-slate-950">{label(job.title, 'Open position')}</h2>
+          </div>
+        </div>
+        <button type="button" aria-label={saved ? 'Remove saved job' : 'Save job'} onClick={onSave} className="shrink-0 rounded-xl p-2 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600">
+          {saved ? <BookmarkCheck className="h-5 w-5 text-blue-600" /> : <Bookmark className="h-5 w-5" />}
+        </button>
+      </div>
+
+      <div className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 text-[14px] font-medium text-slate-600 sm:grid-cols-3">
+        <span className="flex items-center gap-2"><MapPin className="h-4 w-4 text-blue-500" />{label(job.location)}</span>
+        <span className="flex items-center gap-2"><Building2 className="h-4 w-4 text-blue-500" />{workMode}</span>
+        <span className="flex items-center gap-2"><BriefcaseBusiness className="h-4 w-4 text-blue-500" />{label(job.employment_type)}</span>
+        <span className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-blue-500" />{label(job.experience_level)}</span>
+        <span className="flex items-center gap-2 sm:col-span-2"><DollarSign className="h-4 w-4 text-blue-500" />{formatSalaryRange(job)}</span>
+      </div>
+
+      <p className="mt-7 line-clamp-2 text-[15px] leading-6 text-slate-600">{label(job.description, 'No description provided.')}</p>
+
+      {visibleSkills.length ? (
+        <div className="mt-6 flex flex-wrap items-center gap-2">
+          {visibleSkills.map((skill) => <span key={skill} className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-[13px] font-semibold text-blue-700">{skill}</span>)}
+          {additionalSkillCount ? <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[13px] font-semibold text-slate-500">+{additionalSkillCount} more</span> : null}
+        </div>
+      ) : null}
+
+      <div className="mt-8 flex gap-3">
+        <Button as={Link} to={`/jobs/${job.job_id}`} variant="secondary" size="md" className="h-11 flex-1 text-[15px]">View Details</Button>
+        <Button as={Link} to={`/jobs/${job.job_id}/apply`} variant="primary" size="md" className="h-11 flex-1 text-[15px]">Apply Now <ArrowRight className="h-4 w-4" /></Button>
+      </div>
+    </article>
+  );
+}
+
+function LegacyJobCard({ job, saved, onSave, showAiMatch }) {
   const deadlineDays = daysUntil(job.deadline);
   const isNew = job.created_at && (Date.now() - new Date(job.created_at).getTime()) < 7 * 86400000;
   const skills = asArray(job.required_skills).slice(0, 5);
@@ -68,7 +114,7 @@ function JobCard({ job, saved, onSave, showAiMatch }) {
     isNew && 'New',
     deadlineDays !== null && deadlineDays >= 0 && deadlineDays <= 7 && 'Closing soon',
   ].filter(Boolean);
-  return <article className="group flex min-h-[470px] flex-col rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)] transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_22px_45px_rgba(15,23,42,0.11)]">
+  return <article className="jobs-card group flex min-h-[470px] flex-col rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)] transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_22px_45px_rgba(15,23,42,0.11)]">
     {job.featured ? <div className="mb-4 inline-flex w-fit items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">★ Featured</div> : null}
     <div className="flex items-start justify-between gap-4"><div className="flex min-w-0 gap-4"><Logo job={job} /><div className="min-w-0"><p className="truncate text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{label(job.company_name, 'Hiring company')}</p><h2 className="mt-2 line-clamp-2 text-xl font-bold leading-tight tracking-[-0.04em] text-slate-950">{label(job.title, 'Open position')}</h2>{job.company_verified ? <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-blue-600"><CheckCircle2 className="h-3.5 w-3.5" /> Verified company</p> : null}</div></div><button type="button" aria-label={saved ? 'Remove saved job' : 'Save job'} onClick={onSave} className="shrink-0 rounded-xl p-2 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600">{saved ? <BookmarkCheck className="h-5 w-5 text-blue-600" /> : <Bookmark className="h-5 w-5" />}</button></div>
     {statuses.length || showAiMatch ? <div className="mt-4 flex flex-wrap gap-1.5">{showAiMatch ? <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700"><Sparkles className="mr-1 inline h-3 w-3" />AI Match {job.ai_match_score ?? job.match_score ?? 'Available'}</span> : null}{statuses.map((item) => <span key={item} className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${item === 'Urgent' ? 'bg-rose-50 text-rose-700' : item === 'Featured' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>{item}</span>)}</div> : null}
@@ -142,40 +188,32 @@ export default function JobsPage() {
   const clearFilters = () => { setQuery(''); setFilters({ department: 'all', company: 'all', location: 'all', employment: 'all', experience: 'all', workMode: 'all', salary: 'all', status: 'all', sort: 'recent' }); };
   const isSaved = (id) => savedJobs.some((item) => String(item.job_id) === String(id));
   const toggleSave = (job) => { if (!isCandidateUser) { navigate(`/candidate/login?returnTo=${encodeURIComponent('/jobs')}`); return; } const saved = savedJobs.find((item) => String(item.job_id) === String(job.job_id)); dispatch(saved ? removeSavedJob(job.job_id) : saveJob(job.job_id)); };
-  const applyToJob = (job) => {
-    const applyPath = `/jobs/${job.job_id}/apply`;
-    if (!isCandidateUser) {
-      navigate(`/candidate/apply-auth?returnTo=${encodeURIComponent(applyPath)}`);
-      return;
-    }
-    navigate(applyPath);
-  };
   const select = (key, title, values) => <select value={filters[key]} onChange={(e) => setFilters((current) => ({ ...current, [key]: e.target.value }))} className="box-border h-14 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition hover:border-blue-200 hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100" aria-label={title}><option value="all">{title}</option>{values.map((item) => <option key={item} value={text(item)}>{item}</option>)}</select>;
 
   return (
-    <div className="min-h-screen bg-[#f6f8fb] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="jobs-page min-h-screen bg-[#f6f8fb] px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1500px] space-y-6">
-        <section className="relative overflow-hidden rounded-[24px] border border-blue-100 bg-white px-6 py-10 shadow-[0_18px_50px_rgba(37,99,235,0.08)] sm:px-10 lg:py-12">
-          <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-blue-100/70 blur-3xl" />
+        <section className="jobs-hero relative overflow-hidden rounded-[28px] border border-blue-100 bg-white px-6 py-10 shadow-[0_24px_65px_rgba(37,99,235,0.14)] sm:px-10 lg:py-12">
+          <div className="jobs-hero-glow pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-blue-100/70 blur-3xl" />
           <div className="relative grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-blue-600">SmartHire AI marketplace</p>
-              <h1 className="mt-4 max-w-2xl text-4xl font-bold tracking-[-0.06em] text-slate-950 sm:text-6xl">Find your next opportunity.</h1>
-              <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">Discover AI-powered career opportunities from top companies.</p>
+            <div className="jobs-hero-copy">
+              <p className="jobs-hero-kicker text-xs font-bold uppercase tracking-[0.3em] text-blue-600">SmartHire AI marketplace</p>
+              <h1 className="jobs-hero-title mt-4 max-w-2xl text-4xl font-bold tracking-[-0.06em] text-slate-950 sm:text-6xl">Find your next opportunity.</h1>
+              <p className="jobs-hero-description mt-5 max-w-xl text-base leading-7 text-slate-600">Discover AI-powered career opportunities from top companies.</p>
               <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {[[BriefcaseBusiness, 'Open Jobs', stats.open, 'text-blue-600', 'bg-blue-50'], [Building2, 'Companies', stats.companies, 'text-violet-600', 'bg-violet-50'], [SlidersHorizontal, 'Departments', stats.departments, 'text-emerald-600', 'bg-emerald-50'], [Users, 'Applications', stats.applications, 'text-amber-600', 'bg-amber-50']].map(([Icon, name, value, iconColor, iconBg]) => <div key={name} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><span className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${iconBg} ${iconColor}`}><Icon className="h-4 w-4" /></span><p className="mt-3 text-2xl font-bold tracking-tight text-slate-950">{value}</p><p className="mt-1 text-xs font-semibold text-slate-500">{name}</p></div>)}
+                {[[BriefcaseBusiness, 'Open Jobs', stats.open, 'text-blue-600', 'bg-blue-50'], [Building2, 'Companies', stats.companies, 'text-violet-600', 'bg-violet-50'], [SlidersHorizontal, 'Departments', stats.departments, 'text-emerald-600', 'bg-emerald-50'], [Users, 'Applications', stats.applications, 'text-amber-600', 'bg-amber-50']].map(([Icon, name, value, iconColor, iconBg], index) => <div key={name} className="jobs-stat-card rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" style={{ '--jobs-delay': `${index * 90}ms` }}><span className={`jobs-stat-icon inline-flex h-9 w-9 items-center justify-center rounded-xl ${iconBg} ${iconColor}`}><Icon className="h-4 w-4" /></span><p className="mt-3 text-2xl font-bold tracking-tight text-slate-950">{value}</p><p className="mt-1 text-xs font-semibold text-slate-500">{name}</p></div>)}
               </div>
             </div>
-            <div className="relative mx-auto flex min-h-[250px] w-full max-w-md items-center justify-center overflow-hidden rounded-[24px] border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-6">
-              <div className="absolute h-44 w-44 rounded-full bg-blue-200/50 blur-2xl" />
-              <div className="relative w-full max-w-[270px] rotate-[-3deg] rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_18px_35px_rgba(37,99,235,0.14)]"><div className="flex items-center gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950 text-white"><Sparkles className="h-5 w-5" /></div><div className="flex-1 space-y-2"><div className="h-2.5 w-24 rounded-full bg-slate-200" /><div className="h-2 w-16 rounded-full bg-blue-100" /></div></div><div className="mt-5 space-y-3"><div className="rounded-xl bg-blue-50 p-3"><div className="h-2 w-28 rounded-full bg-blue-200" /><div className="mt-2 h-2 w-40 rounded-full bg-white" /></div><div className="flex gap-2"><span className="h-7 flex-1 rounded-lg bg-slate-100" /><span className="h-7 w-16 rounded-lg bg-emerald-100" /></div></div></div>
-              <span className="absolute right-8 top-8 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-emerald-700 shadow-md">98% match</span><span className="absolute bottom-8 left-8 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-blue-700 shadow-md">AI screened</span>
+            <div className="jobs-hero-visual relative mx-auto flex min-h-[250px] w-full max-w-md items-center justify-center overflow-hidden rounded-[24px] border border-white/20 bg-gradient-to-br from-[#0f172a] via-[#172554] to-[#2563eb] p-6 shadow-[0_24px_45px_rgba(15,23,42,0.22)]">
+              <div className="jobs-hero-orb absolute h-44 w-44 rounded-full bg-blue-200/50 blur-2xl" />
+              <div className="jobs-preview relative w-full max-w-[270px] rotate-[-3deg] rounded-2xl border border-white/70 bg-white p-5 shadow-[0_18px_35px_rgba(2,6,23,0.24)]"><div className="flex items-center gap-3"><div className="jobs-preview-icon flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950 text-white"><Sparkles className="h-5 w-5" /></div><div className="flex-1 space-y-2"><div className="jobs-shimmer h-2.5 w-24 rounded-full bg-slate-200" /><div className="jobs-shimmer h-2 w-16 rounded-full bg-blue-100" /></div></div><div className="mt-5 space-y-3"><div className="rounded-xl bg-blue-50 p-3"><div className="jobs-shimmer h-2 w-28 rounded-full bg-blue-200" /><div className="jobs-shimmer mt-2 h-2 w-40 rounded-full bg-white" /></div><div className="flex gap-2"><span className="h-7 flex-1 rounded-lg bg-slate-100" /><span className="h-7 w-16 rounded-lg bg-emerald-100" /></div></div></div>
+              <span className="jobs-preview-pill absolute right-8 top-8 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-emerald-700 shadow-md">98% match</span><span className="jobs-preview-pill jobs-preview-pill-delayed absolute bottom-8 left-8 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-blue-700 shadow-md">AI screened</span>
             </div>
           </div>
         </section>
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_290px]">
           <main className="min-w-0 space-y-5">
-            <section className="overflow-hidden rounded-[20px] border border-slate-200 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.07)]">
+            <section className="jobs-filters overflow-hidden rounded-[20px] border border-white/80 bg-white/90 p-5 shadow-[0_16px_40px_rgba(15,23,42,0.09)] backdrop-blur-sm">
               <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(170px,1fr))] min-[1440px]:grid-cols-[2fr_repeat(8,minmax(140px,1fr))]">
                 <div className="relative min-w-0 w-full"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input className="box-border h-14 w-full min-w-0 rounded-2xl pl-9" placeholder="Search jobs, skills or companies" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
                 {select('department', 'Department', options.department)}{select('company', 'Company', options.company)}{select('location', 'Location', options.location)}{select('employment', 'Employment type', options.employment)}{select('experience', 'Experience', options.experience)}{select('workMode', 'Work mode', ['remote', 'hybrid', 'on-site'])}
@@ -185,14 +223,14 @@ export default function JobsPage() {
               {activeFilters.length || query ? <div className="mt-3 flex flex-wrap items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-slate-400" />{query ? <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">Search: {query}<button type="button" onClick={() => setQuery('')} className="ml-2"><X className="inline h-3 w-3" /></button></span> : null}{activeFilters.map(([key, value]) => <span key={key} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{key}: {value}</span>)}<button type="button" onClick={clearFilters} className="ml-auto text-xs font-bold text-blue-600 hover:underline">Clear filters</button></div> : null}
             </section>
             <div className="flex items-end justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.25em] text-slate-500">Open roles</p><h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-slate-950">{filtered.length} opportunities</h2></div><p className="text-sm text-slate-500">Showing {filtered.length ? (page - 1) * PAGE_SIZE + 1 : 0}-{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}</p></div>
-            {state.status === 'loading' && !jobs.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{[1, 2, 3, 4, 5, 6].map((item) => <SkeletonCard key={item} />)}</div> : state.error && !jobs.length ? <ErrorState title="Unable to load jobs" description={state.error} onRetry={() => dispatch(fetchJobs())} /> : pageJobs.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{pageJobs.map((job) => <JobCard key={job.display_id || job.job_id} job={job} isSaved={isSaved(job.job_id)} onSave={() => toggleSave(job)} onApply={applyToJob} />)}</div> : <EmptyState title="No jobs available" description="Try changing your search or filters. New opportunities will appear here when companies publish them." action={<Button as={Link} to="/candidate/register" variant="primary">Create Job Alert</Button>} />}
+            {state.status === 'loading' && !jobs.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-2">{[1, 2, 3, 4, 5, 6].map((item) => <SkeletonCard key={item} />)}</div> : state.error && !jobs.length ? <ErrorState title="Unable to load jobs" description={state.error} onRetry={() => dispatch(fetchJobs())} /> : pageJobs.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-2">{pageJobs.map((job) => <CompactJobCard key={job.display_id || job.job_id} job={job} saved={isSaved(job.job_id)} onSave={() => toggleSave(job)} />)}</div> : <EmptyState title="No jobs available" description="Try changing your search or filters. New opportunities will appear here when companies publish them." action={<Button as={Link} to="/candidate/register" variant="primary">Create Job Alert</Button>} />}
             {pageCount > 1 ? <nav className="flex items-center justify-center gap-2 pt-3" aria-label="Jobs pagination"><Button size="sm" variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}><ChevronLeft className="h-4 w-4" />Previous</Button>{Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => <button type="button" key={number} onClick={() => setPage(number)} className={`h-9 w-9 rounded-xl text-sm font-bold ${number === page ? 'bg-slate-950 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'}`}>{number}</button>)}<Button size="sm" variant="secondary" disabled={page === pageCount} onClick={() => setPage((p) => p + 1)}>Next<ChevronRight className="h-4 w-4" /></Button></nav> : null}
           </main>
-          <aside className="hidden space-y-4 xl:block">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5"><h3 className="font-bold text-slate-950">Top Companies</h3><div className="mt-4 space-y-3">{options.company.slice(0, 5).map((item) => <p key={item} className="flex items-center gap-2 text-sm text-slate-600"><Building2 className="h-4 w-4 text-blue-600" />{item}</p>)}{!options.company.length ? <p className="text-sm text-slate-500">No company data available.</p> : null}</div></div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5"><h3 className="font-bold text-slate-950">Popular Skills</h3><div className="mt-4 flex flex-wrap gap-2">{[...new Set(publicJobs.flatMap((job) => asArray(job.required_skills)))].slice(0, 12).map((skill) => <span key={skill} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{skill}</span>)}</div></div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5"><h3 className="font-bold text-slate-950">Recently Posted</h3><div className="mt-4 space-y-3">{publicJobs.slice(0, 4).map((job) => <Link key={job.job_id} to={`/jobs/${job.job_id}`} className="block text-sm font-semibold text-slate-700 hover:text-blue-600"><Clock3 className="mr-2 inline h-3.5 w-3.5 text-blue-600" />{job.title}</Link>)}</div></div>
-            <div className="rounded-2xl bg-blue-600 p-5 text-white"><h3 className="font-bold">Career Tips</h3><p className="mt-2 text-sm leading-6 text-blue-100">Keep your resume current and tailor your skills to each role.</p></div>
+          <aside className="jobs-sidebar hidden space-y-4 xl:block">
+            <div className="jobs-side-card rounded-2xl border border-slate-200 bg-white p-5"><h3 className="font-bold text-slate-950">Top Companies</h3><div className="mt-4 space-y-3">{options.company.slice(0, 5).map((item) => <p key={item} className="flex items-center gap-2 text-sm text-slate-600"><Building2 className="h-4 w-4 text-blue-600" />{item}</p>)}{!options.company.length ? <p className="text-sm text-slate-500">No company data available.</p> : null}</div></div>
+            <div className="jobs-side-card rounded-2xl border border-slate-200 bg-white p-5"><h3 className="font-bold text-slate-950">Popular Skills</h3><div className="mt-4 flex flex-wrap gap-2">{[...new Set(publicJobs.flatMap((job) => asArray(job.required_skills)))].slice(0, 12).map((skill) => <span key={skill} className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{skill}</span>)}</div></div>
+            <div className="jobs-side-card rounded-2xl border border-slate-200 bg-white p-5"><h3 className="font-bold text-slate-950">Recently Posted</h3><div className="mt-4 space-y-3">{publicJobs.slice(0, 4).map((job) => <Link key={job.job_id} to={`/jobs/${job.job_id}`} className="block text-sm font-semibold text-slate-700 hover:text-blue-600"><Clock3 className="mr-2 inline h-3.5 w-3.5 text-blue-600" />{job.title}</Link>)}</div></div>
+            <div className="jobs-career-card rounded-2xl bg-gradient-to-br from-[#1d4ed8] via-[#2563eb] to-[#06b6d4] p-5 text-white shadow-[0_18px_35px_rgba(37,99,235,0.22)]"><h3 className="font-bold">Career Tips</h3><p className="mt-2 text-sm leading-6 text-blue-50">Keep your resume current and tailor your skills to each role.</p></div>
           </aside>
         </div>
       </div>
