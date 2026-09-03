@@ -3,7 +3,7 @@ import Button from '../ui/Button';
 import Avatar from '../ui/Avatar';
 import Badge from '../ui/Badge';
 import { Link } from 'react-router-dom';
-import { Menu, Moon, Search, SunMedium } from 'lucide-react';
+import { Menu, Moon, SunMedium } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { getDisplayName, getInitials } from '../../utils/dashboard';
 
@@ -20,10 +20,11 @@ export default function Topbar({
   const initials = getInitials(user || {});
   const roleLabel = String(user?.role_name || user?.role || 'Workspace').replace(/_/g, ' ');
 
+
   return (
     <header className="sticky top-0 z-20 border-b border-[rgba(15,23,42,0.08)] bg-[rgba(245,247,250,0.96)] dark:border-slate-800 dark:bg-slate-950/95">
       <div className="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[1.15fr_1fr_auto] xl:items-center">
+        <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[1fr_auto] xl:items-center">
           <div className="flex items-start gap-3">
             {onMenuClick ? (
               <Button
@@ -48,21 +49,6 @@ export default function Topbar({
                 </h1>
               </div>
             </div>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center xl:justify-center">
-            <label className="relative min-w-0 xl:w-full xl:max-w-md">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-                aria-hidden="true"
-              />
-              <input
-                type="search"
-                placeholder="Search jobs, candidates, or analytics"
-                aria-label="Search jobs, candidates, or analytics"
-                className="h-11 w-full rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white pl-10 pr-4 text-[15px] text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03)] outline-none transition duration-150 ease-out placeholder:text-slate-400 focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
-              />
-            </label>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 xl:justify-end">

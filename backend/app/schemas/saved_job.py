@@ -7,7 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class SavedJobCreate(BaseModel):
-    user_id: uuid.UUID
+    # The API takes the authenticated user from the access token.
+    user_id: uuid.UUID | None = None
     job_id: int = Field(gt=0)
 
 

@@ -29,7 +29,11 @@ export function getSafeInternalPath(value, fallback = '/candidate/dashboard') {
 export function normalizeAuthResponse(payload) {
   const response = payload?.data ?? payload ?? {};
   const data = response?.data ?? response;
-  const user = data?.user ?? data?.account ?? data?.profile ?? null;
+  const user =
+    data?.user ??
+    data?.account ??
+    data?.profile ??
+    (data?.user_id || data?.email ? data : null);
   const role = user?.role ?? user?.role_name ?? data?.role ?? data?.role_name ?? data?.userRole ?? null;
 
   return {

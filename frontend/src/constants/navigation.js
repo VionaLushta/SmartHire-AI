@@ -53,13 +53,12 @@ export const dashboardNavigation = [
 ];
 
 export const candidateNavigation = [
-  { label: 'Dashboard', to: '#dashboard', icon: LayoutDashboard },
-  { label: 'My Profile', to: '#profile', icon: UserRound },
-  { label: 'Resume & CV', to: '/resume', icon: NotebookPen },
-  { label: 'Applications', to: '#applications', icon: FileText },
-  { label: 'Saved Jobs', to: '#saved-jobs', icon: Bookmark },
-  { label: 'Notifications', to: '#notifications', icon: Sparkles },
-  { label: 'Account Settings', to: '#settings', icon: Settings },
+  { label: 'Candidate Profile', to: ROUTES.candidateDashboard, icon: LayoutDashboard },
+  { label: 'Resume & CV', to: ROUTES.candidateResume, icon: NotebookPen },
+  { label: 'Applications', to: ROUTES.candidateApplications, icon: FileText },
+  { label: 'Saved Jobs', to: ROUTES.candidateSavedJobs, icon: Bookmark },
+  { label: 'Notifications', to: ROUTES.candidateNotifications, icon: Sparkles },
+  { label: 'Account Settings', to: ROUTES.candidateSettings, icon: Settings },
   { label: 'Logout', to: '/candidate/login', icon: LogOut },
 ];
 
@@ -79,8 +78,32 @@ export const companyNavigation = [
 
 export const dashboardPageMeta = {
   '/candidate/dashboard': {
-    title: 'Candidate Dashboard',
-    breadcrumbs: ['Dashboard', 'Candidate Dashboard'],
+    title: 'Candidate Profile',
+    breadcrumbs: ['Dashboard', 'Candidate Profile'],
+  },
+  '/candidate/profile': {
+    title: 'My Profile',
+    breadcrumbs: ['Dashboard', 'My Profile'],
+  },
+  '/candidate/resume': {
+    title: 'Resume & CV',
+    breadcrumbs: ['Dashboard', 'Resume & CV'],
+  },
+  '/candidate/applications': {
+    title: 'Applications',
+    breadcrumbs: ['Dashboard', 'Applications'],
+  },
+  '/candidate/saved-jobs': {
+    title: 'Saved Jobs',
+    breadcrumbs: ['Dashboard', 'Saved Jobs'],
+  },
+  '/candidate/notifications': {
+    title: 'Notifications',
+    breadcrumbs: ['Dashboard', 'Notifications'],
+  },
+  '/candidate/settings': {
+    title: 'Account Settings',
+    breadcrumbs: ['Dashboard', 'Account Settings'],
   },
   '/company/dashboard': {
     title: 'Hiring Dashboard',

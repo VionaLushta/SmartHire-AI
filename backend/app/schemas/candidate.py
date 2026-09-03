@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -17,6 +17,7 @@ class CandidateBase(BaseModel):
     last_name: str | None = Field(default=None, max_length=100)
     email: EmailStr | None = None
     phone: str | None = Field(default=None, max_length=30)
+    date_of_birth: date | None = None
     profile_picture_url: str | None = Field(default=None, max_length=255)
     city: str | None = Field(default=None, max_length=100)
     country: str | None = Field(default=None, max_length=100)

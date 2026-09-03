@@ -30,7 +30,6 @@ const CreateJobPage = lazy(() => import('../pages/jobs/CreateJobPage'));
 const EditJobPage = lazy(() => import('../pages/jobs/EditJobPage'));
 const SavedJobsPage = lazy(() => import('../pages/jobs/SavedJobsPage'));
 const AppliedJobsPage = lazy(() => import('../pages/jobs/AppliedJobsPage'));
-const CandidateDashboard = lazy(() => import('../pages/candidate/CandidateDashboard'));
 const CompanyDashboard = lazy(() => import('../pages/company/CompanyDashboard'));
 const ProfilePage = lazy(() => import('../pages/candidate/ProfilePage'));
 const ResumePage = lazy(() => import('../pages/candidate/ResumePage'));
@@ -142,7 +141,7 @@ export default function AppRouter() {
                 path={ROUTES.candidateDashboard.slice(1)}
                 element={
                   <ProtectedRoute allowedRoles={['candidate']}>
-                    <CandidateDashboard />
+                    <ProfilePage />
                   </ProtectedRoute>
                 }
               />
@@ -259,6 +258,14 @@ export default function AppRouter() {
                 }
               />
               <Route
+                path={ROUTES.candidateProfile.slice(1)}
+                element={
+                  <ProtectedRoute allowedRoles={['candidate']}>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path={ROUTES.resume.slice(1)}
                 element={
                   <ProtectedRoute allowedRoles={['candidate']}>
@@ -267,7 +274,39 @@ export default function AppRouter() {
                 }
               />
               <Route
-                path="candidate/settings"
+                path={ROUTES.candidateResume.slice(1)}
+                element={
+                  <ProtectedRoute allowedRoles={['candidate']}>
+                    <ResumePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROUTES.candidateApplications.slice(1)}
+                element={
+                  <ProtectedRoute allowedRoles={['candidate']}>
+                    <AppliedJobsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROUTES.candidateSavedJobs.slice(1)}
+                element={
+                  <ProtectedRoute allowedRoles={['candidate']}>
+                    <SavedJobsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROUTES.candidateNotifications.slice(1)}
+                element={
+                  <ProtectedRoute allowedRoles={['candidate']}>
+                    <NotificationsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROUTES.candidateSettings.slice(1)}
                 element={
                   <ProtectedRoute allowedRoles={['candidate']}>
                     <SettingsPage />

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   BarChart3,
@@ -38,7 +38,9 @@ import StatusBadge from '../../components/admin/StatusBadge';
 import { analyticsService } from '../../services/analyticsService';
 import { applicationService } from '../../services/applicationService';
 import { candidateService } from '../../services/candidateService';
-import { unwrapResponse, formatDateShort, formatDateTimeShort, formatMetricPercent, clampPercent, getInitials } from '../../utils/dashboard';
+import api from '../../services/api';
+import { interviewService } from '../../services/interviewService';
+import { unwrapResponse, unwrapItems, formatDateShort, formatDateTimeShort, formatMetricPercent, clampPercent, getInitials } from '../../utils/dashboard';
 
 const tabs = [
   { id: 'overview', label: 'Overview' },
@@ -109,6 +111,12 @@ function normalizeUrl(value) {
     return text;
   }
   return '';
+}
+
+function toBackendUrl(value) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text || /^https?:\/\//i.test(text) || text.startsWith('data:') || text.startsWith('blob:')) return text;
+  return `${String(api.defaults.baseURL || '').replace(/\/+$/, '')}/${text.replace(/^\/+/, '')}`;
 }
 
 function fileExtension(url = '') {
@@ -192,7 +200,8 @@ function buildExperienceDisplay(candidate) {
 
 function normalizeCandidateData(analytics = {}) {
   const candidate = analytics.candidate || analytics.profile || analytics.user || analytics || {};
-  const resumeSource = candidate.resume || analytics.resume || analytics.uploaded_resume || candidate.uploaded_resume || {};
+  const resumes = asArray(candidate.resumes || analytics.resumes);
+  const resumeSource = candidate.resume || analytics.resume || analytics.uploaded_resume || candidate.uploaded_resume || resumes[0] || {};
   const resumePreviewUrl = normalizeUrl(resumeSource.preview_url || resumeSource.previewUrl || resumeSource.file_url || resumeSource.url || resumeSource.file_path || resumeSource.path);
   const resumeText = resumeSource.parsed_text || resumeSource.text || analytics.resume_preview || candidate.resume_preview || '';
   const certificatesSource = asArray(
@@ -417,6 +426,7 @@ function normalizeCandidateData(analytics = {}) {
       previewUrl: resumePreviewUrl,
       text: resumeText,
     },
+    application: analytics.application || candidate.application || {},
     hasResume: Boolean(resumePreviewUrl || resumeText),
     certificateDocuments: certificatesSource.map((doc, index) => normalizeDocument(doc, index, 'certificate')),
     detectedSkills: skillsDetected,
@@ -660,6 +670,8 @@ function buildDefaultEvaluation(workspace) {
     interviewTime: '',
     interviewerName: workspace.recruiterAssigned !== 'Not provided' ? workspace.recruiterAssigned : '',
     interviewType: 'online',
+    interviewLocation: '',
+    contactPhone: workspace.phone !== 'Not provided' ? workspace.phone : '',
     savedAt: null,
   };
 }
@@ -677,6 +689,8 @@ function normalizeDecisionState(savedEvaluation, workspace) {
     interviewTime: savedEvaluation.interviewTime || '',
     interviewerName: savedEvaluation.interviewerName || defaults.interviewerName,
     interviewType: savedEvaluation.interviewType || defaults.interviewType,
+    interviewLocation: savedEvaluation.interviewLocation || '',
+    contactPhone: savedEvaluation.contactPhone || defaults.contactPhone,
     savedAt: savedEvaluation.savedAt || null,
   };
 }
@@ -1007,6 +1021,8 @@ function DecisionButton({ active, label, description, onClick, tone = 'neutral' 
 
 export default function AdminCandidateDetailPage() {
   const { candidateId } = useParams();
+  const [searchParams] = useSearchParams();
+  const requestedApplicationId = searchParams.get('application_id');
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -1015,25 +1031,59 @@ export default function AdminCandidateDetailPage() {
   const [evaluation, setEvaluation] = useState(() => buildDefaultEvaluation({}));
   const [evaluationMessage, setEvaluationMessage] = useState('');
   const [savingEvaluation, setSavingEvaluation] = useState(false);
+  const [savingAction, setSavingAction] = useState(false);
+  const initialLoadRef = useRef(true);
 
   useEffect(() => {
     let mounted = true;
+    initialLoadRef.current = true;
 
     async function loadCandidate() {
+      const isInitialLoad = initialLoadRef.current;
       try {
         setError(null);
-        setLoading(true);
-        const [analyticsResponse, profileResponse, applicationsResponse] = await Promise.all([
+        if (isInitialLoad) setLoading(true);
+        const [analyticsResult, profileResult, applicationsResult] = await Promise.allSettled([
           analyticsService.candidate(candidateId),
           candidateService.get(candidateId).catch(() => null),
           applicationService.list().catch(() => null),
         ]);
-        const data = unwrapResponse(analyticsResponse) || {};
-        const profile = unwrapResponse(profileResponse) || {};
-        const application = (unwrapItems(applicationsResponse).find((item) => String(item.user_id) === String(candidateId)) || {});
+        const data = analyticsResult.status === 'fulfilled' ? unwrapResponse(analyticsResult.value) || {} : {};
+        const profile = profileResult.status === 'fulfilled' ? unwrapResponse(profileResult.value) || {} : {};
+        const applications = applicationsResult.status === 'fulfilled' ? unwrapItems(applicationsResult.value) : [];
+        const candidateApplications = applications.filter((item) => String(item.user_id) === String(candidateId));
+        const application = candidateApplications.find((item) => String(item.application_id) === String(requestedApplicationId))
+          || candidateApplications.find((item) => ['pending', 'reviewed', 'interview'].includes(String(item.status || '').toLowerCase()))
+          || candidateApplications[0]
+          || {};
+        if (!Object.keys(data).length && !Object.keys(profile).length && !Object.keys(application).length) {
+          throw analyticsResult.reason || profileResult.reason || applicationsResult.reason || new Error('Candidate data unavailable.');
+        }
+        const profileResumes = asArray(profile.resumes);
+        const selectedResume = profileResumes.find((resume) => String(resume.resume_id) === String(application.resume_id)) || profileResumes[0] || null;
+        const resumeId = selectedResume?.resume_id || application.resume_id;
+        const certificates = asArray(profile.certificates).map((certificate) => ({
+          ...certificate,
+          download_url: `/candidate/${candidateId}/certificate/${certificate.cert_id}/download`,
+        }));
         const merged = {
           ...data,
-          candidate: { ...(data.candidate || {}), ...profile, ...application },
+          application,
+          candidate: {
+            ...(data.candidate || {}),
+            ...profile,
+            ...application,
+            certificates,
+            ...(selectedResume
+              ? {
+                  resume: {
+                    ...selectedResume,
+                    preview_url: `/candidate/${candidateId}/resume/${resumeId}/download`,
+                    download_url: `/candidate/${candidateId}/resume/${resumeId}/download`,
+                  },
+                }
+              : {}),
+          },
           job: { ...(data.job || {}), title: application.job_title || data.job?.title, department_name: application.department_name || data.job?.department_name },
           missing_skills: application.missing_skills || data.missing_skills,
           strengths: application.strengths || data.strengths,
@@ -1048,7 +1098,8 @@ export default function AdminCandidateDetailPage() {
         }
       } finally {
         if (mounted) {
-          setLoading(false);
+          if (isInitialLoad) setLoading(false);
+          initialLoadRef.current = false;
         }
       }
     }
@@ -1065,7 +1116,7 @@ export default function AdminCandidateDetailPage() {
       if (interval) window.clearInterval(interval);
       if (candidateId) window.removeEventListener('focus', onFocus);
     };
-  }, [candidateId]);
+  }, [candidateId, requestedApplicationId]);
 
   const workspace = useMemo(() => normalizeCandidateData(analytics || {}), [analytics]);
   useEffect(() => {
@@ -1078,9 +1129,10 @@ export default function AdminCandidateDetailPage() {
   const historyEvents = useMemo(() => buildHistoryEvents(workspace, evaluation), [workspace, evaluation]);
   const evaluationMetrics = useMemo(() => buildEvaluationMetrics(workspace), [workspace]);
   const skillGroups = useMemo(() => buildSkillGroups(workspace), [workspace]);
-  const resumeUrl = workspace.resume.previewUrl || workspace.resume.url;
-  const resumeDownloadUrl = workspace.resume.url || workspace.resume.previewUrl;
-  const certificateDownloadUrl = workspace.certificateDocuments.find((doc) => doc.url)?.url || '';
+  const resumeUrl = toBackendUrl(workspace.resume.previewUrl || workspace.resume.url);
+  const resumeDownloadUrl = toBackendUrl(workspace.resume.url || workspace.resume.previewUrl);
+  const certificateDownloadUrl = toBackendUrl(workspace.certificateDocuments.find((doc) => doc.url)?.url || '');
+  const applicationDetails = workspace.application || {};
   const activeDecision = evaluation.decision || 'hold';
   const overallMatchValue = clampPercent(workspace.overallMatchScore);
   const candidateInitials = getInitials(workspace.candidate);
@@ -1307,6 +1359,8 @@ export default function AdminCandidateDetailPage() {
       interviewTime: evaluation.interviewTime,
       interviewerName: evaluation.interviewerName,
       interviewType: evaluation.interviewType,
+      interviewLocation: evaluation.interviewLocation,
+      contactPhone: evaluation.contactPhone,
       savedAt: new Date().toISOString(),
       candidateId,
     };
@@ -1326,6 +1380,68 @@ export default function AdminCandidateDetailPage() {
     }
   };
 
+  async function updateApplicationStatus(status) {
+    if (!applicationDetails.application_id) {
+      setEvaluationMessage('This candidate does not have an application ID.');
+      return;
+    }
+    if (status === 'accepted') {
+      const requiredInterviewFields = [
+        ['interviewDate', 'interview date'],
+        ['interviewTime', 'interview time'],
+        ['interviewerName', 'interviewer name'],
+        ['contactPhone', 'contact phone'],
+        ['interviewLocation', 'location or meeting link'],
+      ];
+      const missingFields = requiredInterviewFields
+        .filter(([key]) => !String(evaluation[key] || '').trim())
+        .map(([, label]) => label);
+      if (missingFields.length) {
+        setEvaluationMessage(`Complete these fields before accepting: ${missingFields.join(', ')}.`);
+        return;
+      }
+    }
+    try {
+      setSavingAction(true);
+      await applicationService.updateStatus(applicationDetails.application_id, status);
+      setEvaluation((current) => ({ ...current, decision: status === 'accepted' ? 'accept' : 'reject' }));
+      setEvaluationMessage(`Application marked as ${status}. Status email sent to ${workspace.email}.`);
+    } catch (err) {
+      setEvaluationMessage(err?.response?.data?.detail || 'Unable to update the application status.');
+    } finally {
+      setSavingAction(false);
+    }
+  }
+
+  async function scheduleInterview() {
+    if (!applicationDetails.job_id || !evaluation.interviewDate || !evaluation.interviewTime || !evaluation.interviewerName) {
+      setEvaluationMessage('Enter the interview date, time, and interviewer name first.');
+      return;
+    }
+    try {
+      setSavingAction(true);
+      const response = await interviewService.schedule({
+        candidate_id: candidateId,
+        job_id: applicationDetails.job_id,
+        interview_date: evaluation.interviewDate,
+        interview_time: evaluation.interviewTime,
+        duration_minutes: 60,
+        interview_type: evaluation.interviewType === 'online' ? 'Online' : 'On-site',
+        interviewer_name: evaluation.interviewerName,
+        location: evaluation.interviewLocation || null,
+        contact_phone: evaluation.contactPhone || null,
+        notes: evaluation.notes || null,
+      });
+      const interview = unwrapResponse(response) || {};
+      setEvaluation((current) => ({ ...current, decision: 'interview', savedAt: new Date().toISOString() }));
+      setEvaluationMessage(`Interview scheduled. Invitation email ${interview.email_status === 'sent' ? 'sent' : 'created for delivery'} to ${workspace.email}.`);
+    } catch (err) {
+      setEvaluationMessage(err?.response?.data?.detail || 'Unable to schedule the interview.');
+    } finally {
+      setSavingAction(false);
+    }
+  }
+
   if (loading) {
     return <div className="rounded-[16px] border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading candidate workspace...</div>;
   }
@@ -1337,6 +1453,215 @@ export default function AdminCandidateDetailPage() {
       </div>
     );
   }
+
+  function downloadCandidateData() {
+    const escapeHtml = (value) => String(value ?? 'Not provided')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+    const formatValue = (value) => {
+      if (Array.isArray(value)) {
+        return value.map((item) => typeof item === 'object' ? item.label || item.name || JSON.stringify(item) : item).join(', ') || 'Not provided';
+      }
+      return value || 'Not provided';
+    };
+    const row = (label, value) => `<tr><td class="label">${escapeHtml(label)}</td><td class="value">${escapeHtml(formatValue(value))}</td></tr>`;
+    const section = (title, content) => `<section class="section"><h2>${escapeHtml(title)}</h2>${content}</section>`;
+    const status = applicationDetails.status || workspace.currentStatus || 'Under review';
+    const decision = evaluation.decision === 'accept'
+      ? 'Accepted'
+      : evaluation.decision === 'reject'
+        ? 'Rejected'
+        : evaluation.decision === 'interview'
+          ? 'Interview scheduled'
+          : status;
+    const html = `<!doctype html>
+      <html><head><meta charset="utf-8"><title>${escapeHtml(workspace.candidateName)} - Candidate Report</title>
+      <style>
+        @page{margin:.55in}body{font-family:Arial,Helvetica,sans-serif;color:#172033;margin:0;background:#f3f6fb}body>div{background:#fff;padding:34px 42px}.topbar{border-bottom:1px solid #dbe5f2;padding-bottom:15px}.brand{font-size:11px;font-weight:bold;letter-spacing:3px;color:#2563eb;text-transform:uppercase}.subtitle{font-size:11px;color:#71819a;margin-top:5px}.hero{background:#0b1740;color:#fff;padding:25px 28px;margin:20px 0 24px;border-radius:14px}.hero h1{font-size:29px;margin:0 0 6px}.hero p{color:#dbeafe;margin:0;font-size:13px}.meta{margin-top:18px;font-size:11px;color:#b9cdf5}.status{display:inline-block;background:#dbeafe;color:#123b8e;border-radius:20px;padding:6px 12px;margin-top:14px;font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:1px}.section{margin:24px 0}.section h2{font-size:15px;color:#102a72;font-weight:bold;letter-spacing:.4px;border-bottom:2px solid #2563eb;padding:0 0 8px;margin:0}.card{background:#f8fbff;border:1px solid #dbe7f5;padding:5px;margin-top:10px;border-radius:10px}.card p{margin:10px 12px;line-height:1.6}.two-col{width:100%;border-collapse:separate;border-spacing:8px 0;margin:5px -8px 0;width:calc(100% + 16px)}.two-col td{width:50%;vertical-align:top;border:0;padding:0}.two-col .card{margin-top:0}table{border-collapse:collapse;width:100%;margin-top:0}td{border-bottom:1px solid #e3ebf5;padding:10px 12px;vertical-align:top;font-size:12px;line-height:1.45}.label{width:29%;font-weight:bold;color:#526581;background:#eef5ff}.value{color:#172033}.highlight{background:#eefbf4;border:1px solid #b7ebce;color:#166534;padding:13px 15px;border-radius:10px;font-size:13px;font-weight:bold}.muted{color:#667892;font-size:12px;line-height:1.6}.footer{border-top:1px solid #dbe7f5;padding-top:15px;margin-top:30px;color:#70819b;font-size:10px}.confidential{float:right;color:#9aabc0}
+      </style></head><body><div>
+      <div class="topbar"><div class="brand">SmartHire AI</div><div class="subtitle">Candidate review report | Generated for recruitment use</div></div>
+      <div class="hero"><h1>${escapeHtml(workspace.candidateName)}</h1><p>${escapeHtml(applicationDetails.job_title || workspace.appliedPosition || 'Candidate application')}</p><div class="status">${escapeHtml(decision)}</div><div class="meta">Application #${escapeHtml(applicationDetails.application_id || 'Not provided')} | Applied ${escapeHtml(formatPlainDate(applicationDetails.created_at || workspace.applicationDate))}</div></div>
+      ${section('Candidate information', `<div class="card"><table>${row('Email', workspace.email)}${row('Phone', workspace.phone)}${row('Location', workspace.location)}${row('Date of birth', workspace.candidate.date_of_birth)}${row('University', workspace.university)}${row('Experience', workspace.yearsOfExperience)}</table></div>`)}
+      ${section('Professional links', `<div class="card"><table>${row('LinkedIn', workspace.linkedin)}${row('GitHub', workspace.github)}${row('Portfolio', workspace.portfolio)}${row('Professional summary', workspace.professionalSummary)}</table></div>`)}
+      ${section('Application details', `<div class="card"><table>${row('Position', applicationDetails.job_title || workspace.appliedPosition)}${row('Company', applicationDetails.company_name)}${row('Department', applicationDetails.department_name)}${row('Status', status)}${row('Applied date', applicationDetails.created_at || workspace.applicationDate)}${row('Cover letter', applicationDetails.cover_letter ? 'Attached' : 'Not attached')}</table></div>`)}
+      ${evaluation.interviewDate || evaluation.interviewTime || evaluation.interviewerName ? section('Interview details', `<div class="highlight">${escapeHtml(decision)}</div><div class="card"><table>${row('Date', evaluation.interviewDate)}${row('Time', evaluation.interviewTime)}${row('Interviewer', evaluation.interviewerName)}${row('Type', evaluation.interviewType === 'online' ? 'Online' : 'On-site')}${row('Location / meeting link', evaluation.interviewLocation)}${row('Contact phone', evaluation.contactPhone)}</table></div>`) : ''}
+      ${section('AI review', `<div class="card"><table>${row('AI match', workspace.overallMatchScore)}${row('Recommendation', workspace.aiRecommendation)}${row('Strong skills', workspace.strengths)}${row('Skills to improve', workspace.missingSkills)}</table></div>`)}
+      ${section('Documents', `<div class="card"><table>${row('CV / Resume', workspace.resume.title)}${row('Certificates', workspace.certificateDocuments.map((document) => document.title))}${row('Cover letter', applicationDetails.cover_letter ? 'Attached to application' : 'Not attached')}</table></div>`)}
+      ${applicationDetails.cover_letter ? section('Cover letter', `<div class="card"><p class="muted">${escapeHtml(applicationDetails.cover_letter)}</p></div>`) : ''}
+      <div class="footer">SmartHire AI <span class="confidential">Confidential candidate information</span></div></div></body></html>`;
+    const blob = new Blob([html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${workspace.candidateName.replace(/\s+/g, '-').toLowerCase()}-candidate-data.doc`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function downloadProtectedFile(url, fallbackName) {
+    if (!url) return;
+    try {
+      const response = await api.get(url, { responseType: 'blob' });
+      const objectUrl = URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = fallbackName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'Unable to download this document.');
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50/70 pb-10">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <Button as={Link} to="/admin/candidates" variant="secondary" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to candidates
+          </Button>
+          <div className="flex flex-wrap gap-2">
+            {resumeDownloadUrl ? (
+              <Button type="button" onClick={() => downloadProtectedFile(resumeDownloadUrl, workspace.resume.title || 'resume.pdf')} variant="primary">
+                <FileDown className="h-4 w-4" />
+                Download CV
+              </Button>
+            ) : null}
+            <Button type="button" variant="secondary" onClick={downloadCandidateData}>
+              <FileDown className="h-4 w-4" />
+              Save candidate data
+            </Button>
+          </div>
+        </div>
+
+        <section className="rounded-3xl bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-5 border-b border-slate-100 pb-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <Avatar initials={candidateInitials} size="lg" className="h-16 w-16 text-xl" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-600">Candidate application</p>
+                <h1 className="mt-1 text-3xl font-semibold tracking-[-0.05em] text-slate-950">{workspace.candidateName}</h1>
+                <p className="mt-1 text-sm text-slate-500">{displayValue(workspace.appliedPosition, 'Position not provided')}</p>
+              </div>
+            </div>
+            <StatusBadge status={workspace.currentStatus} />
+          </div>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              ['Email', workspace.email],
+              ['Phone', workspace.phone],
+              ['Location', workspace.location],
+              ['Date of birth', displayDate(workspace.candidate.date_of_birth, 'Not provided')],
+              ['Applied date', formatPlainDate(applicationDetails.created_at || workspace.applicationDate)],
+              ['Application ID', applicationDetails.application_id ? `#${applicationDetails.application_id}` : 'Not provided'],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{label}</p>
+                <p className="mt-2 break-words text-sm font-medium text-slate-900">{displayValue(value, 'Not provided')}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <AdminCard title="Application" description="The information submitted for this position.">
+            <div className="space-y-3 text-sm">
+              <p><span className="font-semibold text-slate-900">Company:</span> {displayValue(applicationDetails.company_name)}</p>
+              <p><span className="font-semibold text-slate-900">Position:</span> {displayValue(applicationDetails.job_title || workspace.appliedPosition)}</p>
+              <p><span className="font-semibold text-slate-900">Department:</span> {displayValue(applicationDetails.department_name)}</p>
+              <p><span className="font-semibold text-slate-900">Cover letter:</span> {applicationDetails.cover_letter ? 'Attached' : 'Not attached'}</p>
+              {applicationDetails.cover_letter ? <p className="rounded-2xl bg-slate-50 p-4 leading-6 text-slate-600">{applicationDetails.cover_letter}</p> : null}
+            </div>
+          </AdminCard>
+
+          <AdminCard title="Documents" description="Files submitted by this candidate.">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3 rounded-2xl bg-blue-50 p-4">
+                <div><p className="text-sm font-semibold text-slate-900">{workspace.resume.title}</p><p className="mt-1 text-xs text-slate-500">CV / Resume</p></div>
+                {resumeDownloadUrl ? <Button type="button" onClick={() => downloadProtectedFile(resumeDownloadUrl, workspace.resume.title || 'resume.pdf')} variant="primary" size="sm">Download</Button> : <span className="text-sm text-slate-500">Not attached</span>}
+              </div>
+              {workspace.certificateDocuments.length ? workspace.certificateDocuments.map((document) => (
+                <div key={document.id} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-4">
+                  <div><p className="text-sm font-semibold text-slate-900">{document.title}</p><p className="mt-1 text-xs text-slate-500">Certificate</p></div>
+                  {document.url ? <Button type="button" onClick={() => downloadProtectedFile(toBackendUrl(document.url), document.title || 'certificate')} variant="secondary" size="sm">Download</Button> : null}
+                </div>
+              )) : <p className="text-sm text-slate-500">No certificates attached.</p>}
+            </div>
+          </AdminCard>
+
+          <AdminCard title="Decision and interview" description="Choose a result or schedule an interview. The candidate receives an email automatically.">
+            <div className="space-y-5">
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="primary" loading={savingAction} onClick={() => updateApplicationStatus('accepted')}>
+                  Accept application
+                </Button>
+                <Button type="button" variant="secondary" loading={savingAction} onClick={() => updateApplicationStatus('rejected')}>
+                  Reject application
+                </Button>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input label="Interview date" type="date" value={evaluation.interviewDate} onChange={(event) => handleEvaluationChange('interviewDate', event.target.value)} />
+                <Input
+                  label="Interview time"
+                  type="time"
+                  step="900"
+                  value={evaluation.interviewTime}
+                  onChange={(event) => handleEvaluationChange('interviewTime', event.target.value)}
+                  onClick={(event) => event.currentTarget.showPicker?.()}
+                />
+                <Input label="Interviewer name" value={evaluation.interviewerName} onChange={(event) => handleEvaluationChange('interviewerName', event.target.value)} placeholder="Name of interviewer" />
+                <Input label="Contact phone" value={evaluation.contactPhone} onChange={(event) => handleEvaluationChange('contactPhone', event.target.value)} placeholder="Phone number" />
+                <label className="flex w-full flex-col">
+                  <span className="field-label">Interview type</span>
+                  <select value={evaluation.interviewType} onChange={(event) => handleEvaluationChange('interviewType', event.target.value)} className="h-11 rounded-[14px] border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+                    <option value="online">Online</option>
+                    <option value="onsite">On-site</option>
+                  </select>
+                </label>
+                <Input label="Location / meeting link" value={evaluation.interviewLocation} onChange={(event) => handleEvaluationChange('interviewLocation', event.target.value)} placeholder="Office address or online link" />
+              </div>
+
+              <Button type="button" variant="primary" loading={savingAction} onClick={scheduleInterview}>
+                <CalendarDays className="h-4 w-4" />
+                Schedule interview and send email
+              </Button>
+              {evaluationMessage ? <p className="rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">{evaluationMessage}</p> : null}
+            </div>
+          </AdminCard>
+
+          <AdminCard title="Profile information" description="Professional details saved by the candidate.">
+            <div className="space-y-4 text-sm">
+              <p className="leading-6 text-slate-700">{displayValue(workspace.professionalSummary, 'No profile summary provided.')}</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <p><span className="font-semibold text-slate-900">LinkedIn:</span> {displayValue(workspace.linkedin)}</p>
+                <p><span className="font-semibold text-slate-900">GitHub:</span> {displayValue(workspace.github)}</p>
+                <p><span className="font-semibold text-slate-900">Portfolio:</span> {displayValue(workspace.portfolio)}</p>
+                <p><span className="font-semibold text-slate-900">Experience:</span> {displayValue(workspace.yearsOfExperience)}</p>
+              </div>
+            </div>
+          </AdminCard>
+
+          <AdminCard title="AI summary" description="The main analysis signals for this application.">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-2xl bg-emerald-50 p-4"><span className="text-sm font-semibold text-slate-700">AI match</span><span className="text-2xl font-bold text-emerald-700">{formatScoreValue(workspace.overallMatchScore)}</span></div>
+              <p className="text-sm leading-6 text-slate-700">{displayValue(workspace.aiRecommendation, 'No AI recommendation available.')}</p>
+              <p className="text-sm"><span className="font-semibold text-slate-900">Strong skills:</span> {workspace.strengths.length ? workspace.strengths.join(', ') : 'Not available'}</p>
+              <p className="text-sm"><span className="font-semibold text-slate-900">Missing skills:</span> {workspace.missingSkills.length ? workspace.missingSkills.join(', ') : 'Not available'}</p>
+            </div>
+          </AdminCard>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50/70 pb-10">
@@ -1504,6 +1829,26 @@ export default function AdminCandidateDetailPage() {
               </div>
             </AdminCard>
           </div>
+
+          <AdminCard title="Application Details" description="Everything submitted for this specific job application.">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { label: 'Position', value: applicationDetails.job_title || workspace.appliedPosition },
+                { label: 'Company', value: applicationDetails.company_name },
+                { label: 'Status', value: applicationDetails.status || workspace.currentStatus },
+                { label: 'Applied date', value: formatPlainDate(applicationDetails.created_at || workspace.applicationDate) },
+                { label: 'Application ID', value: applicationDetails.application_id ? `#${applicationDetails.application_id}` : null },
+                { label: 'Resume', value: workspace.hasResume ? workspace.resume.title : 'Not attached' },
+                { label: 'Cover letter', value: applicationDetails.cover_letter ? 'Attached' : 'Not attached' },
+                { label: 'AI recommendation', value: applicationDetails.ai_recommendation || workspace.aiRecommendation },
+              ].map((item) => (
+                <div key={item.label} className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</p>
+                  <p className="mt-2 break-words text-sm font-medium leading-6 text-slate-900">{displayValue(item.value, 'Not provided')}</p>
+                </div>
+              ))}
+            </div>
+          </AdminCard>
 
           <div className="grid gap-6 xl:grid-cols-2">
             <AdminCard

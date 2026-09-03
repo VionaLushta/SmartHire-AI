@@ -19,6 +19,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.database import Base
 
 if TYPE_CHECKING:
+    from app.models.application import Application
     from app.models.company import Company
     from app.models.skill import Skill
     from app.models.user import User
@@ -90,6 +91,9 @@ class Job(Base):
 
     company: Mapped["Company"] = relationship(back_populates="jobs")
     department: Mapped["Department | None"] = relationship(back_populates="jobs")
+    applications: Mapped[list["Application"]] = relationship(
+        back_populates="job", cascade="all, delete-orphan"
+    )
     skills: Mapped[list["JobSkill"]] = relationship(
         back_populates="job", cascade="all, delete-orphan"
     )

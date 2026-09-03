@@ -137,6 +137,7 @@ export function buildApplicationsByPosition(analytics = {}) {
 export function buildCandidateRows(analytics = {}) {
   const rows = asArray(analytics.top_candidates || analytics.candidates).map((candidate, index) => ({
     candidate_id: String(candidate.candidate_id || candidate.user_id || candidate.id || candidate.application_id || index + 1),
+    application_id: candidate.application_id || candidate.applicationId || null,
     candidate_name: candidate.candidate_name || candidate.name || `Candidate ${index + 1}`,
     applied_position:
       candidate.applied_position ||

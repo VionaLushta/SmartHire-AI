@@ -10,6 +10,7 @@ import Input from '../../components/ui/Input';
 import ErrorState from '../../components/ui/ErrorState';
 import Avatar from '../../components/ui/Avatar';
 import { analyticsService } from '../../services/analyticsService';
+import { applicationService } from '../../services/applicationService';
 import { unwrapResponse, getInitials, formatDateShort, formatMetricPercent } from '../../utils/dashboard';
 import { asArray, buildCandidateRows } from './adminData';
 
@@ -30,6 +31,8 @@ export default function AdminCandidatesPage() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [actionId, setActionId] = useState(null);
+  const [actionMessage, setActionMessage] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -71,6 +74,24 @@ export default function AdminCandidatesPage() {
 
   const statusCount = asArray(rows).length;
 
+  async function updateStatus(candidate, status) {
+    if (!candidate.application_id) {
+      setActionMessage('This candidate row has no application ID. Open Applications and use View there.');
+      return;
+    }
+    try {
+      setActionId(`${candidate.application_id}:${status}`);
+      setActionMessage('');
+      await applicationService.updateStatus(candidate.application_id, status);
+      setActionMessage(`Application marked as ${status}.`);
+      window.location.reload();
+    } catch (err) {
+      setActionMessage(err?.response?.data?.detail || 'Unable to update the application status.');
+    } finally {
+      setActionId(null);
+    }
+  }
+
   if (loading) {
     return <LoadingState title="Loading candidates..." description="Retrieving recruiter-ready candidate data." />;
   }
@@ -106,6 +127,7 @@ export default function AdminCandidatesPage() {
       <div className="mb-4 flex flex-wrap gap-2">
         <span className="chip">{statusCount} records</span>
         <span className="chip">{formatMetricPercent(analytics?.metrics?.average_ai_match_score)}</span>
+        {actionMessage ? <span className="chip text-slate-600">{actionMessage}</span> : null}
       </div>
 
       {filteredRows.length ? (
@@ -133,11 +155,11 @@ export default function AdminCandidatesPage() {
                   <td className="px-4 py-4 text-sm text-slate-500">{formatDateShort(candidate.applied_date)}</td>
                   <td className="px-4 py-4">
                     <div className="flex flex-wrap gap-2">
-                      <Button as={Link} to={`/admin/candidates/${candidate.candidate_id}`} size="sm" variant="secondary">
+                      <Button as={Link} to={`/admin/candidates/${candidate.candidate_id}${candidate.application_id ? `?application_id=${candidate.application_id}` : ''}`} size="sm" variant="secondary">
                         View
                       </Button>
-                      <Button type="button" size="sm" variant="secondary">Accept</Button>
-                      <Button type="button" size="sm" variant="secondary">Reject</Button>
+                      <Button type="button" size="sm" variant="secondary" loading={actionId === `${candidate.application_id}:accepted`} onClick={() => updateStatus(candidate, 'accepted')}>Accept</Button>
+                      <Button type="button" size="sm" variant="secondary" loading={actionId === `${candidate.application_id}:rejected`} onClick={() => updateStatus(candidate, 'rejected')}>Reject</Button>
                       <Button type="button" size="sm" variant="ghost">
                         <FileDown className="h-4 w-4" />
                       </Button>

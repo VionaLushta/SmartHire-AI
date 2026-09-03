@@ -129,6 +129,11 @@ class InterviewSchedulerService:
             .returning(*Interview.__table__.c)
         ).mappings().one()
 
+        interview_notes = payload.notes
+        if payload.contact_phone:
+            phone_note = f"Contact phone: {payload.contact_phone}"
+            interview_notes = f"{interview_notes}\n{phone_note}" if interview_notes else phone_note
+
         state = self._build_state(
             interview_row=dict(interview_row),
             candidate=candidate,
@@ -139,7 +144,7 @@ class InterviewSchedulerService:
             interview_type=self._normalize_interview_type(payload.interview_type),
             location=payload.location,
             meeting_link=payload.meeting_link,
-            notes=payload.notes,
+            notes=interview_notes,
             guide=guide,
             questions=questions,
             variant=variant,
@@ -148,6 +153,8 @@ class InterviewSchedulerService:
             event_name="Interview Scheduled",
             message="Interview scheduled successfully.",
         )
+        if payload.interviewer_name:
+            state["interviewer_name"] = payload.interviewer_name
         self._persist_state(state)
         self._update_application_status(application["application_id"], "interview_scheduled")
         self._append_timeline(
@@ -164,12 +171,12 @@ class InterviewSchedulerService:
             notification_type="invitation",
             candidate=candidate,
             job=job,
-            interviewer_name=self._user_name(interviewer),
+            interviewer_name=payload.interviewer_name or self._user_name(interviewer),
             interview_date=scheduled_at.date(),
             interview_time=payload.interview_time,
             interview_type=self._normalize_interview_type(payload.interview_type),
             meeting_link=payload.meeting_link,
-            notes=payload.notes,
+            notes=interview_notes,
             guide=guide,
         )
         state = self._update_state_after_email(state, email_result, scheduled_at)

@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, require_candidate
@@ -31,6 +32,36 @@ def update_candidate_profile(
 ) -> CandidateRead:
     service = CandidateService(db)
     return service.update_profile(current_user.user_id, payload)
+
+
+@router.get("/{candidate_id}/resume/{resume_id}/download")
+def download_candidate_resume(
+    candidate_id: uuid.UUID,
+    resume_id: int,
+    current_user: CurrentUserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    if current_user.role_name != "Admin" and current_user.user_id != candidate_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden.")
+
+    path = CandidateService(db).get_resume_path(candidate_id, resume_id)
+    media_type = "application/pdf" if path.suffix.lower() == ".pdf" else "application/octet-stream"
+    return FileResponse(path, filename=path.name, media_type=media_type)
+
+
+@router.get("/{candidate_id}/certificate/{cert_id}/download")
+def download_candidate_certificate(
+    candidate_id: uuid.UUID,
+    cert_id: int,
+    current_user: CurrentUserResponse = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    if current_user.role_name != "Admin" and current_user.user_id != candidate_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden.")
+
+    path = CandidateService(db).get_certificate_path(candidate_id, cert_id)
+    media_type = "application/pdf" if path.suffix.lower() == ".pdf" else "application/octet-stream"
+    return FileResponse(path, filename=path.name, media_type=media_type)
 
 
 @router.get("/{candidate_id}", response_model=CandidateRead)

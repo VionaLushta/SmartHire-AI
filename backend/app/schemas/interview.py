@@ -77,11 +77,13 @@ class InterviewScheduleRequest(BaseModel):
     candidate_id: UUID
     job_id: int = Field(gt=0)
     interviewer_id: UUID | None = None
+    interviewer_name: str | None = Field(default=None, max_length=200)
     interview_date: date
     interview_time: str
     duration_minutes: int = Field(ge=15, le=480)
     interview_type: InterviewType
     location: str | None = None
+    contact_phone: str | None = Field(default=None, max_length=40)
     meeting_link: str | None = None
     notes: str | None = None
     regenerate_questions: bool = False
@@ -91,7 +93,7 @@ class InterviewScheduleRequest(BaseModel):
     def _validate_time(cls, value: str) -> str:
         return clean_text(value, "Interview time", max_length=32)
 
-    @field_validator("location", "notes")
+    @field_validator("interviewer_name", "location", "contact_phone", "notes")
     @classmethod
     def _validate_optional_text(cls, value: str | None) -> str | None:
         return clean_optional_text(value, "Interview field", max_length=4000)

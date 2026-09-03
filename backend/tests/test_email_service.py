@@ -67,12 +67,6 @@ def test_welcome_template_includes_sign_in_link_without_credentials():
     assert "password" not in template.plain_text.lower()
     assert 'href="https://app.example.com/login"' in template.html_body
 
-    assert template.subject == "SmartHire AI | Offer of Employment - Viona Lushta"
-    assert "SmartHire AI" in template.html_body
-    assert "Hello Viona Lushta" in template.html_body
-    assert "Senior Backend Engineer" in template.html_body
-
-
 @pytest.mark.parametrize(
     "method_name, method_kwargs, expected_subject, expected_attachment, expected_fragment, expected_document",
     [

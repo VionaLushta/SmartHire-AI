@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, BriefcaseBusiness } from 'lucide-react';
+import { CheckCircle2, BriefcaseBusiness, Trash2 } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingState from '../../components/jobs/LoadingState';
@@ -12,6 +12,7 @@ import { PLATFORM_ORGANIZATION_NAME } from '../../constants/app';
 export default function AppliedJobsPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     async function loadApplications() {
@@ -39,6 +40,17 @@ export default function AppliedJobsPage() {
 
     loadApplications();
   }, []);
+
+  async function removeApplication(applicationId) {
+    if (!window.confirm('Are you sure you want to delete this application?')) return;
+    setDeletingId(applicationId);
+    try {
+      await applicationService.remove(applicationId);
+      setItems((current) => current.filter((item) => item.application_id !== applicationId));
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-10">
@@ -87,6 +99,14 @@ export default function AppliedJobsPage() {
                   <div className="flex items-center gap-3">
                     <Button as={Link} to={job.job_id ? `/jobs/${job.job_id}` : '/jobs'} variant="secondary">
                       View job
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={() => removeApplication(application.application_id)}
+                      disabled={deletingId === application.application_id}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {deletingId === application.application_id ? 'Deleting...' : 'Delete'}
                     </Button>
                   </div>
                 </div>

@@ -37,6 +37,7 @@ from app.schemas.resume_advisor import (
     ResumeAdvisorRoadmapItem,
 )
 from app.services.audit_log_service import record_audit_event
+from app.services.ocr_pdf_parser import extract_document_text
 from app.templates.pdf_letter import (
     build_body_paragraphs,
     build_bullet_list,
@@ -349,6 +350,8 @@ class ResumeAdvisorService:
         return self._dedupe(list(self.db.scalars(statement)))
 
     def _certificate_skills(self, user_id: UUID) -> list[str]:
+        # Read the certificate itself as well as the manually linked skills.
+        # The title is user-entered metadata and may only contain the candidate name.
         statement = (
             select(Skill.__table__.c.name)
             .select_from(
@@ -358,7 +361,40 @@ class ResumeAdvisorService:
             )
             .where(Certificate.__table__.c.user_id == user_id)
         )
-        return self._dedupe(list(self.db.scalars(statement)))
+        skills = list(self.db.scalars(statement))
+
+        documents = self.db.execute(
+            select(
+                Certificate.__table__.c.cert_id,
+                Certificate.__table__.c.title,
+                Certificate.__table__.c.issuer,
+                Certificate.__table__.c.file_path,
+            ).where(Certificate.__table__.c.user_id == user_id)
+        ).mappings()
+        for document in documents:
+            file_path = str(document.get("file_path") or "").strip()
+            if not file_path:
+                continue
+            try:
+                certificate_text = extract_document_text(file_path)
+                if not certificate_text.strip():
+                    continue
+                extracted = self.skill_extractor.extract(certificate_text)
+                skills.extend(str(value) for value in extracted.get("skills", []))
+                logger.info(
+                    "certificate text analyzed cert_id=%s skills=%s",
+                    document["cert_id"],
+                    extracted.get("skills", []),
+                )
+            except Exception as exc:
+                # A certificate should not prevent the rest of the CV analysis.
+                logger.warning(
+                    "certificate text analysis skipped cert_id=%s error=%s",
+                    document["cert_id"],
+                    type(exc).__name__,
+                )
+
+        return self._dedupe(skills)
 
     def _languages(self, user_id: UUID) -> list[str]:
         statement = (

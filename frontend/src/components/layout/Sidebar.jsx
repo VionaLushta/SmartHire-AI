@@ -24,7 +24,17 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
 
   const navigation = useMemo(() => {
     const roleName = String(user?.role_name || user?.role || '').toLowerCase();
-    const candidatePaths = new Set(['/candidate/dashboard', '/profile', '/resume']);
+    const candidatePaths = new Set([
+      '/candidate/dashboard',
+      '/candidate/profile',
+      '/candidate/resume',
+      '/candidate/applications',
+      '/candidate/saved-jobs',
+      '/candidate/notifications',
+      '/candidate/settings',
+      '/profile',
+      '/resume',
+    ]);
     if (location.pathname.startsWith('/admin') || roleName === 'admin' || roleName === 'administrator') {
       return adminNavigation;
     }
@@ -116,9 +126,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
             {navigation.map((item) => {
               const Icon = item.icon;
               const active = isItemActive(item);
-              const itemHref = navigation === candidateNavigation
-                ? `/candidate/dashboard${item.to}`
-                : item.to;
+              const itemHref = item.to;
               if (item.label === 'Logout') {
                 return (
                   <button

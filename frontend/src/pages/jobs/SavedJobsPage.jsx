@@ -35,20 +35,20 @@ export default function SavedJobsPage() {
         setItems([]);
       } finally {
         setLoading(false);
-  }
-
-  async function removeSavedJob(savedJob) {
-    try {
-      await savedJobService.remove(savedJob.job_id);
-      setItems((current) => current.filter((item) => item.job_id !== savedJob.job_id));
-    } catch (err) {
-      setError(err?.response?.data?.detail || 'Unable to remove this saved job.');
-    }
-  }
+      }
     }
 
     loadSavedJobs();
   }, []);
+
+  async function removeSavedJob(savedJob) {
+    try {
+      await savedJobService.remove(savedJob.job_id);
+      setItems((current) => current.filter((item) => String(item.job_id) !== String(savedJob.job_id)));
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'Unable to remove this saved job.');
+    }
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-10">

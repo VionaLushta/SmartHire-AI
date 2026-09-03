@@ -49,6 +49,16 @@ export default function AdminApplicationsPage() {
       setError(err?.response?.data?.detail || 'Unable to update application status.');
     }
   }
+
+  async function handleDelete(applicationId) {
+    if (!window.confirm('Delete this application permanently?')) return;
+    try {
+      await applicationService.remove(applicationId);
+      setApplications((current) => current.filter((item) => item.application_id !== applicationId));
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'Unable to delete application.');
+    }
+  }
   const filteredApplications = useMemo(() => {
     const term = query.trim().toLowerCase();
     if (!term) return applications;
@@ -93,7 +103,8 @@ export default function AdminApplicationsPage() {
                       <select className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm" value={application.status || 'pending'} onChange={(event) => handleStatusChange(application.application_id, event.target.value)}>
                         {statuses.map((status) => <option key={status} value={status}>{status}</option>)}
                       </select>
-                      <Button as={Link} to={`/admin/candidates/${application.user_id}`} size="sm" variant="ghost">View</Button>
+                      <Button as={Link} to={`/admin/candidates/${application.user_id}?application_id=${application.application_id}`} size="sm" variant="ghost">View</Button>
+                      <Button size="sm" variant="danger" onClick={() => handleDelete(application.application_id)}>Delete</Button>
                     </div>
                   </td>
                 </tr>

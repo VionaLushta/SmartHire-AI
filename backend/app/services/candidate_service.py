@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from pathlib import Path
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -44,6 +45,44 @@ class CandidateService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Candidate not found."
             )
         return CandidateRead.model_validate(self._with_documents(updated, user_id))
+
+    def get_resume_path(self, candidate_id: uuid.UUID, resume_id: int) -> Path:
+        resume = self.repo.db.execute(
+            select(Resume.__table__).where(
+                Resume.__table__.c.resume_id == resume_id,
+                Resume.__table__.c.user_id == candidate_id,
+            )
+        ).mappings().first()
+        if resume is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found."
+            )
+
+        path = Path(resume["file_path"])
+        if not path.is_file():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Resume file not found."
+            )
+        return path
+
+    def get_certificate_path(self, candidate_id: uuid.UUID, cert_id: int) -> Path:
+        certificate = self.repo.db.execute(
+            select(Certificate.__table__).where(
+                Certificate.__table__.c.cert_id == cert_id,
+                Certificate.__table__.c.user_id == candidate_id,
+            )
+        ).mappings().first()
+        if certificate is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Certificate not found."
+            )
+
+        path = Path(certificate["file_path"])
+        if not path.is_file():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Certificate file not found."
+            )
+        return path
 
     def _with_documents(self, candidate: dict, user_id: uuid.UUID) -> dict:
         db = self.repo.db
