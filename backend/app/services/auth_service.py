@@ -204,6 +204,22 @@ class AuthenticationService:
 
     def _send_login_notification(self, user: dict, metadata: dict[str, str | None]) -> None:
         logged_at = datetime.now(timezone.utc)
+        if self.background_tasks is not None:
+            self.background_tasks.add_task(
+                self._deliver_login_notification,
+                user,
+                metadata,
+                logged_at,
+            )
+            return
+        self._deliver_login_notification(user, metadata, logged_at)
+
+    def _deliver_login_notification(
+        self,
+        user: dict,
+        metadata: dict[str, str | None],
+        logged_at: datetime,
+    ) -> None:
         try:
             mailer = self._mailer()
             if not hasattr(mailer, "send_login_notification_email"):

@@ -146,13 +146,14 @@ def candidate_register(
 )
 def login(
     payload: LoginRequest,
+    background_tasks: BackgroundTasks,
     response: Response,
     request: Request,
     db: Session = Depends(get_db),
 ) -> TokenResponse:
     forwarded_for = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
     client_ip = forwarded_for or (request.client.host if request.client else None)
-    token = AuthenticationService(db).login(
+    token = AuthenticationService(db, background_tasks=background_tasks).login(
         payload,
         login_metadata={
             "device": request.headers.get("user-agent") or "Unknown browser",
@@ -166,12 +167,13 @@ def login(
 @router.post("/candidate/login", response_model=TokenResponse, summary="Authenticate a candidate")
 def candidate_login(
     payload: LoginRequest,
+    background_tasks: BackgroundTasks,
     response: Response,
     request: Request,
     db: Session = Depends(get_db),
 ) -> TokenResponse:
     forwarded_for = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-    token = AuthenticationService(db).candidate_login(
+    token = AuthenticationService(db, background_tasks=background_tasks).candidate_login(
         payload,
         login_metadata={
             "device": request.headers.get("user-agent") or "Unknown browser",
@@ -186,11 +188,12 @@ def candidate_login(
 @router.post("/admin/login", response_model=TokenResponse, summary="Authenticate an administrator")
 def admin_login(
     payload: LoginRequest,
+    background_tasks: BackgroundTasks,
     response: Response,
     request: Request,
     db: Session = Depends(get_db),
 ) -> TokenResponse:
-    token = AuthenticationService(db).admin_login(
+    token = AuthenticationService(db, background_tasks=background_tasks).admin_login(
         payload,
         login_metadata={
             "device": request.headers.get("user-agent") or "Unknown browser",
