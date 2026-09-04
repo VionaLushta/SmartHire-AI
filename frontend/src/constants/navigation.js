@@ -53,7 +53,7 @@ export const dashboardNavigation = [
 ];
 
 export const candidateNavigation = [
-  { label: 'Candidate Profile', to: ROUTES.candidateDashboard, icon: LayoutDashboard },
+  { label: 'Dashboard', to: ROUTES.candidateDashboard, icon: LayoutDashboard },
   { label: 'Resume & CV', to: ROUTES.candidateResume, icon: NotebookPen },
   { label: 'Applications', to: ROUTES.candidateApplications, icon: FileText },
   { label: 'Saved Jobs', to: ROUTES.candidateSavedJobs, icon: Bookmark },
@@ -78,8 +78,8 @@ export const companyNavigation = [
 
 export const dashboardPageMeta = {
   '/candidate/dashboard': {
-    title: 'Candidate Profile',
-    breadcrumbs: ['Dashboard', 'Candidate Profile'],
+    title: 'Candidate Dashboard',
+    breadcrumbs: ['Dashboard', 'Candidate Dashboard'],
   },
   '/candidate/profile': {
     title: 'My Profile',

@@ -314,8 +314,10 @@ export default function ResumePage() {
       const link = document.createElement('a');
       link.href = url;
       link.download = item.file_path?.split(/[\\/]/).pop() || fallbackName;
+      document.body.appendChild(link);
       link.click();
-      URL.revokeObjectURL(url);
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (requestError) {
       setError(requestError?.response?.data?.detail || 'Unable to download document.');
     }

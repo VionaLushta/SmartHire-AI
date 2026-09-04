@@ -32,6 +32,7 @@ const SavedJobsPage = lazy(() => import('../pages/jobs/SavedJobsPage'));
 const AppliedJobsPage = lazy(() => import('../pages/jobs/AppliedJobsPage'));
 const CompanyDashboard = lazy(() => import('../pages/company/CompanyDashboard'));
 const ProfilePage = lazy(() => import('../pages/candidate/ProfilePage'));
+const CandidateDashboard = lazy(() => import('../pages/candidate/CandidateDashboard'));
 const ResumePage = lazy(() => import('../pages/candidate/ResumePage'));
 const CertificatesPage = lazy(() => import('../pages/candidate/CertificatesPage'));
 const NotificationsPage = lazy(() => import('../pages/candidate/NotificationsPage'));
@@ -84,7 +85,14 @@ export default function AppRouter() {
               <Route path={ROUTES.careers.slice(1)} element={<JobsPage />} />
               <Route path={ROUTES.contact.slice(1)} element={<ContactPage />} />
               <Route path={ROUTES.jobs.slice(1)} element={<JobsPage />} />
-              <Route path="jobs/new" element={<CreateJobPage />} />
+              <Route
+                path="jobs/new"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'company', 'recruiter']}>
+                    <CreateJobPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="saved-jobs" element={<ProtectedRoute allowedRoles={['candidate']}><SavedJobsPage /></ProtectedRoute>} />
               <Route path="applied-jobs" element={<ProtectedRoute allowedRoles={['candidate']}><AppliedJobsPage /></ProtectedRoute>} />
               <Route path="certificates" element={<ProtectedRoute allowedRoles={['candidate']}><CertificatesPage /></ProtectedRoute>} />
@@ -98,7 +106,14 @@ export default function AppRouter() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="jobs/:id/edit" element={<EditJobPage />} />
+              <Route
+                path="jobs/:id/edit"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'company', 'recruiter']}>
+                    <EditJobPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path={ROUTES.notFound} element={<NotFoundPage />} />
             </Route>
 
@@ -141,7 +156,7 @@ export default function AppRouter() {
                 path={ROUTES.candidateDashboard.slice(1)}
                 element={
                   <ProtectedRoute allowedRoles={['candidate']}>
-                    <ProfilePage />
+                    <CandidateDashboard />
                   </ProtectedRoute>
                 }
               />

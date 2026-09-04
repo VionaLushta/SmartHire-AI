@@ -61,7 +61,7 @@ export default function DashboardLayout() {
     if (roleName === 'candidate') {
       return { actionLabel: 'Browse jobs', actionTo: '/jobs' };
     }
-    return { actionLabel: 'Action placeholder', actionTo: undefined };
+    return { actionLabel: null, actionTo: null };
   }, [location.pathname, user?.role, user?.role_name]);
 
   return (

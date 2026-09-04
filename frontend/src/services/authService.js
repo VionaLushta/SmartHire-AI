@@ -1,11 +1,16 @@
 import api from './api';
 
 export const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+export const githubClientId = import.meta.env.VITE_GITHUB_CLIENT_ID || '';
 export const isGoogleOAuthConfigured = Boolean(googleClientId);
+export const isGithubOAuthConfigured = Boolean(githubClientId);
 
 function buildOAuthUrl(provider, { roleName = 'Candidate', source = 'login' } = {}) {
-  if (provider === 'google' && !googleClientId) {
-    throw new Error('VITE_GOOGLE_CLIENT_ID is not configured.');
+  if (provider === 'google' && !isGoogleOAuthConfigured) {
+    throw new Error('Google Sign-In is not configured.');
+  }
+  if (provider === 'github' && !isGithubOAuthConfigured) {
+    throw new Error('GitHub Sign-In is not configured.');
   }
   const baseUrl = String(api.defaults.baseURL || '').replace(/\/$/, '');
   const path = provider === 'google' ? `/auth/google/login` : `/auth/oauth/${provider}/start`;

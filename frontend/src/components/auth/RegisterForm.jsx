@@ -10,7 +10,7 @@ import PasswordStrength from './PasswordStrength';
 import { authService } from '../../services/authService';
 import { clearAuthError, registerUser } from '../../redux/slices/authSlice';
 import { classNames } from '../../utils/classNames';
-import { isGoogleOAuthConfigured, googleClientId } from '../../services/authService';
+import { isGithubOAuthConfigured, isGoogleOAuthConfigured, googleClientId } from '../../services/authService';
 import { useNotifications } from '../../context/NotificationContext';
 
 function GoogleIcon() {
@@ -97,6 +97,7 @@ export default function RegisterForm({ returnTo = '' }) {
   const [values, setValues] = useState(initialState);
   const [touched, setTouched] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [oauthError, setOauthError] = useState('');
   const successNotificationShown = useRef(false);
 
   const errors = useMemo(() => validate(values), [values]);
@@ -186,12 +187,16 @@ export default function RegisterForm({ returnTo = '' }) {
   };
 
   const handleOAuthSignup = (provider) => {
-    const roleName = values.role || 'Candidate';
-    const url =
-      provider === 'google'
-        ? authService.googleOAuthUrl({ roleName, source: 'register' })
-        : authService.githubOAuthUrl({ roleName, source: 'register' });
-    window.location.assign(url);
+    try {
+      const roleName = values.role || 'Candidate';
+      const url =
+        provider === 'google'
+          ? authService.googleOAuthUrl({ roleName, source: 'register' })
+          : authService.githubOAuthUrl({ roleName, source: 'register' });
+      window.location.assign(url);
+    } catch (oauthException) {
+      setOauthError(oauthException.message);
+    }
   };
 
   return (
@@ -313,7 +318,7 @@ export default function RegisterForm({ returnTo = '' }) {
         ) : null}
       </div>
 
-      <FormError>{error}</FormError>
+      <FormError>{error || oauthError}</FormError>
 
       <Button type="submit" variant="primary" size="lg" className="w-full" disabled={busy || formInvalid}>
         Register
@@ -345,6 +350,8 @@ export default function RegisterForm({ returnTo = '' }) {
           variant="secondary"
           size="lg"
           className="w-full justify-center bg-white text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
+          disabled={!isGithubOAuthConfigured}
+          title={isGithubOAuthConfigured ? 'Continue with GitHub' : 'GitHub Sign-In is not configured.'}
           onClick={() => handleOAuthSignup('github')}
         >
           <Github className="h-5 w-5" aria-hidden="true" />

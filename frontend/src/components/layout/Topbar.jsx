@@ -71,14 +71,11 @@ export default function Topbar({
               </button>
             </div>
 
-            <Button
-              as={actionTo ? Link : 'button'}
-              {...(actionTo ? { to: actionTo } : {})}
-              variant="primary"
-              size="md"
-            >
-              {actionLabel}
-            </Button>
+            {actionLabel && actionTo ? (
+              <Button as={Link} to={actionTo} variant="primary" size="md">
+                {actionLabel}
+              </Button>
+            ) : null}
 
             <div className="hidden items-center gap-3 rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-3 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.03)] dark:border-slate-700 dark:bg-slate-900 lg:flex">
               <Avatar initials={initials} size="sm" />

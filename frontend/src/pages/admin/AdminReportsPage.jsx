@@ -38,6 +38,7 @@ import { unwrapItems, unwrapResponse, formatDateShort, formatDateTimeShort, form
 const CHART_COLORS = ['#2563eb', '#0f766e', '#7c3aed', '#f59e0b', '#ef4444', '#64748b'];
 
 const DEFAULT_FILTERS = {
+  dataset: 'demo',
   start_date: '',
   end_date: '',
   department_id: '',
@@ -269,6 +270,7 @@ export default function AdminReportsPage() {
   const aiAnalytics = analytics?.ai_analytics || {};
   const filterOptions = analytics?.filter_options || {};
   const summary = analytics?.summary || [];
+  const datasetLabel = appliedFilters.dataset === 'demo' ? 'Demo' : 'Live';
 
   const departmentOptions = normalizeOptions(filterOptions.departments || []);
   const jobOptions = normalizeOptions(filterOptions.jobs || []);
@@ -288,7 +290,7 @@ export default function AdminReportsPage() {
     {
       label: 'Total Applications',
       value: formatValue(metrics.total_applications || 0),
-      hint: 'All live applications in the selected scope.',
+      hint: `All ${datasetLabel.toLowerCase()} applications in the selected scope.`,
       icon: Users,
       tone: 'blue',
       accent: 'bg-blue-50 text-blue-700',
@@ -296,7 +298,7 @@ export default function AdminReportsPage() {
     {
       label: 'Active Jobs',
       value: formatValue(metrics.active_jobs || 0),
-      hint: 'Open or published jobs available to candidates.',
+      hint: `Open or published jobs in the ${datasetLabel.toLowerCase()} scope.`,
       icon: BriefcaseBusiness,
       tone: 'emerald',
       accent: 'bg-emerald-50 text-emerald-700',
@@ -304,7 +306,7 @@ export default function AdminReportsPage() {
     {
       label: 'Interviews',
       value: formatValue(metrics.interviews || 0),
-      hint: 'Applications that reached an interview stage.',
+      hint: `Applications in the ${datasetLabel.toLowerCase()} scope that reached an interview stage.`,
       icon: CalendarClock,
       tone: 'amber',
       accent: 'bg-amber-50 text-amber-700',
@@ -312,7 +314,7 @@ export default function AdminReportsPage() {
     {
       label: 'Hired',
       value: formatValue(metrics.hired || 0),
-      hint: 'Accepted or hired candidates.',
+      hint: `Accepted or hired candidates in the ${datasetLabel.toLowerCase()} scope.`,
       icon: CheckCircle2,
       tone: 'emerald',
       accent: 'bg-emerald-50 text-emerald-700',
@@ -320,7 +322,7 @@ export default function AdminReportsPage() {
     {
       label: 'Rejected',
       value: formatValue(metrics.rejected || 0),
-      hint: 'Candidates closed out of the pipeline.',
+      hint: `Candidates closed out of the ${datasetLabel.toLowerCase()} pipeline.`,
       icon: CircleSlash,
       tone: 'rose',
       accent: 'bg-rose-50 text-rose-700',
@@ -328,11 +330,15 @@ export default function AdminReportsPage() {
     {
       label: 'Average Match Score',
       value: formatMetricPercent(metrics.average_match_score || 0),
-      hint: 'Average AI fit across the selected data.',
+      hint: `Average AI fit across the selected ${datasetLabel.toLowerCase()} data.`,
       icon: BarChart3,
       tone: 'slate',
       accent: 'bg-slate-50 text-slate-700',
     },
+    { label: 'Pending', value: formatValue(metrics.pending_applications || 0), hint: `${datasetLabel} applications awaiting review.`, icon: Users, tone: 'amber', accent: 'bg-amber-50 text-amber-700' },
+    { label: 'Under Review', value: formatValue(metrics.under_review_applications || 0), hint: `${datasetLabel} applications in active review.`, icon: Users, tone: 'blue', accent: 'bg-blue-50 text-blue-700' },
+    { label: 'Accepted', value: formatValue(metrics.accepted_candidates || 0), hint: `${datasetLabel} candidates accepted.`, icon: CheckCircle2, tone: 'emerald', accent: 'bg-emerald-50 text-emerald-700' },
+    { label: 'Highest Match', value: formatMetricPercent(metrics.highest_match_score || 0), hint: `Best ${datasetLabel.toLowerCase()} candidate match.`, icon: Sparkles, tone: 'blue', accent: 'bg-blue-50 text-blue-700' },
   ];
 
   const statusPieData = normalizePoints(chartData.candidate_status_distribution || []);
@@ -341,6 +347,7 @@ export default function AdminReportsPage() {
   const monthlyData = normalizePoints(chartData.applications_per_month || []);
   const departmentData = normalizePoints(chartData.applications_by_department || []);
   const jobData = normalizePoints(chartData.applications_by_job || []);
+  const locationData = normalizePoints(chartData.applications_by_location || []);
   const topSkills = normalizePoints(aiAnalytics.top_skills || []);
   const missingSkills = normalizePoints(aiAnalytics.missing_skills || []);
   const topDepartments = normalizePoints(aiAnalytics.top_departments || []);
@@ -458,7 +465,10 @@ export default function AdminReportsPage() {
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-slate-500">
-          <span className="rounded-full border border-[rgba(15,23,42,0.08)] bg-slate-50 px-3 py-1.5 font-medium text-slate-700">
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 font-semibold text-amber-800">
+            {datasetLabel} Data
+            </span>
+            <span className="rounded-full border border-[rgba(15,23,42,0.08)] bg-slate-50 px-3 py-1.5 font-medium text-slate-700">
             Generated {analytics?.generated_at ? formatDateTimeShort(analytics.generated_at) : 'recently'}
           </span>
           {refreshing ? <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 font-medium text-blue-700">Refreshing live data...</span> : null}
@@ -480,6 +490,17 @@ export default function AdminReportsPage() {
       <AdminCard title="Filters" description="Filter the report snapshots and analytics by date, department, job, recruiter, and status.">
         <form onSubmit={handleApplyFilters} className="space-y-5">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <label className="field-group">
+              <span className="field-label">Dataset</span>
+              <select
+                className="h-11 w-full rounded-[14px] border border-[rgba(15,23,42,0.08)] bg-white px-4 text-[15px] text-slate-900 outline-none transition duration-150 ease-out focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10"
+                value={draftFilters.dataset}
+                onChange={(event) => updateFilter('dataset', event.target.value)}
+              >
+                <option value="demo">Demo data</option>
+                <option value="live">Live data</option>
+              </select>
+            </label>
             <label className="field-group">
               <span className="field-label">Date range start</span>
               <input
@@ -584,7 +605,7 @@ export default function AdminReportsPage() {
       <div className="grid gap-6 xl:grid-cols-2">
         <ChartCard
           title="Applications per Month"
-          description="Monthly application volume from the live database."
+          description={`Monthly application volume from the ${datasetLabel.toLowerCase()} dataset.`}
           emptyTitle="No monthly data"
           emptyDescription="Monthly volume appears once applications exist in the selected scope."
           hasData={monthlyData.length > 0}
@@ -622,6 +643,37 @@ export default function AdminReportsPage() {
           </div>
         </ChartCard>
       </div>
+
+      <ChartCard
+        title="Applications by Location"
+          description={`Geographic distribution of the ${datasetLabel.toLowerCase()} candidate pipeline.`}
+        emptyTitle="No location data"
+          emptyDescription={`Location counts appear after ${datasetLabel.toLowerCase()} applications are available.`}
+        hasData={locationData.length > 0}
+      >
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={locationData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis type="number" tickLine={false} axisLine={false} />
+              <YAxis type="category" dataKey="label" tickLine={false} axisLine={false} width={150} />
+              <Tooltip />
+              <Bar dataKey="value" fill="#f59e0b" radius={[0, 999, 999, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </ChartCard>
+
+      <AdminCard title="Recent Applications" description={`Latest ${datasetLabel.toLowerCase()} applications in the selected reporting dataset.`}>
+        <div className="overflow-x-auto rounded-[16px] border border-[rgba(15,23,42,0.08)]">
+          <table className="min-w-full divide-y divide-[rgba(15,23,42,0.08)]">
+            <thead className="bg-slate-50"><tr>{['Candidate', 'Job', 'Location', 'AI Match', 'Applied Date', 'Status'].map((label) => <th key={label} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</th>)}</tr></thead>
+            <tbody className="divide-y divide-[rgba(15,23,42,0.08)] bg-white">
+              {(analytics?.recent_applications || []).map((item) => <tr key={item.application_id}><td className="px-4 py-3 text-sm font-semibold text-slate-900">{item.candidate_name}</td><td className="px-4 py-3 text-sm text-slate-600">{item.job_title}</td><td className="px-4 py-3 text-sm text-slate-600">{item.location}</td><td className="px-4 py-3 text-sm font-semibold text-blue-700">{formatMetricPercent(item.overall_score || 0)}</td><td className="px-4 py-3 text-sm text-slate-600">{formatDateShort(item.created_at)}</td><td className="px-4 py-3 text-sm font-semibold text-slate-700">{toReadableLabel(item.status)}</td></tr>)}
+            </tbody>
+          </table>
+        </div>
+      </AdminCard>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <ChartCard
@@ -676,7 +728,7 @@ export default function AdminReportsPage() {
       <div className="grid gap-6 xl:grid-cols-2">
         <ChartCard
           title="Candidate Status Distribution"
-          description="Current status mix from the live application pipeline."
+          description={`Current status mix from the ${datasetLabel.toLowerCase()} application pipeline.`}
           emptyTitle="No status data"
           emptyDescription="Statuses appear once the pipeline contains applications."
           hasData={statusPieData.length > 0}

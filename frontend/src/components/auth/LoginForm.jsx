@@ -11,7 +11,7 @@ import RememberCheckbox from './RememberCheckbox';
 import { clearAuthError, loginUser } from '../../redux/slices/authSlice';
 import { getDashboardPathForRole, getSafeInternalPath } from '../../utils/auth';
 import { classNames } from '../../utils/classNames';
-import { isGoogleOAuthConfigured, googleClientId } from '../../services/authService';
+import { isGithubOAuthConfigured, isGoogleOAuthConfigured, googleClientId } from '../../services/authService';
 
 function GoogleIcon() {
   return (
@@ -67,6 +67,7 @@ export default function LoginForm({ authMode = 'candidate' }) {
   const [values, setValues] = useState(initialState);
   const [touched, setTouched] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [oauthError, setOauthError] = useState('');
   const returnTo = useMemo(() => {
     const searchParams = new URLSearchParams(location.search || '');
     const fromQuery = searchParams.get('returnTo');
@@ -94,6 +95,7 @@ export default function LoginForm({ authMode = 'candidate' }) {
     if (error) {
       dispatch(clearAuthError());
     }
+    setOauthError('');
     setValues((current) => ({
       ...current,
       [name]: type === 'checkbox' ? checked : value,
@@ -125,12 +127,16 @@ export default function LoginForm({ authMode = 'candidate' }) {
   };
 
   const handleOAuthLogin = (provider) => {
-    const roleName = 'Candidate';
-    const url =
-      provider === 'google'
-        ? authService.googleOAuthUrl({ roleName, source: 'login' })
-        : authService.githubOAuthUrl({ roleName, source: 'login' });
-    window.location.assign(url);
+    try {
+      const roleName = 'Candidate';
+      const url =
+        provider === 'google'
+          ? authService.googleOAuthUrl({ roleName, source: 'login' })
+          : authService.githubOAuthUrl({ roleName, source: 'login' });
+      window.location.assign(url);
+    } catch (oauthException) {
+      setOauthError(oauthException.message);
+    }
   };
 
   return (
@@ -190,7 +196,7 @@ export default function LoginForm({ authMode = 'candidate' }) {
         </div>
       </div>
 
-      <FormError>{error}</FormError>
+      <FormError>{error || oauthError}</FormError>
 
       <Button type="submit" variant="primary" size="lg" className="w-full" disabled={busy || formInvalid}>
         Login
@@ -223,6 +229,8 @@ export default function LoginForm({ authMode = 'candidate' }) {
             variant="secondary"
             size="lg"
             className="w-full justify-center bg-white text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
+            disabled={!isGithubOAuthConfigured}
+            title={isGithubOAuthConfigured ? 'Continue with GitHub' : 'GitHub Sign-In is not configured.'}
             onClick={() => handleOAuthLogin('github')}
           >
             <Github className="h-5 w-5" aria-hidden="true" />
