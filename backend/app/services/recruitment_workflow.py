@@ -23,7 +23,7 @@ from app.repositories.job_dashboard_repository import JobDashboardRepository
 from app.repositories.job_repository import JobRepository
 from app.services.analytics_service import AnalyticsService
 from app.services.audit_log_service import record_audit_event
-from app.services.email_service import EmailDeliveryError, EmailService
+from app.services.email_service import EmailConfigurationError, EmailDeliveryError, EmailService
 from app.services.nlp_matcher import (
     build_candidate_gaps,
     build_candidate_strengths,
@@ -362,7 +362,7 @@ class RecruitmentWorkflowService:
                     job_id=job_id,
                 )
             )
-        except EmailDeliveryError as exc:
+        except (EmailConfigurationError, EmailDeliveryError) as exc:
             email_status = "failed"
             error_message = str(exc)
             timeline.extend(

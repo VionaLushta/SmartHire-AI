@@ -446,7 +446,7 @@ function normalizeCandidateData(analytics = {}) {
   };
 }
 
-function buildHistoryEvents(workspace, evaluation = null) {
+function buildHistoryEvents(workspace, evaluation = null, interviews = []) {
   const events = [];
   const push = (title, description, date, tone = 'neutral') => {
     events.push({ id: `${title}-${events.length + 1}`, title, description, date, tone });
@@ -539,6 +539,16 @@ function buildHistoryEvents(workspace, evaluation = null) {
       'warning',
     );
   }
+
+  asArray(interviews).forEach((interview) => {
+    const scheduledAt = interview.scheduled_at || [interview.interview_date, interview.interview_time].filter(Boolean).join('T');
+    push(
+      'Interview Scheduled',
+      [interview.interview_type, interview.interviewer_name, interview.status].filter(Boolean).join(' - ') || 'Interview details recorded.',
+      scheduledAt || interview.created_at || null,
+      'warning',
+    );
+  });
 
   return events.sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
 }
@@ -1032,7 +1042,9 @@ export default function AdminCandidateDetailPage() {
   const [evaluationMessage, setEvaluationMessage] = useState('');
   const [savingEvaluation, setSavingEvaluation] = useState(false);
   const [savingAction, setSavingAction] = useState(false);
+  const [interviews, setInterviews] = useState([]);
   const initialLoadRef = useRef(true);
+  const hydratedCandidateRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -1043,14 +1055,16 @@ export default function AdminCandidateDetailPage() {
       try {
         setError(null);
         if (isInitialLoad) setLoading(true);
-        const [analyticsResult, profileResult, applicationsResult] = await Promise.allSettled([
+        const [analyticsResult, profileResult, applicationsResult, interviewsResult] = await Promise.allSettled([
           analyticsService.candidate(candidateId),
           candidateService.get(candidateId).catch(() => null),
           applicationService.list().catch(() => null),
+          interviewService.listForCandidate(candidateId).catch(() => null),
         ]);
         const data = analyticsResult.status === 'fulfilled' ? unwrapResponse(analyticsResult.value) || {} : {};
         const profile = profileResult.status === 'fulfilled' ? unwrapResponse(profileResult.value) || {} : {};
         const applications = applicationsResult.status === 'fulfilled' ? unwrapItems(applicationsResult.value) : [];
+        const candidateInterviews = interviewsResult.status === 'fulfilled' ? unwrapItems(interviewsResult.value) : [];
         const candidateApplications = applications.filter((item) => String(item.user_id) === String(candidateId));
         const application = candidateApplications.find((item) => String(item.application_id) === String(requestedApplicationId))
           || candidateApplications.find((item) => ['pending', 'reviewed', 'interview'].includes(String(item.status || '').toLowerCase()))
@@ -1091,6 +1105,7 @@ export default function AdminCandidateDetailPage() {
         };
         if (mounted) {
           setAnalytics(merged);
+          setInterviews(candidateInterviews);
         }
       } catch (err) {
         if (mounted) {
@@ -1120,13 +1135,14 @@ export default function AdminCandidateDetailPage() {
 
   const workspace = useMemo(() => normalizeCandidateData(analytics || {}), [analytics]);
   useEffect(() => {
-    if (!candidateId) return;
+    if (!candidateId || !analytics || hydratedCandidateRef.current === candidateId) return;
     const savedEvaluation = readSavedEvaluation(candidateId);
     setEvaluation(normalizeDecisionState(savedEvaluation, workspace));
     setEvaluationMessage(savedEvaluation ? 'Saved evaluation loaded from this browser.' : '');
-  }, [candidateId, workspace]);
+    hydratedCandidateRef.current = candidateId;
+  }, [analytics, candidateId, workspace]);
 
-  const historyEvents = useMemo(() => buildHistoryEvents(workspace, evaluation), [workspace, evaluation]);
+  const historyEvents = useMemo(() => buildHistoryEvents(workspace, evaluation, interviews), [workspace, evaluation, interviews]);
   const evaluationMetrics = useMemo(() => buildEvaluationMetrics(workspace), [workspace]);
   const skillGroups = useMemo(() => buildSkillGroups(workspace), [workspace]);
   const resumeUrl = toBackendUrl(workspace.resume.previewUrl || workspace.resume.url);
@@ -1385,27 +1401,11 @@ export default function AdminCandidateDetailPage() {
       setEvaluationMessage('This candidate does not have an application ID.');
       return;
     }
-    if (status === 'accepted') {
-      const requiredInterviewFields = [
-        ['interviewDate', 'interview date'],
-        ['interviewTime', 'interview time'],
-        ['interviewerName', 'interviewer name'],
-        ['contactPhone', 'contact phone'],
-        ['interviewLocation', 'location or meeting link'],
-      ];
-      const missingFields = requiredInterviewFields
-        .filter(([key]) => !String(evaluation[key] || '').trim())
-        .map(([, label]) => label);
-      if (missingFields.length) {
-        setEvaluationMessage(`Complete these fields before accepting: ${missingFields.join(', ')}.`);
-        return;
-      }
-    }
     try {
       setSavingAction(true);
       await applicationService.updateStatus(applicationDetails.application_id, status);
       setEvaluation((current) => ({ ...current, decision: status === 'accepted' ? 'accept' : 'reject' }));
-      setEvaluationMessage(`Application marked as ${status}. Status email sent to ${workspace.email}.`);
+      setEvaluationMessage(`Application marked as ${status}. PDF notification queued for ${workspace.email}.`);
     } catch (err) {
       setEvaluationMessage(err?.response?.data?.detail || 'Unable to update the application status.');
     } finally {
@@ -1433,6 +1433,7 @@ export default function AdminCandidateDetailPage() {
         notes: evaluation.notes || null,
       });
       const interview = unwrapResponse(response) || {};
+      setInterviews((current) => [...current, interview]);
       setEvaluation((current) => ({ ...current, decision: 'interview', savedAt: new Date().toISOString() }));
       setEvaluationMessage(`Interview scheduled. Invitation email ${interview.email_status === 'sent' ? 'sent' : 'created for delivery'} to ${workspace.email}.`);
     } catch (err) {
@@ -1599,15 +1600,6 @@ export default function AdminCandidateDetailPage() {
 
           <AdminCard title="Decision and interview" description="Choose a result or schedule an interview. The candidate receives an email automatically.">
             <div className="space-y-5">
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="primary" loading={savingAction} onClick={() => updateApplicationStatus('accepted')}>
-                  Accept application
-                </Button>
-                <Button type="button" variant="secondary" loading={savingAction} onClick={() => updateApplicationStatus('rejected')}>
-                  Reject application
-                </Button>
-              </div>
-
               <div className="grid gap-4 sm:grid-cols-2">
                 <Input label="Interview date" type="date" value={evaluation.interviewDate} onChange={(event) => handleEvaluationChange('interviewDate', event.target.value)} />
                 <Input
@@ -1634,6 +1626,14 @@ export default function AdminCandidateDetailPage() {
                 <CalendarDays className="h-4 w-4" />
                 Schedule interview and send email
               </Button>
+              <div className="flex flex-wrap gap-3 border-t border-slate-100 pt-5">
+                <Button type="button" variant="primary" loading={savingAction} onClick={() => updateApplicationStatus('accepted')}>
+                  Accept application
+                </Button>
+                <Button type="button" variant="secondary" loading={savingAction} onClick={() => updateApplicationStatus('rejected')}>
+                  Reject application
+                </Button>
+              </div>
               {evaluationMessage ? <p className="rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">{evaluationMessage}</p> : null}
             </div>
           </AdminCard>

@@ -343,6 +343,13 @@ class EmailService:
         )
         return self._deliver_simple_email(recipient, subject, plain_text, html_body)
 
+    def send_configuration_test_email(self, recipient: str) -> dict[str, str | None]:
+        self._validate_recipient(recipient)
+        subject = "SmartHire AI - Email Configuration Test"
+        plain_text = "Your SmartHire AI email configuration is working correctly."
+        html_body = "<p>Your SmartHire AI email configuration is working correctly.</p>"
+        return self._deliver_simple_email(recipient, subject, plain_text, html_body)
+
     def send_password_reset_email(
         self,
         recipient: str,
@@ -528,7 +535,12 @@ class EmailService:
                 if isinstance(failures, dict) and failures:
                     raise EmailDeliveryError(f"SMTP rejected recipients: {failures}")
         except smtplib.SMTPAuthenticationError as exc:
-            logger.exception("SMTP authentication failed recipient=%s timestamp=%s", recipient, timestamp)
+            if getattr(exc, "smtp_code", None) == 535:
+                logger.warning("SMTP authentication failed: Gmail App Password was rejected")
+                raise EmailDeliveryError(
+                    "SMTP authentication failed. Check that the Gmail App Password is valid and active."
+                ) from exc
+            logger.warning("SMTP authentication failed recipient=%s timestamp=%s", recipient, timestamp)
             raise EmailDeliveryError("SMTP authentication failed.") from exc
         except (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected) as exc:
             logger.exception("SMTP connection failed recipient=%s timestamp=%s", recipient, timestamp)

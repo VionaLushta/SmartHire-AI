@@ -26,7 +26,6 @@ export default function ResetPasswordPage() {
   const [values, setValues] = useState({ password: '', confirmPassword: '' });
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
   const errors = useMemo(() => validate(values), [values]);
@@ -42,7 +41,6 @@ export default function ResetPasswordPage() {
     event.preventDefault();
     setSubmitted(true);
     setErrorMessage('');
-    setSuccessMessage('');
 
     if (invalid) {
       if (!token) {
@@ -58,8 +56,7 @@ export default function ResetPasswordPage() {
         password: values.password,
         confirm_password: values.confirmPassword,
       });
-      setSuccessMessage('Your password has been updated. You can sign in with the new password now.');
-      window.setTimeout(() => navigate('/candidate/login', { replace: true }), 1500);
+      navigate('/candidate/login', { replace: true });
     } catch (requestError) {
       setErrorMessage(requestError?.response?.data?.detail || requestError.message || 'Unable to reset the password.');
     } finally {
@@ -101,12 +98,6 @@ export default function ResetPasswordPage() {
               error={(submitted || values.confirmPassword) && errors.confirmPassword}
               autoComplete="new-password"
             />
-
-            {successMessage ? (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                {successMessage}
-              </div>
-            ) : null}
 
             <FormError>{errorMessage}</FormError>
 

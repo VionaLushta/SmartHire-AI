@@ -680,11 +680,17 @@ class AuthenticationService:
 
     def _send_password_reset_email(self, user: dict, reset_url: str) -> None:
         display_name = f"{user['first_name']} {user['last_name']}".strip()
-        self._mailer().send_password_reset_email(user["email"], reset_url, display_name=display_name)
+        try:
+            self._mailer().send_password_reset_email(user["email"], reset_url, display_name=display_name)
+        except (EmailConfigurationError, EmailDeliveryError, OSError):
+            self.logger.warning("password reset email could not be delivered")
 
     def _send_password_changed_email(self, user: dict) -> None:
         display_name = f"{user['first_name']} {user['last_name']}".strip()
-        self._mailer().send_password_changed_email(user["email"], display_name=display_name)
+        try:
+            self._mailer().send_password_changed_email(user["email"], display_name=display_name)
+        except (EmailConfigurationError, EmailDeliveryError, OSError):
+            self.logger.warning("password changed email could not be delivered")
 
     def _send_welcome_email(self, user: dict) -> None:
         display_name = f"{user['first_name']} {user['last_name']}".strip()
