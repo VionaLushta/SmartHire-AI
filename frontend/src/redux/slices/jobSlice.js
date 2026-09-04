@@ -99,7 +99,9 @@ export const fetchJobs = createAsyncThunk(
       const response = await jobService.list({ page_size: 100 });
       const payload = unwrapResponse(response) || {};
       const items = asArray(unwrapItems(response));
-      const enriched = await Promise.all(asArray(items).map((job) => enrichJob(job)));
+      // Keep the jobs listing lightweight so the public page can render quickly
+      // even when the backend has many jobs or related entities.
+      const enriched = asArray(items).map((job) => normalizeJob(job));
       return {
         items: enriched,
         totalItems: payload.total_items ?? enriched.length,
