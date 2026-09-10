@@ -82,10 +82,11 @@ class JobSkillRepository:
         created = 0
         for category, skills in SKILL_LIBRARY:
             for name in skills:
-                if self.get_skill_by_name(name) is not None:
+                normalized_name = name.strip()
+                if self.get_skill_by_name(normalized_name) is not None:
                     continue
                 self.db.execute(
-                    insert(Skill.__table__).values(name=name, category=category)
+                    insert(Skill.__table__).values(name=normalized_name, category=category)
                 )
                 created += 1
         if created:

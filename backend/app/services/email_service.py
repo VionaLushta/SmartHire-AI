@@ -9,6 +9,7 @@ import re
 import smtplib
 import socket
 import ssl
+import re
 from pathlib import Path
 from typing import Any, Callable, Mapping
 from time import perf_counter
@@ -633,7 +634,9 @@ class EmailService:
             host=str(host).strip(),
             port=smtp_port,
             username=str(username).strip(),
-            password=str(password).strip(),
+            # Google displays app passwords in four-character groups; accept
+            # either the displayed form or the compact 16-character form.
+            password=re.sub(r"\s+", "", str(password)),
             sender=str(sender).strip(),
             use_tls=use_tls,
         )
