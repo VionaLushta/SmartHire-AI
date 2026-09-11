@@ -673,7 +673,7 @@ class AuthenticationService:
                 display_name=display_name,
             )
         except (EmailConfigurationError, EmailDeliveryError, OSError):
-            self.logger.warning(
+            self.logger.exception(
                 "verification email could not be delivered email=%s",
                 recipient,
             )

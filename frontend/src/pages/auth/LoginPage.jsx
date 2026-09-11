@@ -25,13 +25,16 @@ export default function LoginPage({ authMode = 'candidate' }) {
           <BrandLockup linkTo="/" subtitle="Premium hiring software" className="px-0 py-0" />
 
           <div className="space-y-2">
+            <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-blue-700">
+              {isAdmin ? 'Administrator access' : 'Candidate access'}
+            </span>
             <h1 className="text-3xl font-extrabold tracking-[-0.05em] text-slate-900 sm:text-[2rem]">
-              Log in to SmartHire AI
+              {isAdmin ? 'Admin Login' : 'Candidate Login'}
             </h1>
             <p className="max-w-md text-sm leading-6 text-slate-500">
               {isAdmin
-                ? 'Sign in to access the SmartHire AI administration workspace.'
-                : 'Sign in to manage your candidate profile, applications, and career opportunities.'}
+                ? 'This login is for SmartHire AI administrators only.'
+                : 'This login is for candidates only. Manage your profile, applications, and career opportunities.'}
             </p>
           </div>
 

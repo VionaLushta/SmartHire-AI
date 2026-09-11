@@ -17,16 +17,23 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("departments", sa.Column("company_id", sa.Integer(), nullable=False))
-    op.create_foreign_key(
-        "fk_departments_company_id_companies",
-        "departments",
-        "companies",
-        ["company_id"],
-        ["company_id"],
-    )
-    op.drop_constraint("departments_name_key", "departments", type_="unique")
-    op.create_unique_constraint("uq_departments_company_name", "departments", ["company_id", "name"])
+    inspector = sa.inspect(op.get_bind())
+    columns = {column["name"] for column in inspector.get_columns("departments")}
+    if "company_id" not in columns:
+        op.add_column("departments", sa.Column("company_id", sa.Integer(), nullable=False))
+
+    foreign_keys = {key.get("name") for key in inspector.get_foreign_keys("departments")}
+    if "fk_departments_company_id_companies" not in foreign_keys:
+        op.create_foreign_key(
+            "fk_departments_company_id_companies", "departments", "companies",
+            ["company_id"], ["company_id"],
+        )
+
+    unique_constraints = {key.get("name") for key in inspector.get_unique_constraints("departments")}
+    if "departments_name_key" in unique_constraints:
+        op.drop_constraint("departments_name_key", "departments", type_="unique")
+    if "uq_departments_company_name" not in unique_constraints:
+        op.create_unique_constraint("uq_departments_company_name", "departments", ["company_id", "name"])
 
 
 def downgrade() -> None:

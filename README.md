@@ -259,7 +259,7 @@ PostgreSQL
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.14+ (the dependency pins below include Python 3.14-compatible releases)
 - Node.js 18+
 - PostgreSQL 18+
 - Git
@@ -482,3 +482,9 @@ npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
 Open the app at `http://127.0.0.1:5173`.
+
+### Current local startup status
+
+- Frontend verified at `http://127.0.0.1:5173/`.
+- Backend dependencies install with Python 3.14 using the versions in `backend/requirements.txt`.
+- Backend startup is currently blocked because the repository references missing model modules, beginning with `backend/app/models/oauth_account.py`.
