@@ -6,10 +6,14 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import HTTPException, UploadFile, status
+from sqlalchemy import delete, update
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.validation import validate_document_upload
+from app.models.application import Application
+from app.models.resume import Award, Education, Project, Resume, WorkExperience
+from app.models.resume_skill import ResumeSkill
 from app.repositories.resume_repository import ResumeRepository
 from app.schemas.resume import ResumeRead
 from app.services.audit_log_service import record_audit_event
@@ -22,9 +26,11 @@ class ResumeService:
     def __init__(self, db: Session) -> None:
         self.repo = ResumeRepository(db)
         settings = get_settings()
+        self.app_root = Path(__file__).resolve().parents[1]
+        self.backend_root = Path(__file__).resolve().parents[2]
         self.upload_dir = Path(settings.upload_folder)
         if not self.upload_dir.is_absolute():
-            self.upload_dir = Path(__file__).resolve().parents[1] / self.upload_dir
+            self.upload_dir = self.backend_root / self.upload_dir
         self.upload_dir.mkdir(parents=True, exist_ok=True)
 
     def _validate_pdf(self, file: UploadFile) -> None:
@@ -114,10 +120,24 @@ class ResumeService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found.")
         if resume["user_id"] != user_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Resume does not belong to this candidate.")
-        path = Path(resume["file_path"])
+        path = self._existing_path(resume["file_path"])
         if not path.is_file():
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume file not found.")
         return path
+
+    def _existing_path(self, stored_path: str) -> Path:
+        path = Path(stored_path)
+        if path.is_file():
+            return path
+
+        name = path.name
+        candidates = [
+            self.upload_dir / name,
+            self.app_root / "uploads" / name,
+            self.app_root / "app" / "uploads" / name,
+            self.backend_root / "uploads" / name,
+        ]
+        return next((candidate for candidate in candidates if candidate.is_file()), path)
 
     def list_resumes(self, user_id: uuid.UUID | None = None) -> list[ResumeRead]:
         return [ResumeRead.model_validate(resume) for resume in self.repo.list(user_id)]
@@ -136,7 +156,19 @@ class ResumeService:
         path = Path(resume["file_path"])
         if path.exists():
             path.unlink()
+        self._detach_resume_references(resume_id)
         if not self.repo.delete(resume_id):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found."
+            )
+
+    def _detach_resume_references(self, resume_id: int) -> None:
+        self.repo.db.execute(
+            update(Application.__table__)
+            .where(Application.__table__.c.resume_id == resume_id)
+            .values(resume_id=None)
+        )
+        for model in (ResumeSkill, Education, WorkExperience, Project, Award):
+            self.repo.db.execute(
+                delete(model.__table__).where(model.__table__.c.resume_id == resume_id)
             )

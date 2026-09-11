@@ -30,7 +30,8 @@ import {
   Users,
 } from 'lucide-react';
 import { analyticsService } from '../../services/analyticsService';
-import { unwrapResponse, getInitials, formatMetricPercent } from '../../utils/dashboard';
+import { applicationService } from '../../services/applicationService';
+import { unwrapItems, unwrapResponse, getInitials, formatMetricPercent } from '../../utils/dashboard';
 import AdminCard from '../../components/admin/AdminCard';
 import EmptyState from '../../components/admin/EmptyState';
 import LoadingState from '../../components/jobs/LoadingState';
@@ -121,21 +122,25 @@ export default function AdminDashboardPage() {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [updatingApplicationId, setUpdatingApplicationId] = useState(null);
 
   useEffect(() => {
     let mounted = true;
 
     async function loadAdminOverview() {
       try {
-        const [overviewResult, trendsResult, skillsResult] = await Promise.allSettled([
+        const [overviewResult, trendsResult, skillsResult, applicationResult] = await Promise.allSettled([
           analyticsService.overview(),
           analyticsService.trends(),
           analyticsService.skills(),
+          applicationService.list(),
         ]);
 
         const overview = unwrapResponse(overviewResult.status === 'fulfilled' ? overviewResult.value : null) || {};
         const trends = unwrapResponse(trendsResult.status === 'fulfilled' ? trendsResult.value : null) || {};
         const skills = unwrapResponse(skillsResult.status === 'fulfilled' ? skillsResult.value : null) || {};
+        const applications = unwrapItems(applicationResult.status === 'fulfilled' ? applicationResult.value : null);
 
         const merged = {
           ...overview,
@@ -170,6 +175,7 @@ export default function AdminDashboardPage() {
             : asArray(trends.top_candidates).length
               ? trends.top_candidates
               : asArray(skills.top_candidates),
+          applications,
           applications_by_position:
             asArray(overview.applications_by_position).length
               ? overview.applications_by_position
@@ -202,7 +208,18 @@ export default function AdminDashboardPage() {
       window.clearInterval(interval);
       window.removeEventListener('focus', onFocus);
     };
-  }, []);
+  }, [refreshKey]);
+
+  async function handleApplicationStatus(candidate, status) {
+    if (!candidate.application_id) return;
+    setUpdatingApplicationId(candidate.application_id);
+    try {
+      await applicationService.updateStatus(candidate.application_id, status);
+      setRefreshKey((key) => key + 1);
+    } finally {
+      setUpdatingApplicationId(null);
+    }
+  }
 
   const kpis = useMemo(() => buildAdminKpis(analytics || {}), [analytics]);
   const applicationsByPosition = useMemo(() => buildApplicationsByPosition(analytics || {}), [analytics]);
@@ -523,13 +540,25 @@ export default function AdminDashboardPage() {
                               <Button as={Link} to={`/admin/candidates/${candidate.candidate_id}`} size="sm" variant="secondary">
                                 View
                               </Button>
-                              <Button type="button" size="sm" variant="secondary">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleApplicationStatus(candidate, 'accepted')}
+                                disabled={!candidate.application_id || updatingApplicationId === candidate.application_id}
+                              >
                                 Accept
                               </Button>
-                              <Button type="button" size="sm" variant="secondary">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleApplicationStatus(candidate, 'rejected')}
+                                disabled={!candidate.application_id || updatingApplicationId === candidate.application_id}
+                              >
                                 Reject
                               </Button>
-                              <Button type="button" size="sm" variant="ghost">
+                              <Button type="button" size="sm" variant="ghost" disabled={!candidate.resume_url}>
                                 <FileDown className="h-4 w-4" />
                               </Button>
                               {candidate.email ? (

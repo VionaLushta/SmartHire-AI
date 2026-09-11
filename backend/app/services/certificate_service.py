@@ -22,9 +22,11 @@ class CertificateService:
     def __init__(self, db: Session) -> None:
         self.repo = CertificateRepository(db)
         settings = get_settings()
+        self.app_root = Path(__file__).resolve().parents[1]
+        self.backend_root = Path(__file__).resolve().parents[2]
         self.upload_dir = Path(settings.upload_folder) / "certificates"
         if not self.upload_dir.is_absolute():
-            self.upload_dir = Path(__file__).resolve().parents[1] / self.upload_dir
+            self.upload_dir = self.backend_root / self.upload_dir
         self.upload_dir.mkdir(parents=True, exist_ok=True)
 
     def _validate_file(self, file: UploadFile) -> None:
@@ -139,7 +141,21 @@ class CertificateService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate not found.")
         if cert["user_id"] != user_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Certificate does not belong to this candidate.")
-        path = Path(cert["file_path"])
+        path = self._existing_path(cert["file_path"])
         if not path.is_file():
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certificate file not found.")
         return path
+
+    def _existing_path(self, stored_path: str) -> Path:
+        path = Path(stored_path)
+        if path.is_file():
+            return path
+
+        name = path.name
+        candidates = [
+            self.upload_dir / name,
+            self.app_root / "uploads" / "certificates" / name,
+            self.app_root / "app" / "uploads" / "certificates" / name,
+            self.backend_root / "uploads" / "certificates" / name,
+        ]
+        return next((candidate for candidate in candidates if candidate.is_file()), path)

@@ -156,8 +156,9 @@ class ApplicationService:
             resume_id=resume["resume_id"] if resume else None,
         )
 
-        if payload.cover_letter:
-            self._store_cover_letter(application_id, payload.cover_letter)
+        cover_letter = getattr(payload, "cover_letter", None)
+        if cover_letter:
+            self._store_cover_letter(application_id, cover_letter)
 
         ai_payload = self._build_ai_analysis(job, current_user, resume, application_id)
         self.db.execute(

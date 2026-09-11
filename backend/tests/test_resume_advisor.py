@@ -17,7 +17,10 @@ from app.core.config import get_settings
 from app.core.dependencies import get_current_user, get_db
 from app.database.database import Base
 from app.main import app
+from app.models.application import Application
 from app.models.certificate import Certificate, CertificateSkill
+from app.models.company import Company
+from app.models.job import Department, Job
 from app.models.resume import Education, Language, Resume, UserLanguage, WorkExperience
 from app.models.resume_skill import ResumeSkill
 from app.models.role import Role
@@ -376,6 +379,83 @@ def test_resume_upload_triggers_advisor_report_generation(test_db, tmp_path, mon
         app.dependency_overrides.clear()
         request_session.close()
         get_settings.cache_clear()
+
+
+def test_resume_delete_detaches_related_records(test_db, tmp_path):
+    seeded = _seed_candidate_account(test_db)
+    company_id = test_db.execute(
+        insert(Company.__table__).values(
+            name="SmartHire Labs",
+            industry="Technology",
+            website="https://smarthire.ai",
+            location="Remote",
+        )
+    ).inserted_primary_key[0]
+    department_id = test_db.execute(
+        insert(Department.__table__).values(
+            company_id=company_id,
+            name="Engineering",
+            description="Platform team",
+        )
+    ).inserted_primary_key[0]
+    job_id = test_db.execute(
+        insert(Job.__table__).values(
+            company_id=company_id,
+            department_id=department_id,
+            title="Backend Engineer",
+            description="Build APIs",
+            employment_type="Full-time",
+            experience_level="Mid",
+            location="Remote",
+            remote_option=True,
+            status="open",
+        )
+    ).inserted_primary_key[0]
+    resume_path = tmp_path / "resume.pdf"
+    resume_path.write_bytes(b"%PDF-1.4\n%test\n")
+    resume_id = test_db.execute(
+        insert(Resume.__table__).values(
+            user_id=seeded["candidate_id"],
+            file_path=str(resume_path),
+            parsed_text="Python FastAPI",
+        )
+    ).inserted_primary_key[0]
+    skill_id = test_db.execute(
+        insert(Skill.__table__).values(name="Python")
+    ).inserted_primary_key[0]
+    test_db.execute(
+        insert(ResumeSkill.__table__).values(resume_id=resume_id, skill_id=skill_id, confidence=0.95)
+    )
+    test_db.execute(
+        insert(Education.__table__).values(resume_id=resume_id, institution="UP", degree="BSc")
+    )
+    application_id = test_db.execute(
+        insert(Application.__table__).values(
+            user_id=seeded["candidate_id"],
+            job_id=job_id,
+            resume_id=resume_id,
+            status="submitted",
+        )
+    ).inserted_primary_key[0]
+    test_db.commit()
+
+    request_session = sessionmaker(bind=test_db.get_bind())()
+    app.dependency_overrides[get_db] = lambda: request_session
+    app.dependency_overrides[get_current_user] = lambda: _candidate_user(seeded["candidate_id"])
+    try:
+        with TestClient(app) as client:
+            response = client.delete(f"/resume/{resume_id}")
+            assert response.status_code == 204
+
+        assert not resume_path.exists()
+        assert request_session.get(Resume, resume_id) is None
+        application = request_session.get(Application, application_id)
+        assert application.resume_id is None
+        assert request_session.execute(select(ResumeSkill.__table__).where(ResumeSkill.__table__.c.resume_id == resume_id)).first() is None
+        assert request_session.execute(select(Education.__table__).where(Education.__table__.c.resume_id == resume_id)).first() is None
+    finally:
+        app.dependency_overrides.clear()
+        request_session.close()
 
 
 def test_resume_advisor_api_endpoints_respect_permissions(test_db, tmp_path):

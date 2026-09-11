@@ -11,7 +11,7 @@ import ErrorState from '../../components/ui/ErrorState';
 import Avatar from '../../components/ui/Avatar';
 import { analyticsService } from '../../services/analyticsService';
 import { applicationService } from '../../services/applicationService';
-import { unwrapResponse, getInitials, formatDateShort, formatMetricPercent } from '../../utils/dashboard';
+import { unwrapItems, unwrapResponse, getInitials, formatDateShort, formatMetricPercent } from '../../utils/dashboard';
 import { asArray, buildCandidateRows } from './adminData';
 
 function CandidateName({ candidate }) {
@@ -39,8 +39,16 @@ export default function AdminCandidatesPage() {
 
     async function loadData() {
       try {
-        const response = await analyticsService.overview();
-        const data = unwrapResponse(response) || {};
+        const [analyticsResult, applicationsResult] = await Promise.allSettled([
+          analyticsService.overview(),
+          applicationService.list(),
+        ]);
+        if (analyticsResult.status === 'rejected' && applicationsResult.status === 'rejected') {
+          throw analyticsResult.reason || applicationsResult.reason;
+        }
+        const data = unwrapResponse(analyticsResult.status === 'fulfilled' ? analyticsResult.value : null) || {};
+        const applications = unwrapItems(applicationsResult.status === 'fulfilled' ? applicationsResult.value : null);
+        data.applications = applications;
         if (mounted) setAnalytics(data);
       } catch (err) {
         if (mounted) setError(err?.response?.data?.detail || 'Unable to load candidates.');

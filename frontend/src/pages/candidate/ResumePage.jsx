@@ -310,7 +310,8 @@ export default function ResumePage() {
   async function downloadDocument(service, item, fallbackName) {
     try {
       const response = await service.download(item.resume_id || item.cert_id);
-      const url = URL.createObjectURL(response.data);
+      const blob = response.data instanceof Blob ? response.data : new Blob([response.data]);
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = item.file_path?.split(/[\\/]/).pop() || fallbackName;

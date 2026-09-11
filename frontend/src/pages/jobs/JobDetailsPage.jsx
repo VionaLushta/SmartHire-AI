@@ -8,7 +8,8 @@ import SkillBadge from '../../components/jobs/SkillBadge';
 import LoadingState from '../../components/jobs/LoadingState';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
-import { formatDateShort, formatSalaryRange, clampPercent } from '../../utils/dashboard';
+import { applicationService } from '../../services/applicationService';
+import { formatDateShort, formatSalaryRange, clampPercent, unwrapItems } from '../../utils/dashboard';
 import { PLATFORM_ORGANIZATION_NAME } from '../../constants/app';
 
 export default function JobDetailsPage() {
@@ -17,6 +18,7 @@ export default function JobDetailsPage() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const { selectedJob, selectedJobStatus, selectedJobError, savedJobs } = useSelector((state) => state.jobs);
+  const [applicationMatch, setApplicationMatch] = useState(null);
 
   useEffect(() => {
     if (id) {
@@ -26,6 +28,36 @@ export default function JobDetailsPage() {
       }
     }
   }, [dispatch, id, user?.user_id]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadApplicationMatch() {
+      if (!user?.user_id || !id) {
+        setApplicationMatch(null);
+        return;
+      }
+
+      try {
+        const response = await applicationService.list();
+        const applications = unwrapItems(response);
+        const currentApplication = applications.find((application) => String(application.job_id) === String(id));
+        if (active) {
+          setApplicationMatch(currentApplication || null);
+        }
+      } catch {
+        if (active) {
+          setApplicationMatch(null);
+        }
+      }
+    }
+
+    loadApplicationMatch();
+
+    return () => {
+      active = false;
+    };
+  }, [id, user?.user_id]);
 
   const applyPath = useMemo(() => `/jobs/${id}/apply`, [id]);
   const authenticated = Boolean(user);
@@ -49,7 +81,14 @@ export default function JobDetailsPage() {
     );
   }
 
-  const match = clampPercent(selectedJob.ai_match ?? selectedJob.ai_average_score ?? 0);
+  const rawMatch =
+    applicationMatch?.overall_score ??
+    applicationMatch?.analysis?.overall_score ??
+    selectedJob.ai_match ??
+    selectedJob.ai_average_score ??
+    null;
+  const hasMatch = rawMatch != null;
+  const match = hasMatch ? clampPercent(rawMatch) : null;
   const skills = Array.isArray(selectedJob.required_skills) && selectedJob.required_skills.length
     ? selectedJob.required_skills
     : Array.isArray(selectedJob.skill_names)
@@ -85,7 +124,7 @@ export default function JobDetailsPage() {
 
             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center shadow-sm">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">AI Match</p>
-              <p className="mt-2 text-3xl font-semibold text-slate-950">{match}%</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-950">{hasMatch ? `${match}%` : '-'}</p>
             </div>
           </div>
         </div>
@@ -198,13 +237,13 @@ export default function JobDetailsPage() {
             <h2 className="text-xl font-semibold text-slate-950">AI match panel</h2>
             <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Overall match</p>
-              <p className="mt-3 text-4xl font-semibold text-slate-950">{match}%</p>
+              <p className="mt-3 text-4xl font-semibold text-slate-950">{hasMatch ? `${match}%` : '-'}</p>
             </div>
 
             <div className="mt-5 space-y-4 text-sm text-slate-600">
-              <div className="flex items-center justify-between"><span>Matched skills</span><span className="font-semibold text-slate-900">{skills.slice(0, 3).join(', ')}</span></div>
-              <div className="flex items-center justify-between"><span>Resume score</span><span className="font-semibold text-slate-900">92%</span></div>
-              <div className="flex items-center justify-between"><span>Learning suggestions</span><span className="font-semibold text-slate-900">2 opportunities</span></div>
+              <div className="flex items-center justify-between gap-4"><span>Matched skills</span><span className="text-right font-semibold text-slate-900">{applicationMatch?.matched_skills?.length ? applicationMatch.matched_skills.slice(0, 3).join(', ') : hasMatch ? skills.slice(0, 3).join(', ') : 'Apply to analyze'}</span></div>
+              <div className="flex items-center justify-between"><span>Resume score</span><span className="font-semibold text-slate-900">{hasMatch ? `${match}%` : 'Not analyzed yet'}</span></div>
+              <div className="flex items-center justify-between"><span>Learning suggestions</span><span className="font-semibold text-slate-900">{applicationMatch?.missing_skills?.length ? `${applicationMatch.missing_skills.length} opportunities` : hasMatch ? 'No gaps found' : 'After applying'}</span></div>
             </div>
           </section>
 
